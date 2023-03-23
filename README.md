@@ -1,10 +1,10 @@
-#FLHuskies_PTTF
+# FLHuskies_PTTF
 
 Repository to share scripts and data for the Pushback to the Future competition.
 
 Used by the team FLHuskies out of the University of Washington Tacoma.
 
-##Members
+## Members
 
 Faculty:
   - Dr. Martine De Cock
@@ -25,7 +25,7 @@ Undergraduates:
   - Anthony Nguyen
   - Trevor Tomlin
 
-##Data Directory
+## Data Directory
 This repository does not contain the data as it is too large.
 
 Scripts operate under the assumption that there is a directory named "_data" in the 
@@ -74,6 +74,6 @@ data folder should appear as follows:
 Scripts that can read and use these compressed tables should be supplied a single command line argument "compressed".
 
 
-##CSV Files
+## CSV Files
 
 All raw .csv files in the entire project are excluded by .gitignore, except for compressed (.csv.bz2) files.
