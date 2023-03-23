@@ -3,6 +3,12 @@
 # Ignore _data directory
 _data/
 
+# Ignore all CSV files
+*.csv
+
+# But allow CSV files with bz2 extension
+!*.csv.bz2
+
 # PyCharm
 .idea/
 
