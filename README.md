@@ -49,6 +49,7 @@ _data
 │   │   ├── <airport>_tbfm.csv
 │   │   └── <airport>_tfm.csv
 │   └── train_labels_<airport>.csv
+├── submission_format.csv
 ├── ...
 ```
 
