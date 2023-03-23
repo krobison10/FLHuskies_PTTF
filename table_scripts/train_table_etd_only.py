@@ -7,7 +7,7 @@
 # To run on compressed data with format specified in README.md, supply a command line
 # argument "compressed" (untested).
 #
-# This script has some redundant steps as it was adapted from the baseline script.
+# This script has some redundant steps as it closely mimics the baseline script.
 #
 
 import sys
@@ -20,27 +20,6 @@ from functools import partial
 from pathlib import Path
 from sklearn.metrics import mean_absolute_error
 from tqdm import tqdm
-
-ext = ""
-if sys.argv[1] == "compressed":
-    ext = ".bz2"
-
-DATA_DIR = Path("../_data")
-
-airports = [
-    "KATL",
-    "KCLT",
-    "KDEN",
-    "KDFW",
-    "KJFK",
-    "KMEM",
-    "KMIA",
-    "KORD",
-    "KPHX",
-    "KSEA",
-]
-
-airport = 'KSEA'
 
 
 def table_for_timestamp(
@@ -72,35 +51,57 @@ def table_for_timestamp(
     return with_etd
 
 
-table = pd.read_csv(DATA_DIR / airport / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
+if __name__ == "__main__":
+    ext = ""
+    if len(sys.argv) > 1 and sys.argv[1] == "compressed":
+        ext = ".bz2"
 
-# load airport's ETD data and sort by timestamp
-airport_etd = pd.read_csv(
-    DATA_DIR / airport / f"features/{airport}_etd.csv{ext}",
-    parse_dates=["departure_runway_estimated_time", "timestamp"],
-).sort_values("timestamp")
+    DATA_DIR = Path("../_data")
 
-# process all prediction times in parallel
-with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-    fn = partial(table_for_timestamp, filtered_table=table, etd=airport_etd)
-    predictions = list(
-        tqdm(
-            executor.map(
-                fn,
-                pd.to_datetime(table.timestamp.unique())
-            ), total=len(table.timestamp.unique())
+    airports = [
+        "KATL",
+        "KCLT",
+        "KDEN",
+        "KDFW",
+        "KJFK",
+        "KMEM",
+        "KMIA",
+        "KORD",
+        "KPHX",
+        "KSEA",
+    ]
+
+    airport = 'KSEA'
+
+    table = pd.read_csv(DATA_DIR / airport / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
+
+    # load airport's ETD data and sort by timestamp
+    airport_etd = pd.read_csv(
+        DATA_DIR / airport / f"features/{airport}_etd.csv{ext}",
+        parse_dates=["departure_runway_estimated_time", "timestamp"],
+    ).sort_values("timestamp")
+
+    # process all prediction times in parallel
+    with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+        fn = partial(table_for_timestamp, filtered_table=table, etd=airport_etd)
+        predictions = list(
+            tqdm(
+                executor.map(
+                    fn,
+                    pd.to_datetime(table.timestamp.unique())
+                ), total=len(table.timestamp.unique())
+            )
         )
+
+    # concatenate individual prediction times to a single dataframe
+    predictions = pd.concat(predictions, ignore_index=True)
+
+    # reindex the predictions to match the expected ordering in the submission format
+    predictions = (
+        predictions.set_index(["gufi", "timestamp", "airport"])
+        .loc[table.set_index(["gufi", "timestamp", "airport"]).index].reset_index()
     )
 
-# concatenate individual prediction times to a single dataframe
-predictions = pd.concat(predictions, ignore_index=True)
+    table = pd.merge(table, predictions.drop(columns=['airport', 'minutes_until_pushback']), on=['gufi', 'timestamp'])
 
-# reindex the predictions to match the expected ordering in the submission format
-predictions = (
-    predictions.set_index(["gufi", "timestamp", "airport"])
-    .loc[table.set_index(["gufi", "timestamp", "airport"]).index].reset_index()
-)
-
-table = pd.merge(table, predictions.drop(columns=['airport', 'minutes_until_pushback']), on=['gufi', 'timestamp'])
-
-table.to_csv(Path("../train_tables/etd_only_old.csv"), index=False)
+    table.to_csv(Path("../train_tables/etd_only.csv"), index=False)

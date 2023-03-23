@@ -9,7 +9,7 @@
 # concurrently by dividing and conquering by timestamp to avoid redundant filtering.
 #
 # To run on compressed data with format specified in README.md, supply command line
-# argument "compressed" (untested).
+# argument "compressed".
 
 import multiprocessing
 import os
@@ -24,7 +24,7 @@ import pandas as pd  # type: ignore
 from tqdm import tqdm
 
 
-def estimate_pushback(now: pd.Timestamp, cur_submission_format: pd.DataFrame, cur_etd: pd.DataFrame) -> pd.Series:
+def estimate_pushback(now: pd.Timestamp, cur_submission_format: pd.DataFrame, cur_etd: pd.DataFrame) -> pd.DataFrame:
     # subset submission format to the current prediction time
     now_submission_format: pd.DataFrame = cur_submission_format.loc[cur_submission_format.timestamp == now].reset_index(drop=True)
 
@@ -35,11 +35,15 @@ def estimate_pushback(now: pd.Timestamp, cur_submission_format: pd.DataFrame, cu
     latest_now_etd = now_etd.groupby("gufi").last().departure_runway_estimated_time
 
     # merge the latest ETD with the flights we are predicting
-    departure_runway_estimated_time = now_submission_format.merge(latest_now_etd, how="left", on="gufi").departure_runway_estimated_time
+    departure_runway_estimated_time = now_submission_format.merge(
+        latest_now_etd, how="left", on="gufi"
+    ).departure_runway_estimated_time
 
     now_prediction = now_submission_format.copy()
 
-    now_prediction["minutes_until_pushback"] = ((departure_runway_estimated_time - now_submission_format.timestamp).dt.total_seconds() / 60) - 15
+    now_prediction["minutes_until_pushback"] = (
+        (departure_runway_estimated_time - now_submission_format.timestamp).dt.total_seconds() / 60
+    ) - 15
 
     return now_prediction
 
@@ -60,13 +64,17 @@ if __name__ == "__main__":
 
     BASELINE_FILE_DIR: str = os.path.dirname(__file__)
 
-    DATA_DIR: str = os.path.join(BASELINE_FILE_DIR, "..", "data")
+    DATA_DIR: str = os.path.join(BASELINE_FILE_DIR, "..", "_data")
 
-    submission_format: pd.DataFrame = pd.read_csv(os.path.join(DATA_DIR, f"submission_format.csv"), parse_dates=["timestamp"])
+    submission_format: pd.DataFrame = pd.read_csv(
+        os.path.join(DATA_DIR, f"submission_format.csv"), parse_dates=["timestamp"]
+    )
 
     for airport in airports:
         print(f"Processing {airport}")
-        airport_predictions_path: str = os.path.join(BASELINE_FILE_DIR, f"baseline_validation_predictions_{airport}.csv")
+        airport_predictions_path: str = os.path.join(
+            BASELINE_FILE_DIR, f"baseline_validation_predictions_{airport}.csv"
+        )
         if os.path.exists(airport_predictions_path):
             print(f"Predictions for {airport} already exist.")
             continue
@@ -87,7 +95,12 @@ if __name__ == "__main__":
         with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
             fn = partial(estimate_pushback, cur_submission_format=airport_submission_format, cur_etd=etd)
             predictions_t: list = list(
-                tqdm(executor.map(fn, pd.to_datetime(airport_submission_format.timestamp.unique())), total=len(airport_submission_format.timestamp.unique()))
+                tqdm(
+                    executor.map(
+                        fn,
+                        pd.to_datetime(airport_submission_format.timestamp.unique())
+                    ), total=len(airport_submission_format.timestamp.unique())
+                )
             )
 
         # concatenate individual prediction times to a single dataframe
@@ -109,7 +122,9 @@ if __name__ == "__main__":
 
     for airport in airports:
         # read each csv and append to array
-        airport_predictions_path = os.path.join(BASELINE_FILE_DIR, f"baseline_validation_predictions_{airport}.csv")
+        airport_predictions_path = os.path.join(
+            BASELINE_FILE_DIR, f"baseline_validation_predictions_{airport}.csv"
+        )
         predictions.append(pd.read_csv(airport_predictions_path, parse_dates=["timestamp"]))
 
     # turn array of dataframes into one dataframe and convert minutes until pushback to int
