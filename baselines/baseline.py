@@ -83,7 +83,7 @@ if __name__ == "__main__":
         airport_submission_format: pd.DataFrame = submission_format.loc[submission_format.airport == airport]
 
         # load airport's ETD data and sort by timestamp
-        etd_csv_path: str = os.path.join(DATA_DIR, airport, "features", f"{airport}_etd.csv")
+        etd_csv_path: str = os.path.join(DATA_DIR, airport, f"{airport}_etd.csv")
         if not os.path.exists(etd_csv_path) or (len(sys.argv) > 1 and sys.argv[1] == "compressed"):
             etd_csv_path += ".bz2"
         etd: pd.DataFrame = pd.read_csv(

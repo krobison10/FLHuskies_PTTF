@@ -110,24 +110,24 @@ if __name__ == "__main__":
 
     airport = "KSEA"
 
-    table = pd.read_csv(DATA_DIR / airport / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
+    table = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
         'etd': pd.read_csv(
-            DATA_DIR / airport / f"features/{airport}_etd.csv{ext}",
+            DATA_DIR / airport / f"{airport}_etd.csv{ext}",
             parse_dates=["departure_runway_estimated_time", "timestamp"]
         ).sort_values("timestamp"),
         'runways': pd.read_csv(
-            DATA_DIR / airport / f"features/{airport}_runways.csv{ext}",
+            DATA_DIR / airport / f"{airport}_runways.csv{ext}",
             parse_dates=["departure_runway_actual_time", "timestamp"]
         ),
         'first_position': pd.read_csv(
-            DATA_DIR / airport / f"features/{airport}_first_position.csv{ext}",
+            DATA_DIR / airport / f"{airport}_first_position.csv{ext}",
             parse_dates=["timestamp"]
         ),
         'standtimes': pd.read_csv(
-            DATA_DIR / airport / f"features/{airport}_standtimes.csv{ext}",
+            DATA_DIR / airport / f"{airport}_standtimes.csv{ext}",
             parse_dates=["timestamp", "departure_stand_actual_time"]
         )
     }

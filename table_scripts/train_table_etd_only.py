@@ -73,11 +73,11 @@ if __name__ == "__main__":
 
     airport = 'KSEA'
 
-    table = pd.read_csv(DATA_DIR / airport / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
+    table = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
 
     # load airport's ETD data and sort by timestamp
     airport_etd = pd.read_csv(
-        DATA_DIR / airport / f"features/{airport}_etd.csv{ext}",
+        DATA_DIR / airport / f"{airport}_etd.csv{ext}",
         parse_dates=["departure_runway_estimated_time", "timestamp"],
     ).sort_values("timestamp")
 
