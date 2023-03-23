@@ -49,8 +49,8 @@ _data
 │   │   ├── <airport>_tbfm.csv
 │   │   └── <airport>_tfm.csv
 │   └── train_labels_<airport>.csv
-├── submission_format.csv
-├── ...
+├── ***
+└── submission_format.csv
 ```
 
 Currently, the scripts in this repository only work with decompressed tables. In time, they will be modified
