@@ -12,21 +12,17 @@
 
 import sys
 import multiprocessing
-import pandas as pd
+import pandas as pd  # type: ignore
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error  # type: ignore
 from tqdm import tqdm
 
 
-def table_for_timestamp(
-        now: pd.Timestamp,
-        filtered_table: pd.DataFrame,
-        etd: pd.DataFrame
-) -> pd.DataFrame:
+def table_for_timestamp(now: pd.Timestamp, filtered_table: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
     time_filtered_table = filtered_table.loc[filtered_table.timestamp == now].reset_index(drop=True)
 
@@ -40,13 +36,9 @@ def table_for_timestamp(
     latest_now_etd = now_etd.groupby("gufi").last().departure_runway_estimated_time
 
     # merge the latest ETD with the flights we are predicting
-    departure_runway_estimated_time = time_filtered_table.merge(
-        latest_now_etd, how="left", on="gufi"
-    ).departure_runway_estimated_time
+    departure_runway_estimated_time = time_filtered_table.merge(latest_now_etd, how="left", on="gufi").departure_runway_estimated_time
 
-    with_etd["minutes_until_etd"] = (
-        ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
-    )
+    with_etd["minutes_until_etd"] = ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
 
     return with_etd
 
@@ -71,7 +63,7 @@ if __name__ == "__main__":
         "KSEA",
     ]
 
-    airport = 'KSEA'
+    airport = "KSEA"
 
     table = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
 
@@ -84,24 +76,14 @@ if __name__ == "__main__":
     # process all prediction times in parallel
     with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
         fn = partial(table_for_timestamp, filtered_table=table, etd=airport_etd)
-        predictions = list(
-            tqdm(
-                executor.map(
-                    fn,
-                    pd.to_datetime(table.timestamp.unique())
-                ), total=len(table.timestamp.unique())
-            )
-        )
+        predictions_t: list = list(tqdm(executor.map(fn, pd.to_datetime(table.timestamp.unique())), total=len(table.timestamp.unique())))
 
     # concatenate individual prediction times to a single dataframe
-    predictions = pd.concat(predictions, ignore_index=True)
+    predictions: pd.DataFrame = pd.concat(predictions_t, ignore_index=True)
 
     # reindex the predictions to match the expected ordering in the submission format
-    predictions = (
-        predictions.set_index(["gufi", "timestamp", "airport"])
-        .loc[table.set_index(["gufi", "timestamp", "airport"]).index].reset_index()
-    )
+    predictions = predictions.set_index(["gufi", "timestamp", "airport"]).loc[table.set_index(["gufi", "timestamp", "airport"]).index].reset_index()
 
-    table = pd.merge(table, predictions.drop(columns=['airport', 'minutes_until_pushback']), on=['gufi', 'timestamp'])
+    table = pd.merge(table, predictions.drop(columns=["airport", "minutes_until_pushback"]), on=["gufi", "timestamp"])
 
     table.to_csv(Path("../train_tables/etd_only.csv"), index=False)
