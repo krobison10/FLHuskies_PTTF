@@ -101,6 +101,7 @@ if __name__ == "__main__":
     airport = "KSEA"
 
     table: pd.DataFrame = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
+    table = table.drop_duplicates(subset=["gufi"])
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
@@ -113,10 +114,12 @@ if __name__ == "__main__":
     }
 
     # Add encoded column for runway
-    table["departure_runway"] = table.merge(feature_tables["runways"], how="left", on="gufi").departure_runway_actual
+    table = table.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
+    table["departure_runway_actual"] = table["departure_runway_actual"].fillna("NO_RUNWAY")
     encoder = OrdinalEncoder()
-    encoded_runways = encoder.fit_transform(table[["departure_runway"]])
+    encoded_runways = encoder.fit_transform(table[["departure_runway_actual"]])
     table["departure_runway"] = encoded_runways
+    table["departure_runway"].astype(int)
 
     # process all prediction times in parallel
     with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
