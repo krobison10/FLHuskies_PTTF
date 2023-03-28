@@ -1,5 +1,5 @@
 #
-# Author: Kyler Robison
+# Author: Yudong Lin, Kyler Robison
 #
 # This script builds a table of training data for a single airport that is hard coded.
 # It can easily be changed.
@@ -13,7 +13,6 @@ import multiprocessing
 import pandas as pd  # type: ignore
 import feature_engineering
 
-from concurrent.futures import ThreadPoolExecutor
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 from functools import partial
 from tqdm import tqdm
@@ -74,6 +73,27 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     standtime_30hr = feature_engineering.average_stand_time(origin, standtimes, now, 30)
     final_table["standtime_30hr"] = pd.Series([standtime_30hr] * len(time_filtered_table), index=time_filtered_table.index)
 
+    # ----- get forecast weather information -----
+    _lamp = data_tables["lamp"]
+    # round time to the nearest hour
+    forecast_timestamp_look_up = now.ceil("H")
+    # select all rows contain this forecast
+    forecasts = _lamp.loc[_lamp.forecast_timestamp == forecast_timestamp_look_up]
+    # if no forecast found, try to look for time earlier
+    hour_f: int = 0
+    while forecasts.shape[0] == 0:
+        hour_f += 1
+        forecast_timestamp_look_up = (now - pd.Timedelta(hours=hour_f)).ceil("H")
+        forecasts = _lamp.loc[_lamp.forecast_timestamp == forecast_timestamp_look_up]
+        # if no information within 30 days can be found, then throw error
+        if hour_f > 420:
+            raise Exception(f"Cannot find forecasts for timestamp {now}")
+    # get the latest forecast
+    latest_forecast = forecasts.iloc[forecasts.index.get_indexer([now], method="nearest")]
+    # update value
+    for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"):
+        final_table[key] = latest_forecast[key].values[0]
+
     return final_table
 
 
@@ -98,6 +118,9 @@ def generate(_airport: str, save_to: str) -> None:
         "runways": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
         "first_position": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]),
         "standtimes": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+        "lamp": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
+        .set_index("timestamp")
+        .sort_values("timestamp"),
     }
 
     # Add encoded column for runway

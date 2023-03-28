@@ -1,15 +1,22 @@
+#
+# Author: Yudong Lin
+#
+# This script is used to experiment with some traditional regression models
+# and find what features is/are better
+#
+
 import os
 
 import numpy as np
 import pandas as pd  # type: ignore
 from sklearn.ensemble import AdaBoostRegressor  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
-from sklearn.tree import DecisionTreeRegressor  # type: ignore
 from sklearn.model_selection import cross_val_score  # type: ignore
+from sklearn.tree import DecisionTreeRegressor  # type: ignore
 
 DATA_DIR: str = os.path.dirname(__file__)
 
-_data = pd.DataFrame = pd.read_csv(os.path.join(DATA_DIR, "..", "train_tables", "main.csv"), parse_dates=["timestamp"])
+_data = pd.DataFrame = pd.read_csv(os.path.join(DATA_DIR, "..", "train_tables", "main_KSEA.csv"), parse_dates=["timestamp"])
 
 # fill nan with 0
 _data = _data.fillna(0)
@@ -19,19 +26,20 @@ _data["day"] = _data.apply(lambda x: x.timestamp.day, axis=1)
 _data["hour"] = _data.apply(lambda x: x.timestamp.hour, axis=1)
 _data["minute"] = _data.apply(lambda x: x.timestamp.minute, axis=1)
 _data["weekday"] = _data.apply(lambda x: x.timestamp.weekday(), axis=1)
-
+"""
+    _data["month"],
+    _data["day"],
+    _data["hour"],
+    _data["minute"],
+    _data["weekday"],
+    _data["delay_3hr"],
+    _data["delay_30hr"],
+    _data["standtime_3hr"],
+    _data["standtime_30hr"],
+    _data["departure_runway"],
+"""
 X = np.asarray(
     [
-        _data["month"],
-        _data["day"],
-        _data["hour"],
-        _data["minute"],
-        _data["weekday"],
-        _data["delay_3hr"],
-        _data["delay_30hr"],
-        _data["standtime_3hr"],
-        _data["standtime_30hr"],
-        _data["departure_runway"],
         _data["minutes_until_etd"],
     ]
 )
