@@ -32,6 +32,7 @@ X = np.asarray(
         _data["standtime_3hr"],
         _data["standtime_30hr"],
         _data["departure_runway"],
+        _data["minutes_until_etd"],
     ]
 )
 
