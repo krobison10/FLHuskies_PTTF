@@ -101,7 +101,7 @@ if __name__ == "__main__":
     airport = "KSEA"
 
     table: pd.DataFrame = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
-    table = table.drop_duplicates(subset=["gufi"])
+    # table = table.drop_duplicates(subset=["gufi"])
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
