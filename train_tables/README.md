@@ -1,3 +1,3 @@
 # train_tables
 
-This directory contains generated training tables and any scripts to directly process them (merge, zip, etc.).
+This directory contains generated tables of training data that are built using the prescreened arena train tables.

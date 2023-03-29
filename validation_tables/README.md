@@ -1,3 +1,3 @@
-# train_tables
+# validation_tables
 
-This directory contains generated training tables and any scripts to directly process them (merge, zip, etc.).
+This directory contains generated tables of validation data are built using the open arena train tables.

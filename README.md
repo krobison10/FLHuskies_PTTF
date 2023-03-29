@@ -47,8 +47,13 @@ _data
 │   ├── <airport>_standtimes.csv
 │   ├── <airport>_tbfm.csv
 │   └── <airport>_tfm.csv
-├── train_labels_<airport>.csv
-├── ***
+├── ...
+├── train_labels_open
+│   ├── train_labels_<airport>.csv
+│   └── ...
+├── train_labels_prescreened
+│   ├── prescreened_train_labels_<airport>.csv
+│   └── ...
 └── submission_format.csv
 
 ```
@@ -66,12 +71,18 @@ _data
 │   ├── <airport>_runways.csv.bz2
 │   ├── <airport>_standtimes.csv.bz2
 │   └── <airport>_tbfm.csv.bz2
-├── train_labels_<airport>.csv.bz2
-├── ***
+├── ...
+├── train_labels_open
+│   ├── train_labels_<airport>.csv.bz2
+│   └── ...
+├── train_labels_prescreened
+│   ├── prescreened_train_labels_<airport>.csv.bz2
+│   └── ...
 └── submission_format.csv
 ```
 
 Scripts that can read and use these compressed tables should be supplied a single command line argument "compressed".
+Some scripts are built to automatically use the compressed files if no uncompressed versions are found.
 
 
 ## CSV Files
