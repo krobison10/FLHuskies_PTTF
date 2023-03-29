@@ -1,3 +1,9 @@
+#
+# Author: Yudong Lin
+#
+# Generate graphs based on training data distribution
+#
+
 import glob
 import os
 

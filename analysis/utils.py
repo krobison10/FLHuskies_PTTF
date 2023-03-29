@@ -1,3 +1,10 @@
+#
+# Author: Yudong Lin
+#
+# A set of function that can be used to generate graph
+# Use for data analysis
+#
+
 import os
 import shutil
 from typing import Callable
