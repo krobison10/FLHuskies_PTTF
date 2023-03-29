@@ -29,11 +29,11 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
 
     # filter features to 30 hours before prediction time to prediction time and save as a copy
     etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).copy()
-    origin: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["first_position"], now, 30).copy()
+    #origin: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["first_position"], now, 30).copy()
 
     # rename origin timestamp to origin_time as to not get confused in future joins,
     # because timestamp is the important feature
-    origin = origin.rename(columns={"timestamp": "origin_time"})
+    #origin = origin.rename(columns={"timestamp": "origin_time"})
 
     # ----- Minutes Until ETD -----
     # get the latest ETD for each flight
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     airport = "KSEA"
 
-    for part in ['train', 'validation']:
+    for part in ["train", "validation"]:
         print(f"Generating {part} table for {airport}...")
 
         labels_path = ""
