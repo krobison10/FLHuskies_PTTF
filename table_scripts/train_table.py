@@ -1,13 +1,14 @@
 #
 # Author: Kyler Robison
 #
-# This script builds a table of training data for a single airport that is hard coded.
+# This script builds a table of training data and a table of validation for a single airport that is hard coded.
 # It can easily be changed.
 #
 # To run on compressed data with format specified in README.md, supply a command line
 # argument "compressed".
 #
 
+import os
 import sys
 import multiprocessing
 import pandas as pd  # type: ignore
@@ -29,8 +30,6 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
     # filter features to 30 hours before prediction time to prediction time and save as a copy
     etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).copy()
     origin: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["first_position"], now, 30).copy()
-    standtimes: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["standtimes"], now, 30).copy()
-    runways: pd.DataFrame = data_tables["runways"]
 
     # rename origin timestamp to origin_time as to not get confused in future joins,
     # because timestamp is the important feature
@@ -59,22 +58,6 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
     #     ((time_filtered_table.timestamp - origin_time).dt.total_seconds() / 60).astype(int)
     # )
 
-    # ----- 3hr Average Delay -----
-    delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 3)
-    final_table["delay_3hr"] = pd.Series([delay_3hr] * len(time_filtered_table), index=time_filtered_table.index)
-
-    # ----- 30hr Average Delay -----
-    delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 30)
-    final_table["delay_30hr"] = pd.Series([delay_30hr] * len(time_filtered_table), index=time_filtered_table.index)
-
-    # ----- 3hr Average Time at Stand -----
-    standtime_3hr = feature_engineering.average_stand_time(origin, standtimes, now, 3)
-    final_table["standtime_3hr"] = pd.Series([standtime_3hr] * len(time_filtered_table), index=time_filtered_table.index)
-
-    # ----- 30hr Average Time at Stand -----
-    standtime_30hr = feature_engineering.average_stand_time(origin, standtimes, now, 30)
-    final_table["standtime_30hr"] = pd.Series([standtime_30hr] * len(time_filtered_table), index=time_filtered_table.index)
-
     return final_table
 
 
@@ -83,7 +66,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "compressed":
         ext = ".bz2"
 
-    DATA_DIR = Path("../_data")
+    DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "_data")
 
     airports = [
         "KATL",
@@ -100,40 +83,53 @@ if __name__ == "__main__":
 
     airport = "KSEA"
 
-    table: pd.DataFrame = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
-    # table = table.drop_duplicates(subset=["gufi"])
+    for part in ['train', 'validation']:
+        print(f"Generating {part} table for {airport}...")
 
-    # define list of data tables to load and use for each airport
-    feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(DATA_DIR / airport / f"{airport}_etd.csv{ext}", parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-            "timestamp"
-        ),
-        "runways": pd.read_csv(DATA_DIR / airport / f"{airport}_runways.csv{ext}", parse_dates=["departure_runway_actual_time", "timestamp"]),
-        "first_position": pd.read_csv(DATA_DIR / airport / f"{airport}_first_position.csv{ext}", parse_dates=["timestamp"]),
-        "standtimes": pd.read_csv(DATA_DIR / airport / f"{airport}_standtimes.csv{ext}", parse_dates=["timestamp", "departure_stand_actual_time"]),
-    }
+        labels_path = ""
+        output_dir = ""
+        if part == "train":
+            labels_path = os.path.join(DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv{ext}")
+            output_dir = os.path.join(os.path.dirname(__file__), "..", "train_tables", f"{airport}_train.csv")
+        else:
+            labels_path = os.path.join(DATA_DIR, "train_labels_open", f"train_labels_{airport}.csv{ext}")
+            output_dir = os.path.join(os.path.dirname(__file__), "..", "validation_tables", f"{airport}_val.csv")
 
-    # Add encoded column for runway
-    table = table.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
-    table["departure_runway_actual"] = table["departure_runway_actual"].fillna("NO_RUNWAY")
-    encoder = OrdinalEncoder()
-    encoded_runways = encoder.fit_transform(table[["departure_runway_actual"]])
-    table["departure_runway"] = encoded_runways
-    table["departure_runway"].astype(int)
+        table: pd.DataFrame = pd.read_csv(labels_path, parse_dates=["timestamp"])
+        # table = table.drop_duplicates(subset=["gufi"])
 
-    # process all prediction times in parallel
-    with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-        fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
-        timestamp_tables: list[pd.DataFrame] = list(tqdm(executor.map(fn, pd.to_datetime(table.timestamp.unique())), total=len(table.timestamp.unique())))
+        # define list of data tables to load and use for each airport
+        airport_path = os.path.join(DATA_DIR, airport)
+        feature_tables: dict[str, pd.DataFrame] = {
+            "etd": pd.read_csv(os.path.join(airport_path, f"{airport}_etd.csv{ext}"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
+                "timestamp"
+            ),
+            "runways": pd.read_csv(os.path.join(airport_path, f"{airport}_runways.csv{ext}"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+            "first_position": pd.read_csv(os.path.join(airport_path, f"{airport}_first_position.csv{ext}"), parse_dates=["timestamp"]),
+            "standtimes": pd.read_csv(os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+        }
 
-    # concatenate individual prediction times to a single dataframe
-    table = pd.concat(timestamp_tables, ignore_index=True)
+        # Add encoded column for runway
+        table = table.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
+        table["departure_runway_actual"] = table["departure_runway_actual"].fillna("NO_RUNWAY")
 
-    # move train label column to the end
-    cols = table.columns.tolist()
-    cols.remove("minutes_until_pushback")
-    cols.append("minutes_until_pushback")
-    table = table[cols]
+        encoder = OrdinalEncoder()
+        encoded_runways = encoder.fit_transform(table[["departure_runway_actual"]])
+        table["departure_runway"] = encoded_runways
+        table["departure_runway"].astype(int)
 
-    # save with name "main.csv"
-    table.to_csv(Path("../train_tables/main.csv"), index=False)
+        # process all prediction times in parallel
+        with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+            fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
+            timestamp_tables: list[pd.DataFrame] = list(tqdm(executor.map(fn, pd.to_datetime(table.timestamp.unique())), total=len(table.timestamp.unique())))
+
+        # concatenate individual prediction times to a single dataframe
+        table = pd.concat(timestamp_tables, ignore_index=True)
+
+        # move train label column to the end
+        cols = table.columns.tolist()
+        cols.remove("minutes_until_pushback")
+        cols.append("minutes_until_pushback")
+        table = table[cols]
+
+        table.to_csv(output_dir, index=False)
