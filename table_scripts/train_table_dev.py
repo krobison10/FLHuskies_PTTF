@@ -1,11 +1,12 @@
 #
-# Author: Yudong Lin, Kyler Robison
+# Authors:
+# - Kyler Robison
+# - Yudong Lin
+# - Trevor Tomlin
 #
 # This script builds a table of training data for a single airport that is hard coded.
-# It can easily be changed.
 #
-# To run on compressed data with format specified in README.md, supply a command line
-# argument "compressed".
+# It can easily be changed.
 #
 
 import os
@@ -104,10 +105,10 @@ def _get_csv_path(*argv: str) -> str:
     return etd_csv_path
 
 
-def generate(_airport: str, save_to: str) -> None:
-    DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "_data")
+def generate(_airport: str, save_to: str, train_labels_type: str = "open") -> None:
+    DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "_data")
 
-    table: pd.DataFrame = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_{_airport}.csv"), parse_dates=["timestamp"])
+    table: pd.DataFrame = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_{train_labels_type}", f"train_labels_{_airport}.csv"), parse_dates=["timestamp"])
     # table = table.drop_duplicates(subset=["gufi"])
 
     # define list of data tables to load and use for each airport
@@ -115,21 +116,26 @@ def generate(_airport: str, save_to: str) -> None:
         "etd": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_etd.csv"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
             "timestamp"
         ),
-        "runways": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
         "first_position": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]),
-        "standtimes": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
         "lamp": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
         .set_index("timestamp")
         .sort_values("timestamp"),
+        "mfs": pd.read_csv(_get_csv_path(DATA_DIR, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str}),
+        "runways": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+        "standtimes": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
     }
 
     # Add encoded column for runway
     table = table.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
-    table["departure_runway_actual"] = table["departure_runway_actual"].fillna("NO_RUNWAY")
-    encoder = OrdinalEncoder()
-    encoded_runways = encoder.fit_transform(table[["departure_runway_actual"]])
-    table["departure_runway"] = encoded_runways
-    table["departure_runway"].astype(int)
+    table["departure_runway"] = table["departure_runway_actual"]
+
+    # Add mfs information
+    table = table.merge(feature_tables["mfs"], how="left", on="gufi")
+
+    # using OrdinalEncoder to encoding string data
+    for _col in ("departure_runway", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "isdeparture"):
+        table[_col] = table[_col].fillna("UNKNOWN")
+        table[_col] = OrdinalEncoder().fit_transform(table[[_col]]).astype(int)
 
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:
