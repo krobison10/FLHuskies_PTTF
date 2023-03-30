@@ -79,21 +79,20 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     # round time to the nearest hour
     forecast_timestamp_look_up = now.ceil("H")
     # select all rows contain this forecast
-    forecasts = _lamp.loc[_lamp.forecast_timestamp == forecast_timestamp_look_up]
+    forecasts = _lamp.loc[(_lamp.forecast_timestamp == forecast_timestamp_look_up) & (now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= now)]
     # if no forecast found, try to look for time earlier
-    hour_f: int = 0
-    while forecasts.shape[0] == 0:
-        hour_f += 1
-        forecast_timestamp_look_up = (now - pd.Timedelta(hours=hour_f)).ceil("H")
-        forecasts = _lamp.loc[_lamp.forecast_timestamp == forecast_timestamp_look_up]
-        # if no information within 30 days can be found, then throw error
-        if hour_f > 420:
-            raise Exception(f"Cannot find forecasts for timestamp {now}")
-    # get the latest forecast
-    latest_forecast = forecasts.iloc[forecasts.index.get_indexer([now], method="nearest")]
-    # update value
-    for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"):
-        final_table[key] = latest_forecast[key].values[0]
+    if forecasts.shape[0] > 0:
+        # get the latest forecast
+        latest_forecast = forecasts.iloc[forecasts.index.get_indexer([now], method="nearest")]
+        # update value
+        for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"):
+            final_table[key] = latest_forecast[key].values[0]
+    else:
+        # update value
+        for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility"):
+            final_table[key] = 0
+        for key in ("cloud", "lightning_prob", "precip"):
+            final_table[key] = "UNK"
 
     return final_table
 
@@ -105,56 +104,61 @@ def _get_csv_path(*argv: str) -> str:
     return etd_csv_path
 
 
-def generate(_airport: str, save_to: str, train_labels_type: str = "open") -> None:
-    DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "_data")
-
-    table: pd.DataFrame = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_{train_labels_type}", f"train_labels_{_airport}.csv"), parse_dates=["timestamp"])
-    # table = table.drop_duplicates(subset=["gufi"])
-
+def add_features(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.DataFrame:
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_etd.csv"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
+        "etd": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
             "timestamp"
         ),
-        "first_position": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]),
-        "lamp": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
+        "first_position": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]),
+        "lamp": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
         .set_index("timestamp")
         .sort_values("timestamp"),
-        "mfs": pd.read_csv(_get_csv_path(DATA_DIR, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str}),
-        "runways": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
-        "standtimes": pd.read_csv(_get_csv_path(DATA_DIR, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+        "runways": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+        "standtimes": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
     }
-
-    # Add encoded column for runway
-    table = table.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
-    table["departure_runway"] = table["departure_runway_actual"]
-
-    # Add mfs information
-    table = table.merge(feature_tables["mfs"], how="left", on="gufi")
-
-    # using OrdinalEncoder to encoding string data
-    for _col in ("departure_runway", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "isdeparture"):
-        table[_col] = table[_col].fillna("UNKNOWN")
-        table[_col] = OrdinalEncoder().fit_transform(table[[_col]]).astype(int)
 
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:
-        fn = partial(_process_timestamp, flights=table, data_tables=feature_tables)
-        unique_timestamp = table.timestamp.unique()
+        fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
+        unique_timestamp = _df.timestamp.unique()
         inputs = zip(pd.to_datetime(unique_timestamp))
         timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
     # concatenate individual prediction times to a single dataframe
-    table = pd.concat(timestamp_tables, ignore_index=True)
+    _df = pd.concat(timestamp_tables, ignore_index=True)
+
+    # Add runway information
+    _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
+
+    # Add mfs information
+    feature_tables["mfs"] = pd.read_csv(_get_csv_path(data_dir, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str})
+    _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
 
     # move train label column to the end
-    cols = table.columns.tolist()
+    cols = _df.columns.tolist()
     cols.remove("minutes_until_pushback")
     cols.append("minutes_until_pushback")
-    table = table[cols]
+    _df = _df[cols]
 
-    # save with name "main.csv"
-    table.to_csv(save_to, index=False)
+    return _df
+
+
+# using OrdinalEncoder to encoding string data
+def normalize_str_features(_df: pd.DataFrame) -> pd.DataFrame:
+    columns_need_normalize: tuple[str, ...] = (
+        "departure_runway_actual",
+        "aircraft_engine_class",
+        "aircraft_type",
+        "major_carrier",
+        "flight_type",
+        "isdeparture",
+    )
+
+    for _col in columns_need_normalize:
+        _df[_col] = OrdinalEncoder().fit_transform(_df[[_col]]).astype(int)
+
+    return _df
 
 
 if __name__ == "__main__":
@@ -171,6 +175,24 @@ if __name__ == "__main__":
         "KSEA",
     ]
 
-    airport = "KSEA"
+    label_type: str = "prescreened"
 
-    generate(airport, os.path.join(os.path.dirname(__file__), "..", "train_tables", f"main_{airport}.csv"))
+    DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "_data")
+
+    table: pd.DataFrame
+
+    for airport in airports:
+        if label_type == "open":
+            table = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_open", f"train_labels_{airport}.csv"), parse_dates=["timestamp"])
+        else:
+            table = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_prescreened", f"prescreened_train_labels_{airport}.csv"), parse_dates=["timestamp"])
+
+        # table = table.drop_duplicates(subset=["gufi"])
+
+        table = add_features(table, airport, DATA_DIR)
+        table = table.fillna("UNK")
+
+        # table = normalize_str_features(table)
+
+        # save data
+        table.to_csv(os.path.join(os.path.dirname(__file__), "..", "train_tables", f"main_{airport}_{label_type}.csv"), index=False)
