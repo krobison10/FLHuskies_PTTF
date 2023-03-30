@@ -19,7 +19,7 @@ import math
 airport = "KSEA"
 
 train_df = pd.read_csv(f"../train_tables/{airport}_train.csv")
-val_df = pd.read_csv(f"../validation_tables/{airport}_val.csv")
+val_df = pd.read_csv(f"../validation_tables/{airport}_validation.csv")
 
 # input_features = ['minutes_until_etd', 'departure_runway']
 input_features = ["minutes_until_etd"]
