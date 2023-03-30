@@ -99,15 +99,6 @@ if __name__ == "__main__":
         "standtimes": pd.read_csv(os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"), parse_dates=["timestamp", "departure_stand_actual_time"]),
     }
 
-    # Add encoded column for runway
-    table = table.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
-    table["departure_runway_actual"] = table["departure_runway_actual"].fillna("NO_RUNWAY")
-
-    encoder = OrdinalEncoder()
-    encoded_runways = encoder.fit_transform(table[["departure_runway_actual"]])
-    table["departure_runway"] = encoded_runways
-    table["departure_runway"].astype(int)
-
     # process all prediction times in parallel
     with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
         fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
@@ -122,5 +113,5 @@ if __name__ == "__main__":
     cols.append("minutes_until_pushback")
     table = table[cols]
 
-    output_dir = os.path.join(os.path.dirname(__file__), "..", "train_tables", f"{airport}_full.csv")
+    output_dir = os.path.join(os.path.dirname(__file__), "..", "full_tables", f"{airport}_full.csv")
     table.to_csv(output_dir, index=False)

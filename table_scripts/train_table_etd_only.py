@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     airport = "KSEA"
 
-    table = pd.read_csv(DATA_DIR / f"train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
+    table = pd.read_csv(DATA_DIR / f"train_labels_prescreened" / f"prescreened_train_labels_{airport}.csv{ext}", parse_dates=["timestamp"])
 
     # load airport's ETD data and sort by timestamp
     airport_etd = pd.read_csv(
@@ -86,4 +86,4 @@ if __name__ == "__main__":
 
     table = pd.merge(table, predictions.drop(columns=["airport", "minutes_until_pushback"]), on=["gufi", "timestamp"])
 
-    table.to_csv(Path("../train_tables/etd_only.csv"), index=False)
+    table.to_csv(Path("../full_tables/etd_only.csv"), index=False)

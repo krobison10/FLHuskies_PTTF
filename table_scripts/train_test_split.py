@@ -6,6 +6,7 @@ import pandas as pd
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 
+# specify an airport to split for only one, otherwise a split for all airports will be executed
 def split(table: pd.DataFrame, airport: str = None):
     valdata = pd.read_csv(os.path.join(ROOT, "_data", "submission_format.csv"))
 
@@ -25,5 +26,5 @@ def split(table: pd.DataFrame, airport: str = None):
 
 if __name__ == "__main__":
     airport = "KSEA"
-    df = pd.read_csv(os.path.join(ROOT, "train_tables", f"main_{airport}.csv"))
+    df = pd.read_csv(os.path.join(ROOT, "train_tables", f"{airport}_full.csv"))
     split(table=df, airport=airport)
