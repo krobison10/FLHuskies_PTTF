@@ -13,6 +13,7 @@ import sys
 import multiprocessing
 import pandas as pd  # type: ignore
 import feature_engineering
+import train_test_split
 
 from concurrent.futures import ThreadPoolExecutor
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
@@ -29,11 +30,6 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
 
     # filter features to 30 hours before prediction time to prediction time and save as a copy
     etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).copy()
-    #origin: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["first_position"], now, 30).copy()
-
-    # rename origin timestamp to origin_time as to not get confused in future joins,
-    # because timestamp is the important feature
-    #origin = origin.rename(columns={"timestamp": "origin_time"})
 
     # ----- Minutes Until ETD -----
     # get the latest ETD for each flight
@@ -46,17 +42,6 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
 
     # add new column to time_filtered_table that represents minutes until pushback
     final_table["minutes_until_etd"] = ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
-
-    # ----- Minutes Since Origin (WIP) -----
-    # get a series containing origin time for each flight, in the same order they appear in flights
-    # origin_time: pd.Series = time_filtered_table.merge(
-    #     origin, how="left", on="gufi"
-    # ).origin_time
-
-    # add new column to time_filtered_table that represents minutes since origin
-    # time_filtered_table["minutes_since_origin"] = (
-    #     ((time_filtered_table.timestamp - origin_time).dt.total_seconds() / 60).astype(int)
-    # )
 
     return final_table
 
@@ -81,37 +66,51 @@ if __name__ == "__main__":
         "KSEA",
     ]
 
-    airport = "KSEA"
+    airports = [
+        "KSEA"
+    ]
 
-    labels_path = os.path.join(DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv{ext}")
+    for airport in airports:
+        print(f"Generating for {airport}")
+        print("Loading tables...")
 
-    table: pd.DataFrame = pd.read_csv(labels_path, parse_dates=["timestamp"])
-    # table = table.drop_duplicates(subset=["gufi"])
+        labels_path = os.path.join(DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv{ext}")
 
-    # define list of data tables to load and use for each airport
-    airport_path = os.path.join(DATA_DIR, airport)
-    feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(os.path.join(airport_path, f"{airport}_etd.csv{ext}"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-            "timestamp"
-        ),
-        "runways": pd.read_csv(os.path.join(airport_path, f"{airport}_runways.csv{ext}"), parse_dates=["departure_runway_actual_time", "timestamp"]),
-        "first_position": pd.read_csv(os.path.join(airport_path, f"{airport}_first_position.csv{ext}"), parse_dates=["timestamp"]),
-        "standtimes": pd.read_csv(os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"), parse_dates=["timestamp", "departure_stand_actual_time"]),
-    }
+        table: pd.DataFrame = pd.read_csv(labels_path, parse_dates=["timestamp"])
 
-    # process all prediction times in parallel
-    with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-        fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
-        timestamp_tables: list[pd.DataFrame] = list(tqdm(executor.map(fn, pd.to_datetime(table.timestamp.unique())), total=len(table.timestamp.unique())))
+        # define list of data tables to load and use for each airport
+        airport_path = os.path.join(DATA_DIR, airport)
+        feature_tables: dict[str, pd.DataFrame] = {
+            "etd": pd.read_csv(os.path.join(airport_path, f"{airport}_etd.csv{ext}"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
+                "timestamp"
+            ),
+            "runways": pd.read_csv(os.path.join(airport_path, f"{airport}_runways.csv{ext}"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+            "standtimes": pd.read_csv(os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+        }
 
-    # concatenate individual prediction times to a single dataframe
-    table = pd.concat(timestamp_tables, ignore_index=True)
+        # process all prediction times in parallel
+        print("Processing...")
+        with multiprocessing.Pool() as executor:
+            fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
+            unique_timestamp = table.timestamp.unique()
+            inputs = zip(pd.to_datetime(unique_timestamp))
+            timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
-    # move train label column to the end
-    cols = table.columns.tolist()
-    cols.remove("minutes_until_pushback")
-    cols.append("minutes_until_pushback")
-    table = table[cols]
+        # concatenate individual prediction times to a single dataframe
+        print("Concatenating timestamp tables...")
+        table = pd.concat(timestamp_tables, ignore_index=True)
 
-    output_dir = os.path.join(os.path.dirname(__file__), "..", "full_tables", f"{airport}_full.csv")
-    table.to_csv(output_dir, index=False)
+        # move train label column to the end
+        cols = table.columns.tolist()
+        cols.remove("minutes_until_pushback")
+        cols.append("minutes_until_pushback")
+        table = table[cols]
+
+        # save full table
+        print("Saving full table...")
+        output_dir = os.path.join(os.path.dirname(__file__), "..", "full_tables", f"{airport}_full.csv")
+        table.to_csv(output_dir, index=False)
+
+        # call helper function to split tables and save those as well
+        print("Splitting and saving train and validation tables...")
+        train_test_split.split(table, airport)

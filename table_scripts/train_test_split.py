@@ -20,8 +20,8 @@ def split(table: pd.DataFrame, airport: str = None):
     testdata = table[table.gufi.isin(mygufis)]
     traindata = table[~table.gufi.isin(mygufis)]
 
-    traindata.to_csv(os.path.join(ROOT, "train_tables", f"{ext}train.csv"))
-    testdata.to_csv(os.path.join(ROOT, "validation_tables", f"{ext}validation.csv"))
+    traindata.to_csv(os.path.join(ROOT, "train_tables", f"{ext}train.csv"), index=False)
+    testdata.to_csv(os.path.join(ROOT, "validation_tables", f"{ext}validation.csv"), index=False)
 
 
 if __name__ == "__main__":
