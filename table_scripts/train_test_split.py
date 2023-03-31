@@ -1,6 +1,6 @@
 # M. De Cock; Mar 24, 2023
 # Modified by Kyler Robison
-# Splits a table into train.csv and test.csv based on a list of GUFIs
+# Splits a table into train and test based on a list of GUFIs
 import os
 import pandas as pd
 
