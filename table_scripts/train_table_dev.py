@@ -9,14 +9,14 @@
 # It can easily be changed.
 #
 
-import os
 import multiprocessing
-from typing import Optional
-import pandas as pd  # type: ignore
-import feature_engineering
-
-from sklearn.preprocessing import OrdinalEncoder  # type: ignore
+import os
 from functools import partial
+from typing import Optional
+
+import feature_engineering
+import pandas as pd  # type: ignore
+from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 from tqdm import tqdm
 
 
@@ -122,7 +122,7 @@ def _get_csv_path(*argv: str) -> str:
     return etd_csv_path
 
 
-def add_features(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.DataFrame:
+def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.DataFrame:
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
         "etd": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
@@ -141,7 +141,7 @@ def add_features(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.DataFram
         fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
         unique_timestamp = _df.timestamp.unique()
         inputs = zip(pd.to_datetime(unique_timestamp))
-        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)), 64)
+        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
     # concatenate individual prediction times to a single dataframe
     _df = pd.concat(timestamp_tables, ignore_index=True)
@@ -152,12 +152,6 @@ def add_features(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.DataFram
     # Add mfs information
     feature_tables["mfs"] = pd.read_csv(_get_csv_path(data_dir, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str})
     _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
-
-    # move train label column to the end
-    cols = _df.columns.tolist()
-    cols.remove("minutes_until_pushback")
-    cols.append("minutes_until_pushback")
-    _df = _df[cols]
 
     return _df
 
@@ -170,11 +164,35 @@ def normalize_str_features(_df: pd.DataFrame) -> pd.DataFrame:
         "aircraft_type",
         "major_carrier",
         "flight_type",
-        "isdeparture",
     )
 
     for _col in columns_need_normalize:
         _df[_col] = OrdinalEncoder().fit_transform(_df[[_col]]).astype(int)
+
+    return _df
+
+
+# fill potential missing int features with 0
+def fix_potential_missing_int_features(_df: pd.DataFrame) -> pd.DataFrame:
+    columns_need_normalize: tuple[str, ...] = (
+        "delay_3hr",
+        "delay_30hr",
+        "standtime_3hr",
+        "standtime_30hr",
+        "temperature",
+        "wind_direction",
+        "wind_speed",
+        "wind_gust",
+        "cloud_ceiling",
+        "visibility",
+    )
+
+    float_columns: tuple[str, ...] = ("delay_3hr", "delay_30hr", "standtime_3hr", "standtime_30hr")
+
+    for _col in columns_need_normalize:
+        _df[_col] = _df[_col].fillna(0)
+        if _col in float_columns:
+            _df[_col] = _df[_col].round(10)
 
     return _df
 
@@ -197,20 +215,39 @@ if __name__ == "__main__":
 
     DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "_data")
 
-    table: pd.DataFrame
-
     for airport in airports:
-        if label_type == "open":
-            table = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_open", f"train_labels_{airport}.csv"), parse_dates=["timestamp"])
-        else:
-            table = pd.read_csv(_get_csv_path(DATA_DIR, f"train_labels_prescreened", f"prescreened_train_labels_{airport}.csv"), parse_dates=["timestamp"])
+        print("Start processing:", airport)
 
+        # read train labels for given airport
+        table: pd.DataFrame = pd.read_csv(
+            _get_csv_path(
+                DATA_DIR, f"train_labels_{label_type}", f"train_labels_{airport}.csv" if label_type == "open" else f"prescreened_train_labels_{airport}.csv"
+            ),
+            parse_dates=["timestamp"],
+        )
         # table = table.drop_duplicates(subset=["gufi"])
 
-        table = add_features(table, airport, DATA_DIR)
+        # extract features for give airport
+        table = extract_features_for(table, airport, DATA_DIR)
+
+        # some int features may be missing due to a lack of information
+        table = fix_potential_missing_int_features(table)
+
+        # fill the result missing spot with UNK
         table = table.fillna("UNK")
+
+        # drop isdeparture colum since it is not useful
+        table = table.drop(columns=["isdeparture"])
+
+        # adding feature gufi_end_label since it could be useful
+        table["gufi_end_label"] = table.apply(lambda x: "TFM" if x.gufi.endswith("TFM") else "TFM_TFDM" if x.gufi.endswith("TFM_TFDM") else "OTHER", axis=1)
 
         # table = normalize_str_features(table)
 
         # save data
         table.to_csv(os.path.join(os.path.dirname(__file__), "..", "train_tables", f"main_{airport}_{label_type}.csv"), index=False)
+
+        print("Finish processing:", airport)
+        print("------------------------------")
+
+    print("Done")
