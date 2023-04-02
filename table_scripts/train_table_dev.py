@@ -13,23 +13,15 @@ import multiprocessing
 import os
 from functools import partial
 from typing import Optional
+from table_dtype import TableDtype
 
 import feature_engineering
 import pandas as pd  # type: ignore
-from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 from tqdm import tqdm
 
 
-def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp) -> Optional[pd.DataFrame]:
-    # select all rows contain this forecast_timestamp
-    forecasts: pd.DataFrame = _lamp.loc[
-        (_lamp.forecast_timestamp == _look_for_timestamp) & (_now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= _now)
-    ]
-    # get the latest forecast
-    return forecasts.iloc[forecasts.index.get_indexer([_now], method="nearest")] if forecasts.shape[0] > 0 else None
-
-
-def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+# calculate etd
+def _process_etd(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
     time_filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
@@ -84,8 +76,20 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     standtime_30hr = feature_engineering.average_stand_time(origin, standtimes, now, 30)
     final_table["standtime_30hr"] = pd.Series([standtime_30hr] * len(time_filtered_table), index=time_filtered_table.index)
 
-    # ----- get forecast weather information -----
-    _lamp = data_tables["lamp"]
+    return final_table
+
+
+def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp) -> Optional[pd.DataFrame]:
+    # select all rows contain this forecast_timestamp
+    forecasts: pd.DataFrame = _lamp.loc[
+        (_lamp.forecast_timestamp == _look_for_timestamp) & (_now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= _now)
+    ]
+    # get the latest forecast
+    return forecasts.iloc[forecasts.index.get_indexer([_now], method="nearest")] if forecasts.shape[0] > 0 else None
+
+
+# add lamp forecast weather information
+def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.DataFrame) -> pd.DataFrame:
     # the latest forecast
     latest_forecast: Optional[pd.DataFrame] = None
     # counter to monitoring hours going forward
@@ -100,18 +104,24 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
         if latest_forecast is not None:
             # then update value
             for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"):
-                final_table[key] = latest_forecast[key].values[0]
+                flights_selected[key] = latest_forecast[key].values[0]
             # and break the loop
             break
         # if no forecast within 30 hours can be found
         elif hour_f > 30:
             for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility"):
-                final_table[key] = 0
+                flights_selected[key] = 0
             for key in ("cloud", "lightning_prob", "precip"):
-                final_table[key] = "UNK"
+                flights_selected[key] = "UNK"
             break
         hour_f += 1
 
+    return flights_selected
+
+
+def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    final_table: pd.DataFrame = _process_etd(now, flights, data_tables)
+    final_table = _process_lamp(now, final_table, data_tables["lamp"])
     return final_table
 
 
@@ -156,47 +166,6 @@ def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.
     return _df
 
 
-# using OrdinalEncoder to encoding string data
-def normalize_str_features(_df: pd.DataFrame) -> pd.DataFrame:
-    columns_need_normalize: tuple[str, ...] = (
-        "departure_runway_actual",
-        "aircraft_engine_class",
-        "aircraft_type",
-        "major_carrier",
-        "flight_type",
-    )
-
-    for _col in columns_need_normalize:
-        _df[_col] = OrdinalEncoder().fit_transform(_df[[_col]]).astype(int)
-
-    return _df
-
-
-# fill potential missing int features with 0
-def fix_potential_missing_int_features(_df: pd.DataFrame) -> pd.DataFrame:
-    columns_need_normalize: tuple[str, ...] = (
-        "delay_3hr",
-        "delay_30hr",
-        "standtime_3hr",
-        "standtime_30hr",
-        "temperature",
-        "wind_direction",
-        "wind_speed",
-        "wind_gust",
-        "cloud_ceiling",
-        "visibility",
-    )
-
-    float_columns: tuple[str, ...] = ("delay_3hr", "delay_30hr", "standtime_3hr", "standtime_30hr")
-
-    for _col in columns_need_normalize:
-        _df[_col] = _df[_col].fillna(0)
-        if _col in float_columns:
-            _df[_col] = _df[_col].round(10)
-
-    return _df
-
-
 if __name__ == "__main__":
     airports = [
         "KATL",
@@ -231,7 +200,7 @@ if __name__ == "__main__":
         table = extract_features_for(table, airport, DATA_DIR)
 
         # some int features may be missing due to a lack of information
-        table = fix_potential_missing_int_features(table)
+        table = TableDtype.fix_potential_missing_int_features(table)
 
         # fill the result missing spot with UNK
         table = table.fillna("UNK")
@@ -245,7 +214,7 @@ if __name__ == "__main__":
         # table = normalize_str_features(table)
 
         # save data
-        table.to_csv(os.path.join(os.path.dirname(__file__), "..", "train_tables", f"main_{airport}_{label_type}.csv"), index=False)
+        table.to_csv(os.path.join(os.path.dirname(__file__), "..", "train_tables", f"{airport}_full.csv"), index=False)
 
         print("Finish processing:", airport)
         print("------------------------------")
