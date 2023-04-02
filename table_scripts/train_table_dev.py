@@ -21,11 +21,8 @@ from tqdm import tqdm
 
 
 # calculate etd
-def _process_etd(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    # subset table to only contain flights for the current timestamp
-    time_filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
-
-    final_table = time_filtered_table
+def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    final_table = flights_selected
 
     # filter features to 30 hours before prediction time to prediction time and save as a copy
     etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30)
@@ -42,39 +39,39 @@ def _process_etd(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str
     latest_etd: pd.DataFrame = etd.groupby("gufi").last()
 
     # get a series containing latest ETDs for each flight, in the same order they appear in flights
-    departure_runway_estimated_time: pd.Series = time_filtered_table.merge(
+    departure_runway_estimated_time: pd.Series = flights_selected.merge(
         latest_etd.departure_runway_estimated_time, how="left", on="gufi"
     ).departure_runway_estimated_time
 
-    # add new column to time_filtered_table that represents minutes until pushback
-    final_table["minutes_until_etd"] = ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
+    # add new column to flights_selected that represents minutes until pushback
+    final_table["minutes_until_etd"] = ((departure_runway_estimated_time - flights_selected.timestamp).dt.total_seconds() / 60).astype(int)
 
     # ----- Minutes Since Origin (WIP) -----
     # get a series containing origin time for each flight, in the same order they appear in flights
-    # origin_time: pd.Series = time_filtered_table.merge(
+    # origin_time: pd.Series = flights_selected.merge(
     #     origin, how="left", on="gufi"
     # ).origin_time
 
-    # add new column to time_filtered_table that represents minutes since origin
-    # time_filtered_table["minutes_since_origin"] = (
-    #     ((time_filtered_table.timestamp - origin_time).dt.total_seconds() / 60).astype(int)
+    # add new column to flights_selected that represents minutes since origin
+    # flights_selected["minutes_since_origin"] = (
+    #     ((flights_selected.timestamp - origin_time).dt.total_seconds() / 60).astype(int)
     # )
 
     # ----- 3hr Average Delay -----
     delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 3)
-    final_table["delay_3hr"] = pd.Series([delay_3hr] * len(time_filtered_table), index=time_filtered_table.index)
+    final_table["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 30hr Average Delay -----
     delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 30)
-    final_table["delay_30hr"] = pd.Series([delay_30hr] * len(time_filtered_table), index=time_filtered_table.index)
+    final_table["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 3hr Average Time at Stand -----
     standtime_3hr = feature_engineering.average_stand_time(origin, standtimes, now, 3)
-    final_table["standtime_3hr"] = pd.Series([standtime_3hr] * len(time_filtered_table), index=time_filtered_table.index)
+    final_table["standtime_3hr"] = pd.Series([standtime_3hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 30hr Average Time at Stand -----
     standtime_30hr = feature_engineering.average_stand_time(origin, standtimes, now, 30)
-    final_table["standtime_30hr"] = pd.Series([standtime_30hr] * len(time_filtered_table), index=time_filtered_table.index)
+    final_table["standtime_30hr"] = pd.Series([standtime_30hr] * len(flights_selected), index=flights_selected.index)
 
     return final_table
 
@@ -120,7 +117,9 @@ def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.D
 
 
 def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    final_table: pd.DataFrame = _process_etd(now, flights, data_tables)
+    # subset table to only contain flights for the current timestamp
+    time_filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
+    final_table: pd.DataFrame = _process_etd(now, time_filtered_table, data_tables)
     final_table = _process_lamp(now, final_table, data_tables["lamp"])
     return final_table
 
