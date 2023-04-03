@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd  # type: ignore
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
+from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 
 def plot_loss(history):
@@ -52,3 +53,9 @@ def get_validation_tables(_airport: str = "KSEA") -> pd.DataFrame:
         parse_dates=["timestamp"],
         dtype={"minutes_until_etd": int, "minutes_until_pushback": int},
     )
+
+
+def encodeStr(_data_train: pd.DataFrame, _data_test: pd.DataFrame, col: str) -> None:
+    encoder: OrdinalEncoder = OrdinalEncoder()
+    _data_train[col] = encoder.fit_transform(_data_train[[col]]) / 100
+    _data_test[col] = encoder.transform(_data_test[[col]]) / 100

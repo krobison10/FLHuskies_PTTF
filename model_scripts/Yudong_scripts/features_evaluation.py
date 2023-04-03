@@ -20,7 +20,7 @@ features: tuple[str, ...] = (
     "minutes_until_pushback",
 )
 
-_data = mytools.get_train_tables()
+_data = mytools.get_train_tables().drop_duplicates(subset=["gufi"])
 
 _data["month"] = _data.apply(lambda x: x.timestamp.month, axis=1)
 _data["day"] = _data.apply(lambda x: x.timestamp.day, axis=1)

@@ -34,10 +34,13 @@ def train_dnn(_data_train: pd.DataFrame, _data_test: pd.DataFrame) -> None:
 
     model = Sequential([normalizer])
     model.add(layers.Dense(32, activation="relu"))
+    model.add(layers.Dense(32, activation="relu"))
+    model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(64, activation="relu"))
     model.add(layers.Dense(128, activation="relu"))
+    model.add(layers.Dense(128, activation="relu"))
     model.add(layers.Dense(256, activation="relu"))
-    model.add(layers.Dense(256, activation="relu"))
+    model.add(layers.Dense(32, activation="relu"))
     model.add(layers.Dense(1))
     model.compile(loss="mae", optimizer="adam", metrics=["mae"])
 
