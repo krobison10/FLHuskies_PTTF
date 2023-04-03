@@ -72,10 +72,13 @@ def CrossJoinDatesAirports(airports, start_time, end_time):
     # )
     for airport in airports:
         master_table = pd.read_csv(DATA_DIR / airport / f"prescreened_train_labels_{airport}.csv.bz2", parse_dates=["timestamp"]).sort_values(
-                "timestamp"
+                "gufi"
             )
-    return master_table
+        #For the test, return only first 100000 gufis
+        master_table = (master_table.iloc[:800000]).sort_values("timestamp")
 
+    #For the test, return only first 10000 gufis
+    return master_table
 
 def ExtractAirportconfigFeatures(master_table, raw_data):
     """
@@ -93,21 +96,11 @@ def ExtractAirportconfigFeatures(master_table, raw_data):
         # Filter airport of interest
         current = raw_data[airport].sort_values("timestamp").copy()
 
-        # Add fictitious row in a future timestamp
-        enlarge_configs = pd.DataFrame(
-            {
-                "timestamp": [master_table["timestamp"].max()],
-                "airport_config": [current.iloc[-1]["airport_config"]],
-                "airport": [airport],
-            }
-        )
-        current = current.append(enlarge_configs)
-
         # Aggregate at a 15minute time window
-        current = current.groupby("timestamp").airport_config.last().reset_index()
+        current = current.groupby("timestamp").config.last().reset_index()
         current = (
             current.set_index("timestamp")
-            .airport_config.resample("15min")
+            .config.resample("15min")
             .ffill()
             .reset_index()
         )

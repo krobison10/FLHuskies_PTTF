@@ -58,7 +58,7 @@ RUNWAYS = [
 ]
 
 DATA_GROUPS = [
-    # "config",
+    "config",
     "etd",
     "lamp",
     "first_position",
@@ -67,7 +67,7 @@ DATA_GROUPS = [
 ]
 EXT = ".bz2"
 
-DATA_DIR = Path("data")
+DATA_DIR = Path("_data")
 
 # Auxiliary function to handle the errors
 
