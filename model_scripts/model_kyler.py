@@ -11,11 +11,9 @@ from sklearn.preprocessing import OrdinalEncoder
 
 from sklearn.metrics import mean_absolute_error
 
-import math
-
 # ---------------------------------------- LOAD ----------------------------------------
 
-airport = "all"
+airport = "master"
 
 train_df = pd.read_csv(f"../train_tables/{airport}_train.csv")
 val_df = pd.read_csv(f"../validation_tables/{airport}_validation.csv")
@@ -62,6 +60,7 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 print(f"MAE on test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
 
+exit()
 
 print("\nTraining CatBoost Regressor")
 

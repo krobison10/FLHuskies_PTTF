@@ -25,23 +25,26 @@ from tqdm import tqdm
 def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
     time_filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
-
     final_table = time_filtered_table.copy()
 
-    # filter features to 30 hours before prediction time to prediction time and save as a copy
-    etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).copy()
-
     # ----- Minutes Until ETD -----
-    # get the latest ETD for each flight
+    etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).copy()
     latest_etd: pd.DataFrame = etd.groupby("gufi").last()
 
-    # get a series containing latest ETDs for each flight, in the same order they appear in flights
     departure_runway_estimated_time: pd.Series = time_filtered_table.merge(
         latest_etd.departure_runway_estimated_time, how="left", on="gufi"
     ).departure_runway_estimated_time
 
-    # add new column to time_filtered_table that represents minutes until pushback
     final_table["minutes_until_etd"] = ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
+    # ----- End -----
+
+    # ----- Average Taxi Time -----
+    # runways: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["runways"], now, 30).copy()
+    # standtimes: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["standtimes"], now, 30).copy()
+    # taxi_3hr = feature_engineering.average_taxi_time(standtimes, runways, now, 3)
+    #
+    # final_table['avg_taxi_3hr'] = pd.Series([taxi_3hr] * len(final_table), index=final_table.index)
+    # ----- End -----
 
     return final_table
 
@@ -108,7 +111,7 @@ if __name__ == "__main__":
 
         # save full table
         print("Saving full table...")
-        output_dir = os.path.join(os.path.dirname(__file__), "..", "full_tables", f"{airport}_full.csv")
+        output_dir = os.path.join(os.path.dirname(__file__), "..", "full_tables", f"{airport}_taxi.csv")
         table.to_csv(output_dir, index=False)
 
         # call helper function to split tables and save those as well

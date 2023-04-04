@@ -5,6 +5,7 @@
 #
 
 import pandas as pd  # type: ignore
+import math
 
 from datetime import timedelta
 
@@ -18,8 +19,10 @@ def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Ti
     merged_df["departure_delay"] = (merged_df["departure_runway_actual_time"] - merged_df["departure_runway_estimated_time"]).dt.total_seconds() / 60
 
     avg_delay: float = merged_df["departure_delay"].mean()
+    if math.isnan(avg_delay):
+        avg_delay = 0
 
-    return avg_delay
+    return round(avg_delay, 2)
 
 
 def average_stand_time(origin: pd.DataFrame, standtimes: pd.DataFrame, now: pd.Timestamp, hours: int) -> float:
@@ -31,8 +34,24 @@ def average_stand_time(origin: pd.DataFrame, standtimes: pd.DataFrame, now: pd.T
     merged_df["avg_stand_time"] = (merged_df["origin_time"] - merged_df["departure_stand_actual_time"]).dt.total_seconds() / 60
 
     avg_stand_time: float = merged_df["avg_stand_time"].mean()
+    if math.isnan(avg_stand_time):
+        avg_stand_time = 0
 
-    return avg_stand_time
+    return round(avg_stand_time, 2)
+
+
+def average_taxi_time(standtimes: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp, hours: int) -> float:
+    runways_filtered = filter_by_timestamp(runways, now, hours)
+
+    merged_df = pd.merge(runways_filtered, standtimes, on="gufi")
+
+    merged_df["avg_taxi_time"] = (merged_df["departure_runway_actual_time"] - merged_df["departure_stand_actual_time"]).dt.total_seconds() / 60
+
+    avg_taxi_time: float = merged_df["avg_taxi_time"].mean()
+    if math.isnan(avg_taxi_time):
+        avg_taxi_time = 0
+
+    return round(avg_taxi_time, 2)
 
 
 # returns a version of the passed in dataframe that only contains entries
