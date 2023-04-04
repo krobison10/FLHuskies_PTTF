@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd  # type: ignore
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
-from sklearn.preprocessing import OrdinalEncoder  # type: ignore
+from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
 
 
 def plot_loss(history):
@@ -43,19 +43,42 @@ def get_train_tables(_airport: str = "KSEA") -> pd.DataFrame:
     return pd.read_csv(
         os.path.join(os.path.dirname(__file__), "..", "..", "train_tables", f"{_airport}_train.csv"),
         parse_dates=["timestamp"],
-        dtype={"minutes_until_etd": int, "minutes_until_pushback": int},
-    )
+        dtype={"minutes_until_etd": int, "minutes_until_pushback": int, "precip": str},
+    ).sort_values(["gufi", "timestamp"])
 
 
 def get_validation_tables(_airport: str = "KSEA") -> pd.DataFrame:
     return pd.read_csv(
         os.path.join(os.path.dirname(__file__), "..", "..", "validation_tables", f"{_airport}_validation.csv"),
         parse_dates=["timestamp"],
-        dtype={"minutes_until_etd": int, "minutes_until_pushback": int},
-    )
+        dtype={"minutes_until_etd": int, "minutes_until_pushback": int, "precip": str},
+    ).sort_values(["gufi", "timestamp"])
 
 
-def encodeStr(_data_train: pd.DataFrame, _data_test: pd.DataFrame, col: str) -> None:
-    encoder: OrdinalEncoder = OrdinalEncoder()
-    _data_train[col] = encoder.fit_transform(_data_train[[col]]) / 100
-    _data_test[col] = encoder.transform(_data_test[[col]]) / 100
+def applyAdditionalTimeBasedFeatures(_data: pd.DataFrame) -> pd.DataFrame:
+    _data["month"] = _data.apply(lambda x: x.timestamp.month, axis=1)
+    _data["day"] = _data.apply(lambda x: x.timestamp.day, axis=1)
+    _data["hour"] = _data.apply(lambda x: x.timestamp.hour, axis=1)
+    _data["minute"] = _data.apply(lambda x: x.timestamp.minute, axis=1)
+    _data["weekday"] = _data.apply(lambda x: x.timestamp.weekday(), axis=1)
+    return _data
+
+
+def _encodeFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, cols: tuple[str, ...], encoder: OrdinalEncoder | MinMaxScaler) -> None:
+    _data_full: pd.DataFrame = pd.concat((_data_train, _data_test))
+    for _col in cols:
+        encoder.fit(_data_full[[_col]])
+        _data_train[_col] = encoder.transform(_data_train[[_col]])
+        _data_test[_col] = encoder.transform(_data_test[[_col]])
+
+
+def encodeStrFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols: str) -> None:
+    _encodeFeatures(_data_train, _data_test, cols, OrdinalEncoder())
+
+
+def normalizeNumericalFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols: str) -> None:
+    _encodeFeatures(_data_train, _data_test, cols, MinMaxScaler())
+
+
+def get_model_path(_fileName: str) -> str:
+    return os.path.join(os.path.dirname(__file__), "..", "..", "models", _fileName)

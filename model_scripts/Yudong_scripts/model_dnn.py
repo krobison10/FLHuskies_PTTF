@@ -4,8 +4,6 @@
 # A simple regression model implements with deep neural network
 #
 
-import os
-
 import mytools
 import numpy as np
 import pandas as pd  # type: ignore
@@ -48,13 +46,7 @@ def train_dnn(_data_train: pd.DataFrame, _data_test: pd.DataFrame) -> None:
 
     # Model Checkpoint
     check_pointer = ModelCheckpoint(
-        os.path.join(os.path.dirname(__file__), "..", "..", "models", "dnn_model.h5"),
-        monitor="loss",
-        verbose=1,
-        save_best_only=True,
-        save_weights_only=False,
-        mode="auto",
-        save_freq="epoch",
+        mytools.get_model_path("dnn_model.h5"), monitor="loss", verbose=1, save_best_only=True, save_weights_only=False, mode="auto", save_freq="epoch"
     )
     # Model Early Stopping Rules
     early_stopping = EarlyStopping(monitor="val_loss", patience=10)

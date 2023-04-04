@@ -4,7 +4,6 @@
 # A simple regression model implements with xgboost
 #
 
-import os
 import mytools
 import numpy as np
 import pandas as pd  # type: ignore
@@ -43,4 +42,4 @@ num_round = 10000
 
 model = result = xgboost.train(_parameters, dtrain, num_round, evallist, early_stopping_rounds=10)
 
-model.save_model(os.path.join(os.path.dirname(__file__), "..", "..", "models", "xgboost_regression.model"))
+model.save_model(mytools.get_model_path("xgboost_regression.model"))

@@ -28,7 +28,7 @@ def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables:
     etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30)
     origin: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["first_position"], now, 30)
     standtimes: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["standtimes"], now, 30)
-    runways: pd.DataFrame = data_tables["runways"]
+    # runways: pd.DataFrame = data_tables["runways"]
 
     # rename origin timestamp to origin_time as to not get confused in future joins,
     # because timestamp is the important feature
@@ -58,12 +58,12 @@ def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables:
     # )
 
     # ----- 3hr Average Delay -----
-    delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 3)
-    final_table["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
+    # delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 3)
+    # final_table["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 30hr Average Delay -----
-    delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 30)
-    final_table["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
+    # delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 30)
+    # final_table["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 3hr Average Time at Stand -----
     standtime_3hr = feature_engineering.average_stand_time(origin, standtimes, now, 3)
@@ -141,7 +141,7 @@ def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.
         "lamp": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
         .set_index("timestamp")
         .sort_values("timestamp"),
-        "runways": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+        # "runways": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
         "standtimes": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
     }
 
@@ -156,7 +156,7 @@ def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.
     _df = pd.concat(timestamp_tables, ignore_index=True)
 
     # Add runway information
-    _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
+    # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
     # Add mfs information
     feature_tables["mfs"] = pd.read_csv(_get_csv_path(data_dir, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str})
@@ -203,9 +203,6 @@ if __name__ == "__main__":
 
         # fill the result missing spot with UNK
         table = table.fillna("UNK")
-
-        # drop isdeparture colum since it is not useful
-        table = table.drop(columns=["isdeparture"])
 
         # adding feature gufi_end_label since it could be useful
         table["gufi_end_label"] = table.apply(lambda x: "TFM" if x.gufi.endswith("TFM") else "TFM_TFDM" if x.gufi.endswith("TFM_TFDM") else "OTHER", axis=1)

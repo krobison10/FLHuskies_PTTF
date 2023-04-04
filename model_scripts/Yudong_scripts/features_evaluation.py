@@ -1,3 +1,9 @@
+#
+# Author: Yudong Lin
+#
+# A simple script that Yudong use to evaluate all features
+#
+
 import mytools
 
 features: tuple[str, ...] = (
@@ -22,10 +28,6 @@ features: tuple[str, ...] = (
 
 _data = mytools.get_train_tables().drop_duplicates(subset=["gufi"])
 
-_data["month"] = _data.apply(lambda x: x.timestamp.month, axis=1)
-_data["day"] = _data.apply(lambda x: x.timestamp.day, axis=1)
-_data["hour"] = _data.apply(lambda x: x.timestamp.hour, axis=1)
-_data["minute"] = _data.apply(lambda x: x.timestamp.minute, axis=1)
-_data["weekday"] = _data.apply(lambda x: x.timestamp.weekday(), axis=1)
+_data = mytools.applyAdditionalTimeBasedFeatures(_data)
 
 mytools.evaluate_numerical_features(_data, features)
