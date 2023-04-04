@@ -28,7 +28,7 @@ def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables:
     etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30)
     origin: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["first_position"], now, 30)
     standtimes: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["standtimes"], now, 30)
-    # runways: pd.DataFrame = data_tables["runways"]
+    runways: pd.DataFrame = data_tables["runways"]
 
     # rename origin timestamp to origin_time as to not get confused in future joins,
     # because timestamp is the important feature
@@ -58,12 +58,12 @@ def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables:
     # )
 
     # ----- 3hr Average Delay -----
-    # delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 3)
-    # final_table["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
+    delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 3)
+    final_table["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 30hr Average Delay -----
-    # delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 30)
-    # final_table["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
+    delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways, now, 30)
+    final_table["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
 
     # ----- 3hr Average Time at Stand -----
     standtime_3hr = feature_engineering.average_stand_time(origin, standtimes, now, 3)
@@ -90,7 +90,7 @@ def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.D
     # the latest forecast
     latest_forecast: Optional[pd.DataFrame] = None
     # counter to monitoring hours going forward
-    hour_f: int = 0
+    hour_f: int = 0 
     # when no valid forecast is found
     while latest_forecast is None:
         # round time to the nearest hour
@@ -112,7 +112,7 @@ def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.D
                 flights_selected[key] = "UNK"
             break
         hour_f += 1
-
+    
     return flights_selected
 
 
@@ -141,7 +141,7 @@ def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.
         "lamp": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
         .set_index("timestamp")
         .sort_values("timestamp"),
-        # "runways": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+        "runways": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
         "standtimes": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
     }
 
@@ -156,7 +156,7 @@ def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.
     _df = pd.concat(timestamp_tables, ignore_index=True)
 
     # Add runway information
-    # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
+    _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
     # Add mfs information
     feature_tables["mfs"] = pd.read_csv(_get_csv_path(data_dir, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str})
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         )
         # table = table.drop_duplicates(subset=["gufi"])
 
-        # extract features for give airport
+        # extract features for the given airport
         table = extract_features_for(table, airport, DATA_DIR)
 
         # some int features may be missing due to a lack of information
@@ -203,6 +203,78 @@ if __name__ == "__main__":
 
         # fill the result missing spot with UNK
         table = table.fillna("UNK")
+
+        # drop isdeparture colum since it is not useful
+        table = table.drop(columns=["isdeparture"])
+
+        #Adding global LAMP features
+        current = table.copy()
+
+        past_temperatures = (
+        current.groupby("timestamp")
+        .first()
+        .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
+        )
+        past_temperatures = (
+            past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
+        )
+        past_temperatures.columns = [
+            "feat_4_" + c[0] + "_" + c[1] + "_last6h"
+            if c[0] != "timestamp"
+            else "timestamp"
+            for c in past_temperatures.columns
+        ]
+        past_temperatures = (
+            past_temperatures.set_index("timestamp")
+            .resample("15min")
+            .ffill()
+            .reset_index()
+        )
+        
+        current_feats = past_temperatures.copy()
+
+        for p in range(1, 24):
+            next_temp = (
+                current[
+                    (current.time_ahead_prediction <= p)
+                    & (current.time_ahead_prediction > p - 1)
+                ]
+                .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
+                .groupby("timestamp")
+                .mean()
+                .reset_index()
+            )
+            next_temp.columns = [
+                "feat_4_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp"
+                for c in next_temp.columns
+            ]
+            next_temp = (
+                next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
+            )
+            current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
+
+        current_feats["airport"] = airport
+        weather = pd.DataFrame()
+
+        weather = pd.concat([weather, current_feats])
+
+        table = table.merge(weather, how="left", on=["airport", "timestamp"])
+
+        # Add global weather features
+        weather_feats = [c for c in weather.columns if "feat_4" in c]
+        for feat in weather_feats:
+            table[feat + "_global_min_"] = table["timestamp"].map(
+                weather.groupby("timestamp")[feat].min()
+            )
+            table[feat + "_global_mean"] = table["timestamp"].map(
+                weather.groupby("timestamp")[feat].mean()
+            )
+            table[feat + "_global_max"] = table["timestamp"].map(
+                weather.groupby("timestamp")[feat].max()
+            )
+            table[feat + "_global_std"] = table["timestamp"].map(
+                weather.groupby("timestamp")[feat].std()
+            )
 
         # adding feature gufi_end_label since it could be useful
         table["gufi_end_label"] = table.apply(lambda x: "TFM" if x.gufi.endswith("TFM") else "TFM_TFDM" if x.gufi.endswith("TFM_TFDM") else "OTHER", axis=1)

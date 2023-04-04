@@ -13,7 +13,6 @@ import pandas as pd  # type: ignore
 from sklearn.ensemble import AdaBoostRegressor  # type: ignore
 from sklearn.linear_model import LinearRegression  # type: ignore
 from sklearn.model_selection import cross_val_score  # type: ignore
-from sklearn.neighbors import KNeighborsRegressor  # type: ignore
 from sklearn.tree import DecisionTreeRegressor  # type: ignore
 
 DATA_DIR: str = os.path.dirname(__file__)
@@ -43,9 +42,4 @@ print("average neg_mean_absolute_error for 10 cross_val_score:", np.average(resu
 print("Make prediction using AdaBoostRegressor")
 model_ada = AdaBoostRegressor()
 result = cross_val_score(model_ada, X=X, y=y, scoring="neg_mean_absolute_error", cv=10)
-print("average neg_mean_absolute_error for 10 cross_val_score:", np.average(result), ", best:", np.max(result))
-
-print("Make prediction using Knn")
-model_knn = KNeighborsRegressor()
-result = cross_val_score(model_knn, X=X, y=y, scoring="neg_mean_absolute_error", cv=10)
 print("average neg_mean_absolute_error for 10 cross_val_score:", np.average(result), ", best:", np.max(result))

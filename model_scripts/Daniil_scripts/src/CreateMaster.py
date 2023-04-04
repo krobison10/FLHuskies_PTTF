@@ -28,14 +28,21 @@ def CreateMaster(data_path: str, airports, start_time: str, end_time: str, with_
     # Create cross join of all the dates between start_time and end_time at a 15min frequency
     master_table = CrossJoinDatesAirports(airports=airports, start_time=start_time, end_time=end_time)
 
+    master_table = ExtractAirportconfigFeatures(master_table, raw_data['config'])
+    # Adjust master table in order not to have errors in edge cases in prediction time
+    print("Extracted Config")
     # Extract features for the selected data blocks and append them to the master table
     master_table = ExtractLampFeatures(master_table, raw_data['lamp'])
+    print("Extracted Lamp")
     master_table = ExtractETDFeatures(master_table, raw_data['etd'])
+    print("Extracted ETD")
     master_table = ExtractGufiTimestampFeatures(master_table, raw_data['first_position'], 'first_position')
+    print("Extracted First Position")
     master_table = ExtractMfsFeatures(master_table, "KSEA")
+    print("Extracted MFS")
 
-    # Adjust master table in order not to have errors in edge cases in prediction time
     master_table = Adjust(master_table)
+    print("Adjusted")
 
     # # In case we want the master table for training we include the targets
     # if with_targets:

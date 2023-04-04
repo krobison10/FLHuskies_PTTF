@@ -3,6 +3,9 @@
 # Ignore _data directory
 _data/
 
+# Ignore _data directory
+catboost_info/
+
 # Ignore all CSV files
 *.csv
 
@@ -161,3 +164,4 @@ dmypy.json
 
 .DS_Store
 
+model_scripts/catboost_info/catboost_training.json

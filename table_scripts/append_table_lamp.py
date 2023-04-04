@@ -75,8 +75,7 @@ def ExtractLampFeatures(table, weather):
     # table_feats['airport'] = airport
     # weather = pd.concat([weather, table_feats])
 
-    # table = table.merge(weather, how='left', on=['timestamp'])
-    # master_table = master_table.merge(weather, how='left', on=['airport', 'timestamp'])
+    # table = table.merge(weather, how='left', on=['airport', 'timestamp'])
 
     # weather_feats = [c for c in weather.columns if 'feat_4' in c]
     
@@ -107,22 +106,21 @@ if __name__ == "__main__":
 
     airport = "KSEA"
 
-    table: pd.DataFrame = pd.read_csv(DATA_DIR / airport / f"prescreened_train_labels_{airport}.csv.bz2", parse_dates=["timestamp"]).sort_values(
+    table: pd.DataFrame = pd.read_csv(DATA_DIR / airport / f"train_labels_{airport}.csv.bz2", parse_dates=["timestamp"]).sort_values(
             "timestamp"
         )
 
-    # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(DATA_DIR / airport / f"{airport}_etd.csv{ext}", parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-            "timestamp"
-        ),
-        "lamp": pd.read_csv(DATA_DIR / airport / f"{airport}_lamp.csv{ext}",parse_dates=[ "forecast_timestamp", "timestamp"]),
-        "mfs": pd.read_csv(DATA_DIR / airport / f"{airport}_mfs.csv{ext}"),
+    "etd": pd.read_csv(DATA_DIR / airport / f"{airport}_etd.csv{ext}", parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
+        "timestamp"
+    ),
+    # "mfs": pd.read_csv(DATA_DIR / airport / f"{airport}_mfs.csv{ext}"),
+    "lamp": pd.read_csv(DATA_DIR / airport / f"{airport}_lamp.csv{ext}",parse_dates=["forecast_timestamp", "timestamp"]),
     }
 
-    #Defining necessary variables
+    # table = table.merge(feature_tables["mfs"][["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"), how="left", on="gufi")
     table = table.merge(feature_tables["lamp"][["wind_gust", "cloud_ceiling", "cloud", "lightning_prob", "precip", "wind_speed", "wind_direction", "temperature", "forecast_timestamp", "timestamp"]].fillna("UNK"), how="left", on="timestamp")
-    table = table.merge(feature_tables["mfs"][["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"), how="left", on="gufi")
+
     weather = pd.DataFrame()
     table = ExtractLampFeatures(table, weather)
     
@@ -141,4 +139,4 @@ if __name__ == "__main__":
     table = table[cols]
 
     # save with name "KSEA_train_w_lamp.csv"
-    table.to_csv(Path("KSEA_test_w_lamp.csv"), index=False)
+    table.to_csv(Path("KSEA_train_w_lamp.csv"), index=False)
