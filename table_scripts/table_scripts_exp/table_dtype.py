@@ -10,7 +10,7 @@ import pandas as pd  # type: ignore
 class TableDtype:
     INT_COLUMNS: tuple[str, ...] = ("minutes_until_pushback", "minutes_until_etd", "temperature", "wind_direction", "wind_speed", "wind_gust")
 
-    FLOAT_COLUMNS: tuple[str, ...] = ("delay_3hr", "delay_30hr", "standtime_3hr", "standtime_30hr", "cloud_ceiling", "visibility")
+    FLOAT_COLUMNS: tuple[str, ...] = ("standtime_3hr", "standtime_30hr", "cloud_ceiling", "visibility")
 
     STR_COLUMS: tuple[str, ...] = (
         "cloud",
@@ -27,8 +27,6 @@ class TableDtype:
     # fill potential missing int features with 0
     def fix_potential_missing_int_features(_df: pd.DataFrame) -> pd.DataFrame:
         columns_need_normalize: tuple[str, ...] = (
-            "delay_3hr",
-            "delay_30hr",
             "standtime_3hr",
             "standtime_30hr",
             "temperature",
@@ -39,7 +37,7 @@ class TableDtype:
             "visibility",
         )
 
-        float_columns: tuple[str, ...] = ("delay_3hr", "delay_30hr", "standtime_3hr", "standtime_30hr")
+        float_columns: tuple[str, ...] = ("standtime_3hr", "standtime_30hr")
 
         for _col in columns_need_normalize:
             _df[_col] = _df[_col].fillna(0)

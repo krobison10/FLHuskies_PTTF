@@ -9,32 +9,33 @@
 # It can easily be changed.
 #
 
-import os
-
-from table_dtype import TableDtype
-from table_generation import generate_table_for
-from utils import split
-
 if __name__ == "__main__":
-    # output the table as it is - full
+    import argparse
+    import os
+
+    from table_dtype import TableDtype
+    from table_generation import generate_table
+    from utils import split
+
+    # using argparse to parse the argument from command line
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument("-s", help="how to save the table")
+    parser.add_argument("-a", help="airport")
+    args: argparse.Namespace = parser.parse_args()
+
+    # save the table as it is - full
     # splitted the full table into a train table and a validation table and then save these two table - splitted
     # I want both - all
-    output_df_as: str = "all"
+    save_table_as: str = "all" if args.s is None else str(args.s)
 
-    airports = [
-        "KATL",
-        "KCLT",
-        "KDEN",
-        "KDFW",
-        "KJFK",
-        "KMEM",
-        "KMIA",
-        "KORD",
-        "KPHX",
-        "KSEA",
-    ]
-
-    label_type: str = "prescreened"
+    # airports need to process
+    airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
+    if args.a is not None:
+        airport_selected: str = str(args.a).upper()
+        if airport_selected in airports:
+            airports = (airport_selected,)
+        else:
+            raise NameError(f"Unknown airport name {airports}!")
 
     DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "..", "_data")
 
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         print("Start processing:", airport)
 
         # extract features for give airport
-        table = generate_table_for(airport, DATA_DIR)
+        table = generate_table(airport, DATA_DIR, 100)
 
         # some int features may be missing due to a lack of information
         table = TableDtype.fix_potential_missing_int_features(table)
@@ -50,17 +51,14 @@ if __name__ == "__main__":
         # fill the result missing spot with UNK
         table = table.fillna("UNK")
 
-        # adding feature gufi_end_label since it could be useful
-        table["gufi_end_label"] = table.apply(lambda x: "TFM" if x.gufi.endswith("TFM") else "TFM_TFDM" if x.gufi.endswith("TFM_TFDM") else "OTHER", axis=1)
-
         # table = normalize_str_features(table)
 
         # save data
-        if output_df_as == "full" or output_df_as == "all":
+        if save_table_as == "full" or save_table_as == "all":
             table.sort_values(["gufi", "timestamp"]).to_csv(
                 os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"main_{airport}_prescreened.csv"), index=False
             )
-        if output_df_as == "splitted" or output_df_as == "all":
+        if save_table_as == "splitted" or save_table_as == "all":
             split(table, os.path.join(os.path.dirname(__file__), "..", ".."), airport)
 
         print("Finish processing:", airport)

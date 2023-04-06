@@ -13,6 +13,7 @@ import pandas as pd  # type: ignore
 from add_etd import add_etd
 from add_lamp import add_lamp
 from add_mfs import add_mfs
+from extract_gufi_features import extract_and_add_gufi_features
 from tqdm import tqdm
 from utils import get_csv_path
 
@@ -25,7 +26,7 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     return filtered_table
 
 
-def generate_table_for(_airport: str, from_dir: str, max_rows: int | None = None) -> pd.DataFrame:
+def generate_table(_airport: str, from_dir: str, max_rows: int | None = None) -> pd.DataFrame:
     # read train labels for given airport
     _df: pd.DataFrame = pd.read_csv(
         get_csv_path(from_dir, f"train_labels_prescreened", f"prescreened_train_labels_{_airport}.csv"),
@@ -66,5 +67,8 @@ def generate_table_for(_airport: str, from_dir: str, max_rows: int | None = None
 
     # Add mfs information
     _df = add_mfs(_df, get_csv_path(from_dir, _airport, f"{_airport}_mfs.csv"))
+
+    # extract and add mfs information
+    _df = extract_and_add_gufi_features(_df)
 
     return _df
