@@ -16,27 +16,63 @@ from sklearn.metrics import mean_absolute_error
 airport = "master"
 
 train_df = pd.read_csv(f"../train_tables/{airport}_train.csv")
+# train_df = pd.read_csv(f"../full_tables/master_full.csv")
+
 val_df = pd.read_csv(f"../validation_tables/{airport}_validation.csv")
 
-# encode airports
-encoder = OrdinalEncoder()
-encoded_airports = encoder.fit_transform(train_df[["airport"]])
-train_df["airport"] = encoded_airports
+input_features = [
+    "airport",
+    "minutes_until_etd",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+]
 
-encoded_airports = encoder.transform(val_df[["airport"]])
-val_df["airport"] = encoded_airports
+encoded_columns = [
+    "airport",
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+]
 
-input_features = ["minutes_until_etd", "airport"]
+encoders = {}
 
+# need to make provisions for handling unknown values
+for col in encoded_columns:
+    encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+
+    if col == "precip":
+        train_df[col] = train_df[col].astype(str)
+        val_df[col] = val_df[col].astype(str)
+
+    encoded_col = encoder.fit_transform(train_df[[col]])
+    train_df[[col]] = encoded_col
+
+    encoded_col = encoder.transform(val_df[[col]])
+    val_df[[col]] = encoded_col
 
 # ---------------------------------------- BASELINE ----------------------------------------
 
-# add columns representing standard and improved baselines to validation table
-val_df["baseline"] = val_df.apply(lambda row: max(row["minutes_until_etd"] - 15, 0), axis=1)
-
-# print performance of baseline estimates
-mae = mean_absolute_error(val_df["minutes_until_pushback"], val_df["baseline"])
-print(f"\nMAE with baseline: {mae:.4f}")
+# # add columns representing standard and improved baselines to validation table
+# val_df["baseline"] = val_df.apply(lambda row: max(row["minutes_until_etd"] - 15, 0), axis=1)
+#
+# # print performance of baseline estimates
+# mae = mean_absolute_error(val_df["minutes_until_pushback"], val_df["baseline"])
+# print(f"\nMAE with baseline: {mae:.4f}")
 
 
 # ---------------------------------------- PROCESS ----------------------------------------
