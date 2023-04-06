@@ -6,19 +6,19 @@ from sklearn.metrics import mean_absolute_error
 
 import numpy as np
 import pandas as pd
-DATA_DIRECTORY = Path("./train_tables")
+DATA_DIRECTORY = Path("./full_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 AIRPORTS = [
-    "KATL",
-    "KCLT",
-    "KDEN",
-    "KDFW",
-    "KJFK",
+    # "KATL",
+    # "KCLT",
+    # "KDEN",
+    # "KDFW",
+    # "KJFK",
     "KMEM",
-    "KMIA",
-    "KORD",
-    "KPHX",
-    "KSEA"
+    # "KMIA",
+    # "KORD",
+    # "KPHX",
+    # "KSEA"
 ]
 train = []
 
@@ -116,7 +116,7 @@ for airport in AIRPORTS:
 
     # y_test = test["minutes_until_pushback"]
 
-    ensembleRegressor = cb.CatBoostRegressor(has_time=True, loss_function="MAE", task_type="GPU", n_estimators=8000)
+    ensembleRegressor = cb.CatBoostRegressor(has_time=True, loss_function="MAE", task_type="GPU", n_estimators=16000)
     # ensembleRegressor.fit(X_train, y_train,cat_features=cat_feature,use_best_model=True)
     ensembleRegressor.fit(X_train, y_train,cat_features = cat_features, use_best_model=True)
 
