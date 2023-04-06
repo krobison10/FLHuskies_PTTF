@@ -4,12 +4,10 @@
 # obtain the latest forecasts information and add it to the data frame
 #
 
-from typing import Optional
-
 import pandas as pd  # type: ignore
 
 
-def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp) -> Optional[pd.DataFrame]:
+def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp) -> pd.DataFrame | None:
     # select all rows contain this forecast_timestamp
     forecasts: pd.DataFrame = _lamp.loc[
         (_lamp.forecast_timestamp == _look_for_timestamp) & (_now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= _now)
@@ -22,7 +20,7 @@ def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, 
 def add_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     _lamp: pd.DataFrame = data_tables["lamp"]
     # the latest forecast
-    latest_forecast: Optional[pd.DataFrame] = None
+    latest_forecast: pd.DataFrame | None = None
     # counter to monitoring hours going forward
     hour_f: int = 0
     # when no valid forecast is found

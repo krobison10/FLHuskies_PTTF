@@ -13,25 +13,30 @@ import pandas as pd  # type: ignore
 from add_etd import add_etd
 from add_lamp import add_lamp
 from add_mfs import add_mfs
-from feature_engineering import get_csv_path
 from tqdm import tqdm
+from utils import get_csv_path
 
 
-def _process_timestamp(now: pd.Timestamp, all_flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
-    filtered_table: pd.DataFrame = all_flights.loc[all_flights.timestamp == now].reset_index(drop=True)
+    filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
     filtered_table = add_etd(now, filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
     return filtered_table
 
 
-def generate_table_for(_airport: str, from_dir: str) -> pd.DataFrame:
+def generate_table_for(_airport: str, from_dir: str, max_rows: int | None = None) -> pd.DataFrame:
     # read train labels for given airport
     _df: pd.DataFrame = pd.read_csv(
         get_csv_path(from_dir, f"train_labels_prescreened", f"prescreened_train_labels_{_airport}.csv"),
         parse_dates=["timestamp"],
     )
+
     # table = table.drop_duplicates(subset=["gufi"])
+
+    # if you want to select only a certain amount of row
+    if max_rows is not None:
+        _df = _df[:max_rows]
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {

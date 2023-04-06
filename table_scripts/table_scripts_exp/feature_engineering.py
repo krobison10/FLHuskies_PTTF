@@ -5,7 +5,6 @@
 #
 
 import math
-import os
 from datetime import timedelta
 
 import pandas as pd  # type: ignore
@@ -59,13 +58,3 @@ def average_taxi_time(standtimes: pd.DataFrame, runways: pd.DataFrame, now: pd.T
 # between the time 'now' and n hours prior
 def filter_by_timestamp(df: pd.DataFrame, now: pd.Timestamp, hours: int) -> pd.DataFrame:
     return df.loc[(df.timestamp > now - timedelta(hours=hours)) & (df.timestamp <= now)]
-
-
-# get a valid path for a csv file
-# try to return the path for uncompressed csv file first
-# if the uncompressed csv does not exists, then return the path for compressed csv file
-def get_csv_path(*argv: str) -> str:
-    etd_csv_path: str = os.path.join(*argv)
-    if not os.path.exists(etd_csv_path):
-        etd_csv_path += ".bz2"
-    return etd_csv_path
