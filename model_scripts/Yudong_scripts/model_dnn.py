@@ -8,7 +8,7 @@ import mytools
 import numpy as np
 import pandas as pd  # type: ignore
 import tensorflow as tf  # type: ignore
-from tensorflow.keras import layers  # type: ignore
+from tensorflow.keras import layers, regularizers  # type: ignore
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint  # type: ignore
 from tensorflow.keras.models import Sequential  # type: ignore
 
@@ -27,20 +27,19 @@ def train_dnn(_data_train: pd.DataFrame, _data_test: pd.DataFrame) -> None:
     y_train: np.ndarray = np.asarray(_data_train["minutes_until_pushback"])
     y_test: np.ndarray = np.asarray(_data_test["minutes_until_pushback"])
 
-    normalizer = layers.Normalization(input_shape=[X_train.shape[1]], axis=-1)
-    normalizer.adapt(X_train)
-
-    model = Sequential([normalizer])
-    model.add(layers.Dense(32, activation="relu"))
-    model.add(layers.Dense(32, activation="relu"))
-    model.add(layers.Dense(64, activation="relu"))
-    model.add(layers.Dense(64, activation="relu"))
-    model.add(layers.Dense(128, activation="relu"))
-    model.add(layers.Dense(128, activation="relu"))
-    model.add(layers.Dense(256, activation="relu"))
-    model.add(layers.Dense(32, activation="relu"))
+    model = Sequential()
+    model.add(layers.Dense(64, activation="elu", input_shape=(X_train.shape[1],)))
+    model.add(layers.Dense(64, activation="elu"))
+    model.add(layers.Dense(128, activation="elu"))
+    model.add(layers.Dense(128, activation="elu"))
+    model.add(layers.Dense(256, activation="elu"))
+    model.add(layers.Dense(256, activation="elu"))
+    model.add(layers.Dense(512, activation="elu"))
+    model.add(layers.Dense(512, activation="elu"))
+    model.add(layers.Dense(1024, activation="elu"))
+    model.add(layers.Dense(1024, activation="elu"))
     model.add(layers.Dense(1))
-    model.compile(loss="mae", optimizer="adam", metrics=["mae"])
+    model.compile(loss="mean_absolute_error", optimizer="adam")
 
     model.summary()
 

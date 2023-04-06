@@ -4,42 +4,86 @@
 # A simple regression model implements with xgboost
 #
 
+import os
 import mytools
 import numpy as np
 import pandas as pd  # type: ignore
 import xgboost
 
-_data_train: pd.DataFrame = mytools.get_train_tables().drop_duplicates(subset=["gufi"])
-_data_test: pd.DataFrame = mytools.get_validation_tables().drop_duplicates(subset=["gufi"])
+overwrite: bool = False
 
-features: tuple[str, ...] = ("wind_direction", "wind_gust", "temperature", "delay_3hr", "delay_30hr", "standtime_3hr", "standtime_30hr")
+_airport: str = "KSEA"
 
-X_train = np.asarray([_data_train[_col] for _col in features])
-X_test = np.asarray([_data_test[_col] for _col in features])
+_data_train: pd.DataFrame = mytools.get_train_tables(_airport)
+_data_test: pd.DataFrame = mytools.get_validation_tables(_airport)
 
-X_train = np.reshape(X_train, (X_train.shape[1], X_train.shape[0]))
-X_test = np.reshape(X_test, (X_test.shape[1], X_test.shape[0]))
-
-y_train = np.asarray(_data_train["minutes_until_pushback"])
-y_test = np.asarray(_data_test["minutes_until_pushback"])
-
-dtrain = xgboost.DMatrix(X_train, label=y_train)
-dtest = xgboost.DMatrix(X_test, label=y_test)
-
-_parameters = {
-    "objective": "reg:squarederror",
-    "eval_metric": "mae",
-    "tree_method": "gpu_hist",
-    "gamma": 1,
-    "eta": 0.01,
-    "subsample": 0.2,
-    "booster": "dart",
+features: dict[str, tuple[str, ...]] = {
+    "lamp": (
+        "temperature",
+        "wind_direction",
+        "wind_speed",
+        "wind_gust",
+        "cloud_ceiling",
+        "visibility",
+        "cloud",
+        "lightning_prob",
+        "precip",
+    ),
+    "mfs": ("aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"),
+    "time": ("standtime_3hr", "standtime_30hr", "month", "day", "hour", "weekday"),
 }
 
-evallist = [(dtrain, "train"), (dtest, "eval")]
+mytools.encodeStrFeatures(_data_train, _data_test, *features["mfs"])
+mytools.encodeStrFeatures(_data_train, _data_test, "cloud", "lightning_prob", "precip")
 
-num_round = 10000
+for _category in features:
+    # load training and validation data
+    X_train: np.ndarray = np.asarray([_data_train[_col] for _col in features[_category]], dtype="float32")
+    X_test: np.ndarray = np.asarray([_data_test[_col] for _col in features[_category]], dtype="float32")
 
-model = result = xgboost.train(_parameters, dtrain, num_round, evallist, early_stopping_rounds=10)
+    X_train = np.reshape(X_train, (X_train.shape[1], X_train.shape[0]))
+    X_test = np.reshape(X_test, (X_test.shape[1], X_test.shape[0]))
 
-model.save_model(mytools.get_model_path("xgboost_regression.model"))
+    y_train: np.ndarray = np.asarray(_data_train["minutes_until_pushback"])
+    y_test: np.ndarray = np.asarray(_data_test["minutes_until_pushback"])
+
+    dtrain = xgboost.DMatrix(X_train, label=y_train)
+    dtest = xgboost.DMatrix(X_test, label=y_test)
+
+    # obtain the path for the model
+    model_path: str = mytools.get_model_path(f"xgboost_regression_{_airport}_{_category}.model")
+    # don overwrite existing model unless specified
+    if not os.path.exists(model_path) or overwrite is True:
+        _parameters = {
+            "objective": "reg:squarederror",
+            "eval_metric": "mae",
+            "tree_method": "gpu_hist",
+            "gamma": 1,
+            "eta": 0.01,
+            "subsample": 0.2,
+        }
+
+        evallist = [(dtrain, "train"), (dtest, "eval")]
+
+        num_round: int = 10000
+
+        model = xgboost.train(_parameters, dtrain, num_round, evallist, early_stopping_rounds=10)
+
+        print(f"Best mae for {_category}: {model.best_score}\n")
+
+        model.save_model(model_path)
+    else:
+        model = xgboost.Booster()
+        model.load_model(model_path)
+
+    _data_train[f"xgboost_{_category}"] = model.predict(dtrain)
+    _data_train[f"xgboost_{_category}"] = _data_train[f"xgboost_{_category}"].astype(int)
+    _data_test[f"xgboost_{_category}"] = model.predict(dtest)
+    _data_test[f"xgboost_{_category}"] = _data_train[f"xgboost_{_category}"].astype(int)
+
+    for _col in features[_category]:
+        _data_train = _data_train.drop(_col, axis=1)
+        _data_test = _data_test.drop(_col, axis=1)
+
+_data_train.to_csv(mytools.get_train_tables_path().replace(".csv", "_xgboost.csv"), index=False)
+_data_train.to_csv(mytools.get_validation_tables_path().replace(".csv", "_xgboost.csv"), index=False)
