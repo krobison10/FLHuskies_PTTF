@@ -26,7 +26,7 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     return filtered_table
 
 
-def generate_table(_airport: str, from_dir: str, max_rows: int | None = None) -> pd.DataFrame:
+def generate_table(_airport: str, from_dir: str, max_rows: int = -1) -> pd.DataFrame:
     # read train labels for given airport
     _df: pd.DataFrame = pd.read_csv(
         get_csv_path(from_dir, f"train_labels_prescreened", f"prescreened_train_labels_{_airport}.csv"),
@@ -36,7 +36,7 @@ def generate_table(_airport: str, from_dir: str, max_rows: int | None = None) ->
     # table = table.drop_duplicates(subset=["gufi"])
 
     # if you want to select only a certain amount of row
-    if max_rows is not None:
+    if max_rows > 0:
         _df = _df[:max_rows]
 
     # define list of data tables to load and use for each airport

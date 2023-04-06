@@ -21,6 +21,7 @@ if __name__ == "__main__":
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("-s", help="how to save the table")
     parser.add_argument("-a", help="airport")
+    parser.add_argument("-m", help="first m rows")
     args: argparse.Namespace = parser.parse_args()
 
     # save the table as it is - full
@@ -43,7 +44,7 @@ if __name__ == "__main__":
         print("Start processing:", airport)
 
         # extract features for give airport
-        table = generate_table(airport, DATA_DIR)
+        table = generate_table(airport, DATA_DIR, -1 if args.m is None else int(args.m))
 
         # some int features may be missing due to a lack of information
         table = TableDtype.fix_potential_missing_int_features(table)
@@ -56,7 +57,7 @@ if __name__ == "__main__":
         # save data
         if save_table_as == "full" or save_table_as == "all":
             table.sort_values(["gufi", "timestamp"]).to_csv(
-                os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"main_{airport}_prescreened.csv"), index=False
+                os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"{airport}_full.csv"), index=False
             )
         if save_table_as == "splitted" or save_table_as == "all":
             train_test_split(table, os.path.join(os.path.dirname(__file__), "..", ".."), airport)
