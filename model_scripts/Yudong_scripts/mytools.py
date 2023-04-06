@@ -39,27 +39,43 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
     print(features_scores.sort_values("Score"))
 
 
-def get_train_tables(_airport: str = "KSEA") -> pd.DataFrame:
-    return pd.read_csv(
-        os.path.join(os.path.dirname(__file__), "..", "..", "train_tables", f"{_airport}_train.csv"),
-        parse_dates=["timestamp"],
-        dtype={"minutes_until_etd": int, "minutes_until_pushback": int, "precip": str},
+def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
+    _df: pd.DataFrame = pd.read_csv(
+        _path, parse_dates=["timestamp"], dtype={"minutes_until_etd": int, "minutes_until_pushback": int, "precip": str}
     ).sort_values(["gufi", "timestamp"])
+    if remove_duplicate_gufi is True:
+        _df = _df.drop_duplicates(subset=["gufi"])
+    return applyAdditionalTimeBasedFeatures(_df)
 
 
-def get_validation_tables(_airport: str = "KSEA") -> pd.DataFrame:
-    return pd.read_csv(
-        os.path.join(os.path.dirname(__file__), "..", "..", "validation_tables", f"{_airport}_validation.csv"),
-        parse_dates=["timestamp"],
-        dtype={"minutes_until_etd": int, "minutes_until_pushback": int, "precip": str},
-    ).sort_values(["gufi", "timestamp"])
+def get_train_tables_path(_airport: str = "KSEA") -> str:
+    return os.path.join(os.path.dirname(__file__), "..", "..", "train_tables", f"{_airport}_train.csv")
+
+
+def get_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
+    return _get_tables(get_train_tables_path(_airport), remove_duplicate_gufi)
+
+
+def get_preprocessed_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
+    return _get_tables(get_train_tables_path(_airport).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi)
+
+
+def get_validation_tables_path(_airport: str = "KSEA") -> str:
+    return os.path.join(os.path.dirname(__file__), "..", "..", "validation_tables", f"{_airport}_validation.csv")
+
+
+def get_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
+    return _get_tables(get_validation_tables_path(_airport), remove_duplicate_gufi)
+
+
+def get_preprocessed_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
+    return _get_tables(get_validation_tables_path(_airport).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi)
 
 
 def applyAdditionalTimeBasedFeatures(_data: pd.DataFrame) -> pd.DataFrame:
     _data["month"] = _data.apply(lambda x: x.timestamp.month, axis=1)
     _data["day"] = _data.apply(lambda x: x.timestamp.day, axis=1)
     _data["hour"] = _data.apply(lambda x: x.timestamp.hour, axis=1)
-    _data["minute"] = _data.apply(lambda x: x.timestamp.minute, axis=1)
     _data["weekday"] = _data.apply(lambda x: x.timestamp.weekday(), axis=1)
     return _data
 

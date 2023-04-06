@@ -20,14 +20,11 @@ features: tuple[str, ...] = (
     "month",
     "day",
     "hour",
-    "minute",
     "weekday",
     "minutes_until_etd",
     "minutes_until_pushback",
 )
 
-_data = mytools.get_train_tables().drop_duplicates(subset=["gufi"])
-
-_data = mytools.applyAdditionalTimeBasedFeatures(_data)
+_data = mytools.get_train_tables()
 
 mytools.evaluate_numerical_features(_data, features)

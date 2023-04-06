@@ -25,7 +25,7 @@ def split(table: pd.DataFrame, airport: str = None, save: bool = True):
         traindata.to_csv(os.path.join(ROOT, "train_tables", f"{ext}train.csv"), index=False)
         testdata.to_csv(os.path.join(ROOT, "validation_tables", f"{ext}validation.csv"), index=False)
 
-    return testdata.copy(), traindata.copy(),
+    return traindata.copy(), testdata.copy(),
 
 
 if __name__ == "__main__":
