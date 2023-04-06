@@ -43,7 +43,7 @@ if __name__ == "__main__":
         print("Start processing:", airport)
 
         # extract features for give airport
-        table = generate_table(airport, DATA_DIR, 100)
+        table = generate_table(airport, DATA_DIR)
 
         # some int features may be missing due to a lack of information
         table = TableDtype.fix_potential_missing_int_features(table)
