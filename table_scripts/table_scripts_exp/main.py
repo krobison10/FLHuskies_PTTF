@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     from table_dtype import TableDtype
     from table_generation import generate_table
-    from utils import split
+    from utils import train_test_split
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -59,7 +59,7 @@ if __name__ == "__main__":
                 os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"main_{airport}_prescreened.csv"), index=False
             )
         if save_table_as == "splitted" or save_table_as == "all":
-            split(table, os.path.join(os.path.dirname(__file__), "..", ".."), airport)
+            train_test_split(table, os.path.join(os.path.dirname(__file__), "..", ".."), airport)
 
         print("Finish processing:", airport)
         print("------------------------------")

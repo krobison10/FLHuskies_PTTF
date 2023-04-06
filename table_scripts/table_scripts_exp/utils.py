@@ -21,7 +21,7 @@ def get_csv_path(*argv: str) -> str:
 
 
 # specify an airport to split for only one, otherwise a split for all airports will be executed
-def split(table: pd.DataFrame, ROOT: str, airport: str | None = None, save: bool = True):
+def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None, save: bool = True):
     valdata = pd.read_csv(os.path.join(ROOT, "_data", "submission_format.csv"))
 
     # If there is a specific airport then we are only interested in those rows
