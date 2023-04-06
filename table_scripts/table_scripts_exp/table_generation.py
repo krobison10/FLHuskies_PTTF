@@ -11,6 +11,7 @@ from functools import partial
 
 import pandas as pd  # type: ignore
 from add_etd import add_etd
+from add_holiday import add_us_holidays
 from add_lamp import add_lamp
 from add_mfs import add_mfs
 from extract_gufi_features import extract_and_add_gufi_features
@@ -59,6 +60,9 @@ def generate_table(_airport: str, from_dir: str, max_rows: int = -1) -> pd.DataF
         inputs = zip(pd.to_datetime(unique_timestamp))
         timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
+    # remove feature tables from cache as it is no longer needed
+    del feature_tables
+
     # concatenate individual prediction times to a single dataframe
     _df = pd.concat(timestamp_tables, ignore_index=True)
 
@@ -70,5 +74,8 @@ def generate_table(_airport: str, from_dir: str, max_rows: int = -1) -> pd.DataF
 
     # extract and add mfs information
     _df = extract_and_add_gufi_features(_df)
+
+    # extract holiday features
+    _df = add_us_holidays(_df)
 
     return _df

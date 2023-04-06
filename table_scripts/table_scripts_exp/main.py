@@ -11,6 +11,7 @@
 
 if __name__ == "__main__":
     import argparse
+    import gc
     import os
 
     from table_dtype import TableDtype
@@ -64,5 +65,8 @@ if __name__ == "__main__":
 
         print("Finish processing:", airport)
         print("------------------------------")
+
+        # clear out cache
+        gc.collect()
 
     print("Done")
