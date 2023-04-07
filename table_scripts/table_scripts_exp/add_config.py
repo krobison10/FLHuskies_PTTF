@@ -21,7 +21,6 @@ def add_config(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: d
         config_string = "UNK"
 
     # add new column for which departure runways are in use at this timestamp
-    flights_selected["departure_runways"] = pd.Series(
-        [config_string] * len(flights_selected), index=flights_selected.index)
+    flights_selected["departure_runways"] = pd.Series([config_string] * len(flights_selected), index=flights_selected.index)
 
     return flights_selected

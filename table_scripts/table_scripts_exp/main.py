@@ -81,7 +81,7 @@ if __name__ == "__main__":
         zip_file_path: str = os.path.join(_ROOT, "all_tables.zip")
         if os.path.exists(zip_file_path):
             os.remove(zip_file_path)
-        zip_file: zipfile.ZipFile = zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED)
+        zip_file: zipfile.ZipFile = zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9)
         for tables_dir in ("train_tables", "validation_tables", "full_tables"):
             for csv_file in glob(os.path.join(_ROOT, tables_dir, "*.csv")):
                 zip_file.write(csv_file, os.path.join(tables_dir, os.path.basename(csv_file)))
