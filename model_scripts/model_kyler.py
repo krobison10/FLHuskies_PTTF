@@ -13,7 +13,9 @@ from sklearn.metrics import mean_absolute_error
 
 # ---------------------------------------- LOAD ----------------------------------------
 
-airport = "master"
+# airport = "ALL"
+# airport = "legacy_ALL"
+airport = "ALL"
 
 train_df = pd.read_csv(f"../train_tables/{airport}_train.csv")
 # train_df = pd.read_csv(f"../full_tables/master_full.csv")
