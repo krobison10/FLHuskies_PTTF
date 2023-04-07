@@ -1,19 +1,20 @@
-# M. De Cock; Mar 24, 2023
+# @author:Daniil Filienko
 from pathlib import Path
 import catboost as cb
 import pickle
 from sklearn.metrics import mean_absolute_error
+from lightgbm import LGBMRegressor
 
 import numpy as np
 import pandas as pd
 DATA_DIRECTORY = Path("./full_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 AIRPORTS = [
-    "KATL",
-    "KCLT",
-    "KDEN",
-    "KDFW",
-    "KJFK",
+    # "KATL",
+    # "KCLT",
+    # "KDEN",
+    # "KDFW",
+    # "KJFK",
     "KMEM",
     "KMIA",
     "KORD",
@@ -23,7 +24,7 @@ AIRPORTS = [
 train = []
 
 for airport in AIRPORTS:
-    train_airport = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv")
+    train_airport = pd.read_csv(DATA_DIRECTORY / f"main_{airport}_prescreened.csv")
     train_airport = train_airport.sort_values(by=['gufi'])
     # #For the combined model training, comment out following 2 lines, comment in following line
     # #and remove the intend for the following sections of training code

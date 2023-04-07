@@ -215,15 +215,18 @@ if __name__ == "__main__":
         .first()
         .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
         )
+
         past_temperatures = (
             past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
         )
+
         past_temperatures.columns = [
             "feat_4_" + c[0] + "_" + c[1] + "_last6h"
             if c[0] != "timestamp"
             else "timestamp"
             for c in past_temperatures.columns
         ]
+        
         past_temperatures = (
             past_temperatures.set_index("timestamp")
             .resample("15min")
