@@ -26,9 +26,9 @@ if __name__ == "__main__":
     args: argparse.Namespace = parser.parse_args()
 
     # save the table as it is - full
-    # splitted the full table into a train table and a validation table and then save these two table - splitted
-    # I want both - all
-    save_table_as: str = "all" if args.s is None else str(args.s)
+    # split the full table into a train table and a validation table and then save those - split
+    # I want both (default) - both
+    save_table_as: str = "both" if args.s is None else str(args.s)
 
     # airports need to process
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "..", "_data")
 
     for airport in airports:
-        print("Start processing:", airport)
+        print("Processing", airport)
 
         # extract features for give airport
         table = generate_table(airport, DATA_DIR, -1 if args.m is None else int(args.m))
@@ -56,14 +56,16 @@ if __name__ == "__main__":
         # table = normalize_str_features(table)
 
         # save data
-        if save_table_as == "full" or save_table_as == "all":
+        # full table
+        if save_table_as == "full" or save_table_as == "both":
             table.sort_values(["gufi", "timestamp"]).to_csv(
                 os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"{airport}_full.csv"), index=False
             )
-        if save_table_as == "splitted" or save_table_as == "all":
+        # split tables
+        if save_table_as == "split" or save_table_as == "both":
             train_test_split(table, os.path.join(os.path.dirname(__file__), "..", ".."), airport)
 
-        print("Finish processing:", airport)
+        print("Finished processing", airport)
         print("------------------------------")
 
         # clear out cache

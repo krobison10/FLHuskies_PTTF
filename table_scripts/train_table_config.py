@@ -33,29 +33,16 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
     final_table = time_filtered_table.copy()
 
     # filter features to 30 hours before prediction time to prediction time and save as a copy
-    etd: pd.DataFrame = feature_engineering.filter_by_timestamp(
-        data_tables["etd"], now, 30).copy()
     config: pd.DataFrame = feature_engineering.filter_by_timestamp(
         data_tables["config"], now, 30).copy()
-
-    # ----- Minutes Until ETD -----
-    # get the latest ETD for each flight
-    latest_etd: pd.DataFrame = etd.groupby("gufi").last()
 
     # most recent row of airport configuration
     config_string = config.head(1)['departure_runways'].to_string(index=False)
 
-    # get a series containing latest ETDs for each flight, in the same order they appear in flights
-    departure_runway_estimated_time: pd.Series = time_filtered_table.merge(
-        latest_etd.departure_runway_estimated_time, how="left", on="gufi"
-    ).departure_runway_estimated_time
-
-    # add new column to time_filtered_table that represents minutes until pushback
-    final_table["minutes_until_etd"] = (
-        (departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
     # add new column for which departure runways are in use at this timestamp
     final_table["departure_runways"] = pd.Series(
         [config_string] * len(final_table), index=final_table.index)
+
     return final_table
 
 
@@ -88,7 +75,7 @@ if __name__ == "__main__":
         print("Loading tables...")
 
         labels_path = os.path.join(
-            DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv{ext}")
+            DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv.bz2")
 
         table: pd.DataFrame = pd.read_csv(
             labels_path, parse_dates=["timestamp"])
@@ -96,12 +83,8 @@ if __name__ == "__main__":
         # define list of data tables to load and use for each airport
         airport_path = os.path.join(DATA_DIR, airport)
         feature_tables: dict[str, pd.DataFrame] = {
-            "etd": pd.read_csv(os.path.join(airport_path, f"{airport}_etd.csv{ext}"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-                "timestamp"
-            ),
-            "config": pd.read_csv(DATA_DIR / f"{airport}_config.csv{ext}", parse_dates=[
-                "start_time", "timestamp"]).sort_values("timestamp", ascending=False),
-            "standtimes": pd.read_csv(os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+            "config": pd.read_csv(os.path.join(DATA_DIR, airport, f"{airport}_config.csv.bz2"), parse_dates=[
+                "start_time", "timestamp"]).sort_values("timestamp", ascending=False)
         }
 
         # process all prediction times in parallel
@@ -127,9 +110,9 @@ if __name__ == "__main__":
         # save full table
         print("Saving full table...")
         output_dir = os.path.join(os.path.dirname(
-            __file__), "..", "full_tables", f"{airport}_full.csv")
+            __file__), "..", "full_tables", f"{airport}_config.csv")
         table.to_csv(output_dir, index=False)
 
         # call helper function to split tables and save those as well
-        print("Splitting and saving train and validation tables...")
-        train_test_split.split(table, airport)
+        # print("Splitting and saving train and validation tables...")
+        # train_test_split.split(table, airport)
