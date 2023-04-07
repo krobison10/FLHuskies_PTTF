@@ -23,7 +23,7 @@ AIRPORTS = [
 train = []
 
 for airport in AIRPORTS:
-    train_airport = pd.read_csv(DATA_DIRECTORY / f"main_{airport}_prescreened.csv")
+    train_airport = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv")
     train_airport = train_airport.sort_values(by=['gufi'])
     # #For the combined model training, comment out following 2 lines, comment in following line
     # #and remove the intend for the following sections of training code

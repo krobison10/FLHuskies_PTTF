@@ -14,6 +14,8 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error
 
 # ---------------------------------------- MAIN ----------------------------------------
+DATA_DIRECTORY = Path("./full_tables")
+
 airports = [
     "KATL",
     "KCLT",
@@ -30,7 +32,7 @@ y_tests = [0]
 y_preds = [0]
 for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
-    df = pd.read_csv(os.path.join(ROOT, "full_tables", f"main_{airport}_prescreened.csv"))
+    df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv")
     train_df, val_df = split(table=df, airport=airport, save=False)
     print("Finished the split")
     offset = 4
