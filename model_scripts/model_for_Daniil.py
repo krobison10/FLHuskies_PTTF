@@ -6,7 +6,7 @@ from sklearn.metrics import mean_absolute_error
 
 import numpy as np
 import pandas as pd
-DATA_DIRECTORY = Path("./train_tables")
+DATA_DIRECTORY = Path("./full_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 AIRPORTS = [
     "KATL",
@@ -23,7 +23,7 @@ AIRPORTS = [
 train = []
 
 for airport in AIRPORTS:
-    train_airport = pd.read_csv(DATA_DIRECTORY / f"main_{airport}_prescreened.csv")
+    train_airport = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv")
     train_airport = train_airport.sort_values(by=['gufi'])
     # #For the combined model training, comment out following 2 lines, comment in following line
     # #and remove the intend for the following sections of training code
@@ -116,7 +116,7 @@ for airport in AIRPORTS:
 
     # y_test = test["minutes_until_pushback"]
 
-    ensembleRegressor = cb.CatBoostRegressor(has_time=True, loss_function="MAE", task_type="GPU", n_estimators=8000)
+    ensembleRegressor = cb.CatBoostRegressor(has_time=True,thread_count=-1, loss_function="MAE", task_type="GPU", n_estimators=14000)
     # ensembleRegressor.fit(X_train, y_train,cat_features=cat_feature,use_best_model=True)
     ensembleRegressor.fit(X_train, y_train,cat_features = cat_features, use_best_model=True)
 
