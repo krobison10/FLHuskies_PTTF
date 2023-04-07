@@ -13,10 +13,15 @@ if __name__ == "__main__":
     import argparse
     import gc
     import os
+    import zipfile
+    from glob import glob
 
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split
+
+    # the path for root folder
+    _ROOT: str = os.path.join(os.path.dirname(__file__), "..", "..")
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -28,6 +33,7 @@ if __name__ == "__main__":
     # save the table as it is - full
     # splitted the full table into a train table and a validation table and then save these two table - splitted
     # I want both - all
+    # I want both and wish everything are zipped - zip
     save_table_as: str = "all" if args.s is None else str(args.s)
 
     # airports need to process
@@ -39,7 +45,8 @@ if __name__ == "__main__":
         else:
             raise NameError(f"Unknown airport name {airports}!")
 
-    DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "..", "_data")
+    # the path to the directory where data files are stored
+    DATA_DIR: str = os.path.join(_ROOT, "_data")
 
     for airport in airports:
         print("Start processing:", airport)
@@ -56,17 +63,26 @@ if __name__ == "__main__":
         # table = normalize_str_features(table)
 
         # save data
-        if save_table_as == "full" or save_table_as == "all":
-            table.sort_values(["gufi", "timestamp"]).to_csv(
-                os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"{airport}_full.csv"), index=False
-            )
-        if save_table_as == "splitted" or save_table_as == "all":
-            train_test_split(table, os.path.join(os.path.dirname(__file__), "..", ".."), airport)
+        if save_table_as == "full" or save_table_as == "all" or save_table_as == "zip":
+            table.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"), index=False)
+        if save_table_as == "splitted" or save_table_as == "all" or save_table_as == "zip":
+            train_test_split(table, _ROOT, airport)
 
         print("Finish processing:", airport)
         print("------------------------------")
 
         # clear out cache
         gc.collect()
+
+    # zip all generated csv files
+    if save_table_as == "zip":
+        zip_file_path: str = os.path.join(_ROOT, "all_tables.zip")
+        if os.path.exists(zip_file_path):
+            os.remove(zip_file_path)
+        zip_file: zipfile.ZipFile = zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED)
+        for tables_dir in ("train_tables", "validation_tables", "full_tables"):
+            for csv_file in glob(os.path.join(_ROOT, tables_dir, "*.csv")):
+                zip_file.write(csv_file, os.path.join(tables_dir, os.path.basename(csv_file)))
+        zip_file.close()
 
     print("Done")
