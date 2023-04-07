@@ -80,7 +80,9 @@ def applyAdditionalTimeBasedFeatures(_data: pd.DataFrame) -> pd.DataFrame:
     return _data
 
 
-def _encodeFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, cols: tuple[str, ...], encoder: OrdinalEncoder | MinMaxScaler) -> None:
+def _encodeFeatures(
+    _data_train: pd.DataFrame, _data_test: pd.DataFrame, cols: tuple[str, ...], encoder: OrdinalEncoder | MinMaxScaler
+) -> None:
     _data_full: pd.DataFrame = pd.concat((_data_train, _data_test))
     for _col in cols:
         encoder.fit(_data_full[[_col]])

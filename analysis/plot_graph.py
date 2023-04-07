@@ -53,4 +53,12 @@ for _path in glob.glob(os.path.join(PREDICTION_FILES_DIR, "*_predictions_*.csv")
         SUMMARY_DIR_PATH,
     )
     # get information bar according to month
-    generateGraphBasedOn(_df, lambda _df, index: _df[_df.timestamp.dt.month == index], _airport, "month", (1, 13), lambda _month: str(_month), SUMMARY_DIR_PATH)
+    generateGraphBasedOn(
+        _df,
+        lambda _df, index: _df[_df.timestamp.dt.month == index],
+        _airport,
+        "month",
+        (1, 13),
+        lambda _month: str(_month),
+        SUMMARY_DIR_PATH,
+    )

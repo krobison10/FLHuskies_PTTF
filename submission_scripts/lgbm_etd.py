@@ -12,12 +12,14 @@ import pickle
 import numpy as np
 import lightgbm as lgb
 
+
 def load_model(solution_directory: Path) -> Any:
     """Load any model assets from disk."""
     with (solution_directory / "lgbm_etd.pickle").open("rb") as fp:
         model = pickle.load(fp)
 
     return model
+
 
 def predict(
     config: pd.DataFrame,
@@ -43,8 +45,8 @@ def predict(
     minutes_until_etd = partial_submission_format.merge(
         latest_etd, how="left", on="gufi"
     ).departure_runway_estimated_time
-    
-    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds()/60
+
+    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds() / 60
 
     # Empty dataframe gets passed to the function sometimes
     if len(minutes_until_etd) == 0:

@@ -12,6 +12,7 @@ import pickle
 import numpy as np
 import lightgbm as lgb
 
+
 def load_model(solution_directory: Path) -> Any:
     """Load any model assets from disk."""
     with (solution_directory / "lgbm_etd_mfs.pickle").open("rb") as fp:
@@ -48,8 +49,8 @@ def predict(
     minutes_until_etd = partial_submission_format.merge(
         latest_etd, how="left", on="gufi"
     ).departure_runway_estimated_time
-    
-    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds()/60
+
+    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds() / 60
 
     # Empty dataframe gets passed to the function sometimes
     if len(minutes_until_etd) == 0:
@@ -57,7 +58,11 @@ def predict(
 
     prediction = partial_submission_format.copy()
 
-    table = prediction.merge(mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"), how="left", on="gufi")
+    table = prediction.merge(
+        mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"),
+        how="left",
+        on="gufi",
+    )
     table["minutes_until_etd"] = minutes_until_etd
 
     encoded_columns = ["airport", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"]
@@ -65,7 +70,11 @@ def predict(
     for col in encoded_columns:
         table[[col]] = encoders[col].transform(table[[col]].values)
 
-    prediction["minutes_until_pushback"] = model.predict(table[["airport", "minutes_until_etd", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"]].to_numpy())
+    prediction["minutes_until_pushback"] = model.predict(
+        table[
+            ["airport", "minutes_until_etd", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"]
+        ].to_numpy()
+    )
     prediction["minutes_until_pushback"] = prediction.minutes_until_pushback.clip(lower=0).fillna(0)
 
     return prediction

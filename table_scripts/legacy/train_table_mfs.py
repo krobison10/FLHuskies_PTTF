@@ -1,7 +1,7 @@
 #
 # Author: Kyler Robison
 # Modified by: Trevor Tomlin
-# 
+#
 # This script builds a table of training data for a single airport that is hard coded.
 # It can easily be changed.
 #
@@ -40,7 +40,9 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
     ).departure_runway_estimated_time
 
     # add new column to time_filtered_table that represents minutes until pushback
-    final_table["minutes_until_etd"] = ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
+    final_table["minutes_until_etd"] = (
+        (departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60
+    ).astype(int)
 
     return final_table
 
@@ -69,13 +71,19 @@ if __name__ == "__main__":
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(DATA_DIR / airport / f"{airport}_etd.csv{ext}", parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-            "timestamp"
-        ),
+        "etd": pd.read_csv(
+            DATA_DIR / airport / f"{airport}_etd.csv{ext}", parse_dates=["departure_runway_estimated_time", "timestamp"]
+        ).sort_values("timestamp"),
         "mfs": pd.read_csv(DATA_DIR / airport / f"{airport}_mfs.csv{ext}"),
     }
 
-    table = table.merge(feature_tables["mfs"][["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"), how="left", on="gufi")
+    table = table.merge(
+        feature_tables["mfs"][
+            ["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]
+        ].fillna("UNK"),
+        how="left",
+        on="gufi",
+    )
 
     for col in ["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"]:
         encoder = OrdinalEncoder()
@@ -86,7 +94,9 @@ if __name__ == "__main__":
     # process all prediction times in parallel
     with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
         fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
-        timestamp_tables: list[pd.DataFrame] = list(tqdm(executor.map(fn, pd.to_datetime(table.timestamp.unique())), total=len(table.timestamp.unique())))
+        timestamp_tables: list[pd.DataFrame] = list(
+            tqdm(executor.map(fn, pd.to_datetime(table.timestamp.unique())), total=len(table.timestamp.unique()))
+        )
 
     # concatenate individual prediction times to a single dataframe
     table = pd.concat(timestamp_tables, ignore_index=True)

@@ -24,6 +24,8 @@ def add_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict
     ).departure_runway_estimated_time
 
     # add new column to flights_selected that represents minutes until pushback
-    final_table["minutes_until_etd"] = ((departure_runway_estimated_time - flights_selected.timestamp).dt.total_seconds() / 60).astype(int)
+    final_table["minutes_until_etd"] = (
+        (departure_runway_estimated_time - flights_selected.timestamp).dt.total_seconds() / 60
+    ).astype(int)
 
     return final_table

@@ -74,7 +74,9 @@ def generateGraphBasedOn(
         df_filtered_with_pushback: pandas.DataFrame = df_filtered[df_filtered["minutes_until_pushback"] > 0]
         _ky: str = _naming_method(i)
         total_num_counter[_ky] = df_filtered.shape[0]
-        delay_percentages[_ky] = df_filtered_with_pushback.shape[0] / df_filtered.shape[0] if df_filtered.shape[0] > 0 else 0
+        delay_percentages[_ky] = (
+            df_filtered_with_pushback.shape[0] / df_filtered.shape[0] if df_filtered.shape[0] > 0 else 0
+        )
         abs_mean[_ky] = df_filtered["minutes_until_pushback"].mean()
         mean_with_pushback_only[_ky] = df_filtered_with_pushback["minutes_until_pushback"].mean()
     generateDelayLegendGraph(

@@ -21,7 +21,9 @@ from tqdm import tqdm
 
 
 # calculate etd
-def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def _process_etd(
+    now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
     final_table = flights_selected
 
     # filter features to 30 hours before prediction time to prediction time and save as a copy
@@ -44,7 +46,9 @@ def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables:
     ).departure_runway_estimated_time
 
     # add new column to flights_selected that represents minutes until pushback
-    final_table["minutes_until_etd"] = ((departure_runway_estimated_time - flights_selected.timestamp).dt.total_seconds() / 60).astype(int)
+    final_table["minutes_until_etd"] = (
+        (departure_runway_estimated_time - flights_selected.timestamp).dt.total_seconds() / 60
+    ).astype(int)
 
     # ----- Minutes Since Origin (WIP) -----
     # get a series containing origin time for each flight, in the same order they appear in flights
@@ -76,10 +80,14 @@ def _process_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables:
     return final_table
 
 
-def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp) -> Optional[pd.DataFrame]:
+def _look_for_forecasts(
+    _lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp
+) -> Optional[pd.DataFrame]:
     # select all rows contain this forecast_timestamp
     forecasts: pd.DataFrame = _lamp.loc[
-        (_lamp.forecast_timestamp == _look_for_timestamp) & (_now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= _now)
+        (_lamp.forecast_timestamp == _look_for_timestamp)
+        & (_now - pd.Timedelta(hours=30) <= _lamp.index)
+        & (_lamp.index <= _now)
     ]
     # get the latest forecast
     return forecasts.iloc[forecasts.index.get_indexer([_now], method="nearest")] if forecasts.shape[0] > 0 else None
@@ -90,7 +98,7 @@ def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.D
     # the latest forecast
     latest_forecast: Optional[pd.DataFrame] = None
     # counter to monitoring hours going forward
-    hour_f: int = 0 
+    hour_f: int = 0
     # when no valid forecast is found
     while latest_forecast is None:
         # round time to the nearest hour
@@ -100,7 +108,17 @@ def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.D
         # if a valid latest forecast is found
         if latest_forecast is not None:
             # then update value
-            for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"):
+            for key in (
+                "temperature",
+                "wind_direction",
+                "wind_speed",
+                "wind_gust",
+                "cloud_ceiling",
+                "visibility",
+                "cloud",
+                "lightning_prob",
+                "precip",
+            ):
                 flights_selected[key] = latest_forecast[key].values[0]
             # and break the loop
             break
@@ -112,7 +130,7 @@ def _process_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, _lamp: pd.D
                 flights_selected[key] = "UNK"
             break
         hour_f += 1
-    
+
     return flights_selected
 
 
@@ -134,15 +152,26 @@ def _get_csv_path(*argv: str) -> str:
 def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.DataFrame:
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-            "timestamp"
+        "etd": pd.read_csv(
+            _get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"),
+            parse_dates=["departure_runway_estimated_time", "timestamp"],
+        ).sort_values("timestamp"),
+        "first_position": pd.read_csv(
+            _get_csv_path(data_dir, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]
         ),
-        "first_position": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]),
-        "lamp": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
+        "lamp": pd.read_csv(
+            _get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"]
+        )
         .set_index("timestamp")
         .sort_values("timestamp"),
-        "runways": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
-        "standtimes": pd.read_csv(_get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+        "runways": pd.read_csv(
+            _get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"),
+            parse_dates=["departure_runway_actual_time", "timestamp"],
+        ),
+        "standtimes": pd.read_csv(
+            _get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"),
+            parse_dates=["timestamp", "departure_stand_actual_time"],
+        ),
     }
 
     # process all prediction times in parallel
@@ -159,7 +188,9 @@ def extract_features_for(_df: pd.DataFrame, _airport: str, data_dir: str) -> pd.
     _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
     # Add mfs information
-    feature_tables["mfs"] = pd.read_csv(_get_csv_path(data_dir, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str})
+    feature_tables["mfs"] = pd.read_csv(
+        _get_csv_path(data_dir, airport, f"{airport}_mfs.csv"), dtype={"major_carrier": str}
+    )
     _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
 
     return _df
@@ -189,7 +220,9 @@ if __name__ == "__main__":
         # read train labels for given airport
         table: pd.DataFrame = pd.read_csv(
             _get_csv_path(
-                DATA_DIR, f"train_labels_{label_type}", f"train_labels_{airport}.csv" if label_type == "open" else f"prescreened_train_labels_{airport}.csv"
+                DATA_DIR,
+                f"train_labels_{label_type}",
+                f"train_labels_{airport}.csv" if label_type == "open" else f"prescreened_train_labels_{airport}.csv",
             ),
             parse_dates=["timestamp"],
         )
@@ -207,53 +240,36 @@ if __name__ == "__main__":
         # drop isdeparture colum since it is not useful
         table = table.drop(columns=["isdeparture"])
 
-        #Adding global LAMP features
+        # Adding global LAMP features
         current = table.copy()
 
         past_temperatures = (
-        current.groupby("timestamp")
-        .first()
-        .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
+            current.groupby("timestamp").first().drop(columns=["forecast_timestamp", "time_ahead_prediction"])
         )
 
-        past_temperatures = (
-            past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
-        )
+        past_temperatures = past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
 
         past_temperatures.columns = [
-            "feat_4_" + c[0] + "_" + c[1] + "_last6h"
-            if c[0] != "timestamp"
-            else "timestamp"
+            "feat_4_" + c[0] + "_" + c[1] + "_last6h" if c[0] != "timestamp" else "timestamp"
             for c in past_temperatures.columns
         ]
-        
-        past_temperatures = (
-            past_temperatures.set_index("timestamp")
-            .resample("15min")
-            .ffill()
-            .reset_index()
-        )
-        
+
+        past_temperatures = past_temperatures.set_index("timestamp").resample("15min").ffill().reset_index()
+
         current_feats = past_temperatures.copy()
 
         for p in range(1, 24):
             next_temp = (
-                current[
-                    (current.time_ahead_prediction <= p)
-                    & (current.time_ahead_prediction > p - 1)
-                ]
+                current[(current.time_ahead_prediction <= p) & (current.time_ahead_prediction > p - 1)]
                 .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
                 .groupby("timestamp")
                 .mean()
                 .reset_index()
             )
             next_temp.columns = [
-                "feat_4_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp"
-                for c in next_temp.columns
+                "feat_4_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp" for c in next_temp.columns
             ]
-            next_temp = (
-                next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
-            )
+            next_temp = next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
             current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
 
         current_feats["airport"] = airport
@@ -266,21 +282,16 @@ if __name__ == "__main__":
         # Add global weather features
         weather_feats = [c for c in weather.columns if "feat_4" in c]
         for feat in weather_feats:
-            table[feat + "_global_min_"] = table["timestamp"].map(
-                weather.groupby("timestamp")[feat].min()
-            )
-            table[feat + "_global_mean"] = table["timestamp"].map(
-                weather.groupby("timestamp")[feat].mean()
-            )
-            table[feat + "_global_max"] = table["timestamp"].map(
-                weather.groupby("timestamp")[feat].max()
-            )
-            table[feat + "_global_std"] = table["timestamp"].map(
-                weather.groupby("timestamp")[feat].std()
-            )
+            table[feat + "_global_min_"] = table["timestamp"].map(weather.groupby("timestamp")[feat].min())
+            table[feat + "_global_mean"] = table["timestamp"].map(weather.groupby("timestamp")[feat].mean())
+            table[feat + "_global_max"] = table["timestamp"].map(weather.groupby("timestamp")[feat].max())
+            table[feat + "_global_std"] = table["timestamp"].map(weather.groupby("timestamp")[feat].std())
 
         # adding feature gufi_end_label since it could be useful
-        table["gufi_end_label"] = table.apply(lambda x: "TFM" if x.gufi.endswith("TFM") else "TFM_TFDM" if x.gufi.endswith("TFM_TFDM") else "OTHER", axis=1)
+        table["gufi_end_label"] = table.apply(
+            lambda x: "TFM" if x.gufi.endswith("TFM") else "TFM_TFDM" if x.gufi.endswith("TFM_TFDM") else "OTHER",
+            axis=1,
+        )
 
         # table = normalize_str_features(table)
 

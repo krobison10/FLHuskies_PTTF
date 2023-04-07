@@ -13,6 +13,7 @@ from functools import partial
 from pathlib import Path
 import pickle
 
+
 def main():
     DATA_DIR = Path("/home/ydlin/FL_Huskies_PTTF/train_tables/")
 
@@ -39,7 +40,6 @@ def main():
         data = pd.read_csv(f"/home/ydlin/FLHuskies_PTTF/main_{airport}_prescreened.csv").sort_values("timestamp")
 
         for column in encoded_columns:
-
             unique[column].update(data[column].unique())
 
     for column in encoded_columns:
@@ -52,8 +52,9 @@ def main():
 
         data.to_csv(f"{airport}_etd_w_mfs_encoded.csv", index=False)
 
-    #with open("mfs_encoders.pickle", "wb") as f:
+    # with open("mfs_encoders.pickle", "wb") as f:
     #    pickle.dump(encoders, f)
+
 
 if __name__ == "__main__":
     main()

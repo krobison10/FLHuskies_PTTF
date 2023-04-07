@@ -8,7 +8,14 @@ import pandas as pd  # type: ignore
 
 
 class TableDtype:
-    INT_COLUMNS: tuple[str, ...] = ("minutes_until_pushback", "minutes_until_etd", "temperature", "wind_direction", "wind_speed", "wind_gust")
+    INT_COLUMNS: tuple[str, ...] = (
+        "minutes_until_pushback",
+        "minutes_until_etd",
+        "temperature",
+        "wind_direction",
+        "wind_speed",
+        "wind_gust",
+    )
 
     FLOAT_COLUMNS: tuple[str, ...] = ("cloud_ceiling", "visibility")
 

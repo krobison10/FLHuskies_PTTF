@@ -36,7 +36,11 @@ def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None,
 
     if save:
         # replace these paths with any desired ones if necessary
-        traindata.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(ROOT, "train_tables", f"{ext}_train.csv"), index=False)
-        testdata.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"), index=False)
+        traindata.sort_values(["gufi", "timestamp"]).to_csv(
+            os.path.join(ROOT, "train_tables", f"{ext}_train.csv"), index=False
+        )
+        testdata.sort_values(["gufi", "timestamp"]).to_csv(
+            os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"), index=False
+        )
 
     return traindata.copy(), testdata.copy()

@@ -24,7 +24,6 @@ def main(data_path, models_path, build_master=False):
     """
 
     if build_master:
-
         # Create the master table at the airport and timestamp level
         print(time.ctime(), "Creating master table")
         master_table = CreateMaster(
@@ -43,43 +42,42 @@ def main(data_path, models_path, build_master=False):
         print(time.ctime(), "Loading master table")
         master_table = pd.read_parquet(f"{data_path}/master_table_v3.parquet")
 
+
 def performEvaluation():
-    
     # Add test indicator in the master table based on the submission format file
     print(time.ctime(), "Adding test indicator to the master table")
-    sub_format = pd.read_csv(
-        f"{data_path}/open_submission_format.csv", parse_dates=["timestamp"]
-    )
+    sub_format = pd.read_csv(f"{data_path}/open_submission_format.csv", parse_dates=["timestamp"])
     sub_format = sub_format.groupby(["airport", "timestamp"]).sum().reset_index()
     sub_format.columns = ["airport", "timestamp", "in_test"]
 
     master_table["day"] = master_table["timestamp"].apply(lambda x: str(x)[:10])
-    master_table = master_table.merge(
-        sub_format, how="left", on=["airport", "timestamp"]
-    )
+    master_table = master_table.merge(sub_format, how="left", on=["airport", "timestamp"])
 
     # Define the numerical and categorical features to train with
     print(time.ctime(), "Splitting numerical and categorical features")
-    features = ["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi","departure_runway_estimated_time"]
+    features = [
+        "aircraft_engine_class",
+        "aircraft_type",
+        "major_carrier",
+        "flight_type",
+        "gufi",
+        "departure_runway_estimated_time",
+    ]
     cat_features = [i for i in range(len(features)) if "_cat_" in features[i]]
 
     # Build catboost models at the timestamp-airport level for each airport and lookahead
     for airport in AIRPORTS:
         # Filter to stick only with relevant rows
         current = master_table[(master_table.airport == airport)].reset_index(drop=True)
-        target = ['minutes_until_pushback']
+        target = ["minutes_until_pushback"]
         # Define size of train vs validation sets
         n = current.shape[0]
         start_test = int(n * 0.90)
         end_test = int(n)
 
         # Split train and validation sets
-        X_train = current[features].iloc[
-            lambda x: (x.index < start_test) | (x.index > end_test)
-        ]
-        y_train = current[target][
-            lambda x: (x.index < start_test) | (x.index > end_test)
-        ]
+        X_train = current[features].iloc[lambda x: (x.index < start_test) | (x.index > end_test)]
+        y_train = current[target][lambda x: (x.index < start_test) | (x.index > end_test)]
         X_val = current[features].iloc[start_test:end_test]
         y_val = current[target][start_test:end_test]
 
@@ -89,7 +87,6 @@ def performEvaluation():
         # Iterate for different values of eta and depth and stick with the best
         for eta in [0.005, 0.01, 0.02, 0.03, 0.05]:
             for depth in [3, 4, 5, 6, 7]:
-
                 # Initialize CatBoostClassifier
                 model = cb.CatBoostRegressor(
                     n_estimators=6000,
@@ -109,9 +106,7 @@ def performEvaluation():
 
                 if model.best_score_["validation"]["MAE"] < best_score:
                     best_score = model.best_score_["validation"]["MAE"]
-                    model.save_model(
-                        f"{models_path}/version_final/model_{airport}_{target}"
-                    )
+                    model.save_model(f"{models_path}/version_final/model_{airport}_{target}")
 
                 print(
                     "@@@@@@@@@@@@@@@",

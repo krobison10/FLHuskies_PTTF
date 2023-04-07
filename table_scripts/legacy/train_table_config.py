@@ -27,21 +27,18 @@ from tqdm import tqdm
 
 def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
-    time_filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(
-        drop=True)
+    time_filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
     final_table = time_filtered_table.copy()
 
     # filter features to 30 hours before prediction time to prediction time and save as a copy
-    config: pd.DataFrame = feature_engineering.filter_by_timestamp(
-        data_tables["config"], now, 30).copy()
+    config: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["config"], now, 30).copy()
 
     # most recent row of airport configuration
-    config_string = config.head(1)['departure_runways'].to_string(index=False)
+    config_string = config.head(1)["departure_runways"].to_string(index=False)
 
     # add new column for which departure runways are in use at this timestamp
-    final_table["departure_runways"] = pd.Series(
-        [config_string] * len(final_table), index=final_table.index)
+    final_table["departure_runways"] = pd.Series([config_string] * len(final_table), index=final_table.index)
 
     return final_table
 
@@ -66,36 +63,31 @@ if __name__ == "__main__":
         "KSEA",
     ]
 
-    airports = [
-        "KSEA"
-    ]
+    airports = ["KSEA"]
 
     for airport in airports:
         print(f"Generating for {airport}")
         print("Loading tables...")
 
-        labels_path = os.path.join(
-            DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv.bz2")
+        labels_path = os.path.join(DATA_DIR, "train_labels_prescreened", f"prescreened_train_labels_{airport}.csv.bz2")
 
-        table: pd.DataFrame = pd.read_csv(
-            labels_path, parse_dates=["timestamp"])
+        table: pd.DataFrame = pd.read_csv(labels_path, parse_dates=["timestamp"])
 
         # define list of data tables to load and use for each airport
         airport_path = os.path.join(DATA_DIR, airport)
         feature_tables: dict[str, pd.DataFrame] = {
-            "config": pd.read_csv(os.path.join(DATA_DIR, airport, f"{airport}_config.csv.bz2"), parse_dates=[
-                "start_time", "timestamp"]).sort_values("timestamp", ascending=False)
+            "config": pd.read_csv(
+                os.path.join(DATA_DIR, airport, f"{airport}_config.csv.bz2"), parse_dates=["start_time", "timestamp"]
+            ).sort_values("timestamp", ascending=False)
         }
 
         # process all prediction times in parallel
         print("Processing...")
         with multiprocessing.Pool() as executor:
-            fn = partial(process_timestamp, flights=table,
-                         data_tables=feature_tables)
+            fn = partial(process_timestamp, flights=table, data_tables=feature_tables)
             unique_timestamp = table.timestamp.unique()
             inputs = zip(pd.to_datetime(unique_timestamp))
-            timestamp_tables: list[pd.DataFrame] = executor.starmap(
-                fn, tqdm(inputs, total=len(unique_timestamp)))
+            timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
         # concatenate individual prediction times to a single dataframe
         print("Concatenating timestamp tables...")
@@ -109,8 +101,7 @@ if __name__ == "__main__":
 
         # save full table
         print("Saving full table...")
-        output_dir = os.path.join(os.path.dirname(
-            __file__), "..", "full_tables", f"{airport}_config.csv")
+        output_dir = os.path.join(os.path.dirname(__file__), "..", "full_tables", f"{airport}_config.csv")
         table.to_csv(output_dir, index=False)
 
         # call helper function to split tables and save those as well

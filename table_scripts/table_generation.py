@@ -11,8 +11,8 @@ from functools import partial
 
 import pandas as pd  # type: ignore
 from add_config import add_config
+from add_date import add_date_features
 from add_etd import add_etd
-from add_holiday import add_us_holidays
 from add_lamp import add_lamp
 from add_mfs import add_mfs
 from extract_gufi_features import extract_and_add_gufi_features
@@ -46,16 +46,26 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-            "timestamp"
+        "etd": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"),
+            parse_dates=["departure_runway_estimated_time", "timestamp"],
+        ).sort_values("timestamp"),
+        "config": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_config.csv"), parse_dates=["timestamp"]
+        ).sort_values("timestamp", ascending=False),
+        "first_position": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]
         ),
-        "config": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_config.csv"), parse_dates=["timestamp"]).sort_values("timestamp", ascending=False),
-        "first_position": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]),
-        "lamp": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"])
+        "lamp": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"]
+        )
         .set_index("timestamp")
         .sort_values("timestamp"),
         # "runways": pd.read_csv(get_csv_path(from_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
-        "standtimes": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+        "standtimes": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"),
+            parse_dates=["timestamp", "departure_stand_actual_time"],
+        ),
     }
 
     # process all prediction times in parallel
@@ -81,6 +91,6 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     _df = extract_and_add_gufi_features(_df)
 
     # extract holiday features
-    _df = add_us_holidays(_df)
+    _df = add_date_features(_df)
 
     return _df

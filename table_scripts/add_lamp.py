@@ -7,10 +7,14 @@
 import pandas as pd  # type: ignore
 
 
-def _look_for_forecasts(_lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp) -> pd.DataFrame | None:
+def _look_for_forecasts(
+    _lamp: pd.DataFrame, _look_for_timestamp: pd.Timestamp, _now: pd.Timestamp
+) -> pd.DataFrame | None:
     # select all rows contain this forecast_timestamp
     forecasts: pd.DataFrame = _lamp.loc[
-        (_lamp.forecast_timestamp == _look_for_timestamp) & (_now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= _now)
+        (_lamp.forecast_timestamp == _look_for_timestamp)
+        & (_now - pd.Timedelta(hours=30) <= _lamp.index)
+        & (_lamp.index <= _now)
     ]
     # get the latest forecast
     return forecasts.iloc[forecasts.index.get_indexer([_now], method="nearest")] if forecasts.shape[0] > 0 else None
@@ -32,7 +36,17 @@ def add_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dic
         # if a valid latest forecast is found
         if latest_forecast is not None:
             # then update value
-            for key in ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"):
+            for key in (
+                "temperature",
+                "wind_direction",
+                "wind_speed",
+                "wind_gust",
+                "cloud_ceiling",
+                "visibility",
+                "cloud",
+                "lightning_prob",
+                "precip",
+            ):
                 flights_selected[key] = latest_forecast[key].values[0]
             # and break the loop
             break

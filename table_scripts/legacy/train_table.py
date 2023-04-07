@@ -35,7 +35,9 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
         latest_etd.departure_runway_estimated_time, how="left", on="gufi"
     ).departure_runway_estimated_time
 
-    final_table["minutes_until_etd"] = ((departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60).astype(int)
+    final_table["minutes_until_etd"] = (
+        (departure_runway_estimated_time - time_filtered_table.timestamp).dt.total_seconds() / 60
+    ).astype(int)
     # ----- End -----
 
     # ----- Average Taxi Time -----
@@ -69,9 +71,7 @@ if __name__ == "__main__":
         "KSEA",
     ]
 
-    airports = [
-        "KSEA"
-    ]
+    airports = ["KSEA"]
 
     for airport in airports:
         print(f"Generating for {airport}")
@@ -84,11 +84,18 @@ if __name__ == "__main__":
         # define list of data tables to load and use for each airport
         airport_path = os.path.join(DATA_DIR, airport)
         feature_tables: dict[str, pd.DataFrame] = {
-            "etd": pd.read_csv(os.path.join(airport_path, f"{airport}_etd.csv{ext}"), parse_dates=["departure_runway_estimated_time", "timestamp"]).sort_values(
-                "timestamp"
+            "etd": pd.read_csv(
+                os.path.join(airport_path, f"{airport}_etd.csv{ext}"),
+                parse_dates=["departure_runway_estimated_time", "timestamp"],
+            ).sort_values("timestamp"),
+            "runways": pd.read_csv(
+                os.path.join(airport_path, f"{airport}_runways.csv{ext}"),
+                parse_dates=["departure_runway_actual_time", "timestamp"],
             ),
-            "runways": pd.read_csv(os.path.join(airport_path, f"{airport}_runways.csv{ext}"), parse_dates=["departure_runway_actual_time", "timestamp"]),
-            "standtimes": pd.read_csv(os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"), parse_dates=["timestamp", "departure_stand_actual_time"]),
+            "standtimes": pd.read_csv(
+                os.path.join(airport_path, f"{airport}_standtimes.csv{ext}"),
+                parse_dates=["timestamp", "departure_stand_actual_time"],
+            ),
         }
 
         # process all prediction times in parallel

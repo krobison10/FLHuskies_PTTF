@@ -11,12 +11,11 @@
 
 if __name__ == "__main__":
     import argparse
-    import gc
     import os
     import zipfile
-    import pandas as pd
     from glob import glob
 
+    import pandas as pd  # type: ignore
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split
@@ -54,7 +53,7 @@ if __name__ == "__main__":
     # the path to the directory where data files are stored
     DATA_DIR: str = os.path.join(_ROOT, "_data")
 
-    airport_tables = []
+    airport_tables: list[pd.DataFrame] = []
 
     for airport in airports:
         print("Processing", airport)
@@ -76,7 +75,9 @@ if __name__ == "__main__":
             # save data
             # full
             if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-                table.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"), index=False)
+                table.sort_values(["gufi", "timestamp"]).to_csv(
+                    os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"), index=False
+                )
             # split
             if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
                 train_test_split(table, _ROOT, airport)
@@ -84,17 +85,15 @@ if __name__ == "__main__":
         print("Finished processing", airport)
         print("------------------------------")
 
-        # clear out cache
-        gc.collect()
-
     # if combine is desired, put together big table and save properly according to other arguments
     if combine_tables:
         big_table = pd.concat(airport_tables, ignore_index=True)
         if save_table_as == "full" or save_table_as == "both":
-            big_table.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(_ROOT, "full_tables", f"ALL_full.csv"), index=False)
+            big_table.sort_values(["gufi", "timestamp"]).to_csv(
+                os.path.join(_ROOT, "full_tables", f"ALL_full.csv"), index=False
+            )
         if save_table_as == "split" or save_table_as == "both":
             train_test_split(big_table, _ROOT, save=True)
-
 
     # zip all generated csv files
     if save_table_as == "zip":

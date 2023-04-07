@@ -32,15 +32,16 @@ airports = [
     "KSEA",
 ]
 
-def plotImp(model, X, airport, num = 20, fig_size = (40, 20)):
-    feature_imp = pd.DataFrame({'Value':model.feature_importances_,'Feature':X.columns})
+
+def plotImp(model, X, airport, num=20, fig_size=(40, 20)):
+    feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": X.columns})
     plt.figure(figsize=fig_size)
-    sns.set(font_scale = 1)
-    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", 
-                                                        ascending=False)[0:num])
-    plt.title('LightGBM Features (avg over folds)')
+    sns.set(font_scale=1)
+    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[0:num])
+    plt.title("LightGBM Features (avg over folds)")
     plt.tight_layout()
-    plt.savefig(f'lgbm_importances_{airport}_trevor.png')
+    plt.savefig(f"lgbm_importances_{airport}_trevor.png")
+
 
 y_tests = [0]
 y_preds = [0]
@@ -49,10 +50,10 @@ for airport in airports:
     df = pd.read_csv(os.path.join(ROOT, DATA_DIRECTORY, f"main_{airport}_prescreened.csv"))
 
     train_df, val_df = split(table=df, airport=airport, save=False)
-    
+
     train_df["precip"] = train_df["precip"].astype(str)
     val_df["precip"] = val_df["precip"].astype(str)
-    
+
     enc0 = OrdinalEncoder()
     train_df["lightning_prob_enc"] = enc0.fit_transform(train_df[["lightning_prob"]].values)
     val_df["lightning_prob_enc"] = enc0.transform(val_df[["lightning_prob"]].values)
@@ -65,7 +66,7 @@ for airport in airports:
     train_df["aircraft_engine_class_enc"] = enc2.fit_transform(train_df[["aircraft_engine_class"]].values)
     val_df["aircraft_engine_class_enc"] = enc2.transform(val_df[["aircraft_engine_class"]].values)
 
-    enc3 = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value = -1)
+    enc3 = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
     train_df["aircraft_type_enc"] = enc3.fit_transform(train_df[["aircraft_type"]].values)
     val_df["aircraft_type_enc"] = enc3.transform(val_df[["aircraft_type"]].values)
 
@@ -80,22 +81,22 @@ for airport in airports:
     enc6 = OrdinalEncoder()
     train_df["precip_enc"] = enc6.fit_transform(train_df[["precip"]].values)
     val_df["precip_enc"] = enc6.transform(val_df[["precip"]].values)
- 
+
     features = [
-    "minutes_until_etd",
-    "aircraft_engine_class_enc",
-    "aircraft_type_enc",
-    "major_carrier_enc",
-    "flight_type_enc",
-    "temperature",
-    "wind_direction",
-    "wind_speed",
-    "wind_gust",
-    "cloud_ceiling",
-    "visibility",
-    "cloud_enc",
-    "lightning_prob_enc",
-    "precip_enc"
+        "minutes_until_etd",
+        "aircraft_engine_class_enc",
+        "aircraft_type_enc",
+        "major_carrier_enc",
+        "flight_type_enc",
+        "temperature",
+        "wind_direction",
+        "wind_speed",
+        "wind_gust",
+        "cloud_ceiling",
+        "visibility",
+        "cloud_enc",
+        "lightning_prob_enc",
+        "precip_enc",
     ]
 
     # ---------------------------------------- BASELINE ----------------------------------------
@@ -104,28 +105,28 @@ for airport in airports:
     # print performance of baseline estimates
     mae = mean_absolute_error(val_df["minutes_until_pushback"], val_df["baseline"])
     print(f"\nMAE for {airport} with baseline: {mae:.4f}")
-    
+
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
     X_train = (train_df[features]).to_numpy()
     X_test = (val_df[features]).to_numpy()
     y_train = (train_df["minutes_until_pushback"]).to_numpy()
     y_test = (val_df["minutes_until_pushback"]).to_numpy()
-    
-    fit_params={ 
-                "eval_metric" : 'MAE', 
-                'verbose': 100,
-                'feature_name': 'auto', # that's actually the default
-                'categorical_feature': 'auto' # that's actually the default
-            }
-    
-    gbm = LGBMRegressor(objective = "regression_l1")
-    gbm.fit(X_train, y_train,eval_metric='l1')
+
+    fit_params = {
+        "eval_metric": "MAE",
+        "verbose": 100,
+        "feature_name": "auto",  # that's actually the default
+        "categorical_feature": "auto",  # that's actually the default
+    }
+
+    gbm = LGBMRegressor(objective="regression_l1")
+    gbm.fit(X_train, y_train, eval_metric="l1")
 
     # ensembleRegressor.fit(X_train, y_train,cat_features=cat_features,use_best_model=True)
 
     # ensembleRegressor.fit(X_train, y_train, **fit_params)
-    y_pred = gbm.predict(X_test,num_iteration=gbm.best_iteration_)
+    y_pred = gbm.predict(X_test, num_iteration=gbm.best_iteration_)
 
     print("Finished training")
     print(f"MAE on {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")

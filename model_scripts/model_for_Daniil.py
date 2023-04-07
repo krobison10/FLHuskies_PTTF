@@ -7,6 +7,7 @@ from lightgbm import LGBMRegressor
 
 import numpy as np
 import pandas as pd
+
 DATA_DIRECTORY = Path("./full_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 AIRPORTS = [
@@ -19,20 +20,20 @@ AIRPORTS = [
     "KMIA",
     "KORD",
     "KPHX",
-    "KSEA"
+    "KSEA",
 ]
 train = []
 
 for airport in AIRPORTS:
     train_airport = pd.read_csv(DATA_DIRECTORY / f"main_{airport}_prescreened.csv")
-    train_airport = train_airport.sort_values(by=['gufi'])
+    train_airport = train_airport.sort_values(by=["gufi"])
     # #For the combined model training, comment out following 2 lines, comment in following line
     # #and remove the intend for the following sections of training code
     # train.append(train_airport)
-# train = pd.concat(train)
+    # train = pd.concat(train)
 
     train = train_airport
-    #Split into train and test datasets
+    # Split into train and test datasets
     # test = train.iloc[round(train.shape[0]*0.99):]
     # train = train.iloc[:round(train.shape[0]*0.1)]
 
@@ -40,7 +41,7 @@ for airport in AIRPORTS:
     cat_feature = train.columns[np.where(train.dtypes != float)[0]].values.tolist()
     train[cat_feature] = train[cat_feature].astype(str)
 
-    #remove test for training the models
+    # remove test for training the models
     # test[cat_feature] = test[cat_feature].astype(str)
 
     print("Generated a shared dataframe")
@@ -87,17 +88,17 @@ for airport in AIRPORTS:
     # Preventing GUFI from being an attribute to analyze
     offset = 4
 
-    cat_features = [15,16,17,18,19,20,21,22,23]
+    cat_features = [15, 16, 17, 18, 19, 20, 21, 22, 23]
     cat_features = [c - offset for c in cat_features]
 
     # #For mfs only
     # cat_features = [5,6,7,8,9]
 
     # features_all = (train.columns.values.tolist())[offset:15]
-    features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
+    features_all = (train.columns.values.tolist())[offset : (len(train.columns.values))]
     # features_all = (train.columns.values.tolist())[offset:5]
 
-    #For mfs only
+    # For mfs only
     # features_remove = ("departure_runway_actual","cloud","aircraft_engine_class","lightning_prob","aircraft_type","major_carrier",
     #                                 "flight_type","gufi_end_label","precip")
     features_remove = ()
@@ -117,13 +118,15 @@ for airport in AIRPORTS:
 
     # y_test = test["minutes_until_pushback"]
 
-    ensembleRegressor = cb.CatBoostRegressor(has_time=True,thread_count=-1, loss_function="MAE", task_type="GPU", n_estimators=14000)
+    ensembleRegressor = cb.CatBoostRegressor(
+        has_time=True, thread_count=-1, loss_function="MAE", task_type="GPU", n_estimators=14000
+    )
     # ensembleRegressor.fit(X_train, y_train,cat_features=cat_feature,use_best_model=True)
-    ensembleRegressor.fit(X_train, y_train,cat_features = cat_features, use_best_model=True)
+    ensembleRegressor.fit(X_train, y_train, cat_features=cat_features, use_best_model=True)
 
     print("Finished training")
 
-    # y_pred = test["minutes_until_departure"] - 15  
+    # y_pred = test["minutes_until_departure"] - 15
     # print("Baseline:", mean_absolute_error(y_test, y_pred))
 
     # y_pred = regressor.predict(X_train)
@@ -132,6 +135,6 @@ for airport in AIRPORTS:
     # Remove the evaluation of the model
     # y_pred = ensembleRegressor.predict(X_test)
     # print("Ensemble of tree regressors test error:", mean_absolute_error(y_test, y_pred))
-    filename = f'model_w_mfs_lamp_time_etd_{airport}.sav'
-    pickle.dump(ensembleRegressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+    filename = f"model_w_mfs_lamp_time_etd_{airport}.sav"
+    pickle.dump(ensembleRegressor, open(OUTPUT_DIRECTORY / filename, "wb"))
     print("Saved the model for the airport: ", airport)
