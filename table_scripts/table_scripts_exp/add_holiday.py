@@ -6,12 +6,11 @@
 #
 
 
+import holidays
 import pandas as pd  # type: ignore
-from pandas.tseries.holiday import USFederalHolidayCalendar  # type: ignore
 
 
 def add_us_holidays(_df: pd.DataFrame) -> pd.DataFrame:
-    _cal: USFederalHolidayCalendar = USFederalHolidayCalendar()
-    holidays = _cal.holidays()
-    _df["is_us_holiday"] = _df.timestamp.isin(holidays)
+    us_holidays = holidays.US()
+    _df["is_us_holiday"] = _df.apply(lambda x: x.timestamp in us_holidays, axis=1)
     return _df

@@ -25,9 +25,9 @@ def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None,
     valdata = pd.read_csv(os.path.join(ROOT, "_data", "submission_format.csv"))
 
     # If there is a specific airport then we are only interested in those rows
-    ext: str = ""
+    ext: str = "ALL"
     if airport is not None:
-        ext = f"{airport}_"
+        ext = f"{airport}"
         valdata = valdata[valdata.airport == airport]
 
     mygufis = valdata.gufi.unique()
@@ -36,7 +36,7 @@ def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None,
 
     if save:
         # replace these paths with any desired ones if necessary
-        traindata.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(ROOT, "train_tables", f"{ext}train.csv"), index=False)
-        testdata.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(ROOT, "validation_tables", f"{ext}validation.csv"), index=False)
+        traindata.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(ROOT, "train_tables", f"{ext}_train.csv"), index=False)
+        testdata.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"), index=False)
 
     return traindata.copy(), testdata.copy()
