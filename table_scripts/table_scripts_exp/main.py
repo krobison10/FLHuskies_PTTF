@@ -14,6 +14,7 @@ if __name__ == "__main__":
     import gc
     import os
     import zipfile
+    import pandas as pd
     from glob import glob
 
     from table_dtype import TableDtype
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", help="how to save the table")
     parser.add_argument("-a", help="airport")
     parser.add_argument("-m", help="first m rows")
+    parser.add_argument("--c", action="store_true", help="combine airport tables")
     args: argparse.Namespace = parser.parse_args()
 
     # save only a full table - full
@@ -36,9 +38,13 @@ if __name__ == "__main__":
     # I want both split and full tables that are saved in a zipped folder - zip
     save_table_as: str = "both" if args.s is None else str(args.s)
 
+    combine_tables = args.c
+
     # airports need to process
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
     if args.a is not None:
+        if combine_tables:
+            raise argparse.ArgumentError(None, message="Cannot combine tables when only one airport is being processed")
         airport_selected: str = str(args.a).upper()
         if airport_selected in airports:
             airports = (airport_selected,)
@@ -47,6 +53,8 @@ if __name__ == "__main__":
 
     # the path to the directory where data files are stored
     DATA_DIR: str = os.path.join(_ROOT, "_data")
+
+    airport_tables = []
 
     for airport in airports:
         print("Processing", airport)
@@ -62,19 +70,31 @@ if __name__ == "__main__":
 
         # table = normalize_str_features(table)
 
-        # save data
-        # full
-        if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-            table.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"), index=False)
-        # split
-        if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
-            train_test_split(table, _ROOT, airport)
+        if combine_tables:
+            airport_tables.append(table)
+        else:
+            # save data
+            # full
+            if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
+                table.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"), index=False)
+            # split
+            if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
+                train_test_split(table, _ROOT, airport)
 
         print("Finished processing", airport)
         print("------------------------------")
 
         # clear out cache
         gc.collect()
+
+    # if combine is desired, put together big table and save properly according to other arguments
+    if combine_tables:
+        big_table = pd.concat(airport_tables, ignore_index=True)
+        if save_table_as == "full" or save_table_as == "both":
+            big_table.sort_values(["gufi", "timestamp"]).to_csv(os.path.join(_ROOT, "full_tables", f"ALL_full.csv"), index=False)
+        if save_table_as == "split" or save_table_as == "both":
+            train_test_split(big_table, _ROOT, save=True)
+
 
     # zip all generated csv files
     if save_table_as == "zip":
