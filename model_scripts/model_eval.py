@@ -15,16 +15,16 @@ from sklearn.metrics import mean_absolute_error
 
 # ---------------------------------------- MAIN ----------------------------------------
 airports = [
-    # "KATL",
-    # "KCLT",
-    # "KDEN",
-    # "KDFW",
-    # "KJFK",
+    "KATL",
+    "KCLT",
+    "KDEN",
+    "KDFW",
+    "KJFK",
     "KMEM",
-    # "KMIA",
-    # "KORD",
-    # "KPHX",
-    # "KSEA",
+    "KMIA",
+    "KORD",
+    "KPHX",
+    "KSEA",
 ]
 y_tests = [0]
 y_preds = [0]
