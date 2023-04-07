@@ -45,7 +45,7 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
     ).sort_values(["gufi", "timestamp"])
     if remove_duplicate_gufi is True:
         _df = _df.drop_duplicates(subset=["gufi"])
-    return applyAdditionalTimeBasedFeatures(_df)
+    return _df
 
 
 def get_train_tables_path(_airport: str = "KSEA") -> str:
@@ -70,14 +70,6 @@ def get_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = 
 
 def get_preprocessed_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
     return _get_tables(get_validation_tables_path(_airport).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi)
-
-
-def applyAdditionalTimeBasedFeatures(_data: pd.DataFrame) -> pd.DataFrame:
-    _data["month"] = _data.apply(lambda x: x.timestamp.month, axis=1)
-    _data["day"] = _data.apply(lambda x: x.timestamp.day, axis=1)
-    _data["hour"] = _data.apply(lambda x: x.timestamp.hour, axis=1)
-    _data["weekday"] = _data.apply(lambda x: x.timestamp.weekday(), axis=1)
-    return _data
 
 
 def _encodeFeatures(
