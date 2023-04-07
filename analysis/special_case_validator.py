@@ -21,7 +21,10 @@ DATA_DIR: str = os.path.join(os.path.dirname(__file__), "..", "train_tables")
 for airport in airports:
     print("Checking", airport)
     table: pd.DataFrame = pd.read_csv(
-        os.path.join(DATA_DIR, f"main_{airport}_prescreened.csv"), parse_dates=["timestamp"], dtype={"precip": str, "isdeparture": str}, low_memory=False
+        os.path.join(DATA_DIR, f"main_{airport}_prescreened.csv"),
+        parse_dates=["timestamp"],
+        dtype={"precip": str, "isdeparture": str},
+        low_memory=False,
     )
 
     table = table.drop_duplicates(subset=["gufi"])
@@ -41,7 +44,9 @@ for airport in airports:
     gufi_TFM: pd.DataFrame = table.loc[table.gufi.str.endswith("TFM") == True]
     gufi_TMA: pd.DataFrame = table.loc[table.gufi.str.endswith("TMA") == True]
     gufi_OTHER: pd.DataFrame = table.loc[
-        (table.gufi.str.endswith("TFM") == False) & (table.gufi.str.endswith("TFM_TFDM") == False) & (table.gufi.str.endswith("TMA") == False)
+        (table.gufi.str.endswith("TFM") == False)
+        & (table.gufi.str.endswith("TFM_TFDM") == False)
+        & (table.gufi.str.endswith("TMA") == False)
     ]
     print(
         f"TMA Info (min, avg, max) for {gufi_TMA.shape[0]} labels:",

@@ -1,42 +1,51 @@
 from src.CreateMaster import *
 import pandas as pd
 
-from src.ExtractFeatures import (LoadRawData, CrossJoinDatesAirports, ExtractAirportconfigFeatures,
-                                 ExtractRunwayArrivalFeatures, ExtractRunwayDepartureFeatures,
-                                 ExtractLampFeatures, ExtractETDFeatures,
-                                 ExtractMfsFeatures, ExtractGufiTimestampFeatures, AddTargets, Adjust)
+from src.ExtractFeatures import (
+    LoadRawData,
+    CrossJoinDatesAirports,
+    ExtractAirportconfigFeatures,
+    ExtractRunwayArrivalFeatures,
+    ExtractRunwayDepartureFeatures,
+    ExtractLampFeatures,
+    ExtractETDFeatures,
+    ExtractMfsFeatures,
+    ExtractGufiTimestampFeatures,
+    AddTargets,
+    Adjust,
+)
 
 
 def CreateMaster(data_path: str, airports, start_time: str, end_time: str, with_targets=False) -> pd.DataFrame:
     """
-    Loads all the raw tables from start_time to end_time into a dictionary 
+    Loads all the raw tables from start_time to end_time into a dictionary
     and sequentially extracts features for each information block merging it into
     a combined master table at the airport-timestamp level with a 15minute aggregation level
-    
+
     :param str data_path: Parent directory where the data is stored
     :param List[str] airports: List indicating which airports to create the master table for
     :param str start_time: Timestamp to read from
-    :param str end_time: Timestamp to read up to 
+    :param str end_time: Timestamp to read up to
     :param Bool with_targets: Bool indicating whether to include the targets - only for training
-    
+
     :return pd.Dataframe master_table: Dataframe at an airport-timestamp level with all the relevant features
     """
-    
+
     # Load raw data and store it in a dictionary that maps airport + key -> pd.DataFrame
     raw_data = LoadRawData(data_path=data_path, airports=airports, start_time=start_time, end_time=end_time)
 
     # Create cross join of all the dates between start_time and end_time at a 15min frequency
     master_table = CrossJoinDatesAirports(airports=airports, start_time=start_time, end_time=end_time)
 
-    master_table = ExtractAirportconfigFeatures(master_table, raw_data['config'])
+    master_table = ExtractAirportconfigFeatures(master_table, raw_data["config"])
     # Adjust master table in order not to have errors in edge cases in prediction time
     print("Extracted Config")
     # Extract features for the selected data blocks and append them to the master table
-    master_table = ExtractLampFeatures(master_table, raw_data['lamp'])
+    master_table = ExtractLampFeatures(master_table, raw_data["lamp"])
     print("Extracted Lamp")
-    master_table = ExtractETDFeatures(master_table, raw_data['etd'])
+    master_table = ExtractETDFeatures(master_table, raw_data["etd"])
     print("Extracted ETD")
-    master_table = ExtractGufiTimestampFeatures(master_table, raw_data['first_position'], 'first_position')
+    master_table = ExtractGufiTimestampFeatures(master_table, raw_data["first_position"], "first_position")
     print("Extracted First Position")
     master_table = ExtractMfsFeatures(master_table, "KSEA")
     print("Extracted MFS")

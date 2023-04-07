@@ -8,5 +8,5 @@ warn_redundant_casts = true
 warn_unreachable = true
 
 [tool.black]
-line-length = 160
+line-length = 120
 target-version = ['py310']

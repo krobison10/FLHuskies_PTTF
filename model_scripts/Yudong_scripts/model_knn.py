@@ -15,7 +15,17 @@ _data_train: pd.DataFrame = mytools.get_train_tables()
 _data_test: pd.DataFrame = mytools.get_validation_tables()
 
 features: dict[str, tuple[str, ...]] = {
-    "lamp": ("temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility", "cloud", "lightning_prob", "precip"),
+    "lamp": (
+        "temperature",
+        "wind_direction",
+        "wind_speed",
+        "wind_gust",
+        "cloud_ceiling",
+        "visibility",
+        "cloud",
+        "lightning_prob",
+        "precip",
+    ),
     "mfs": ("aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"),
     "time": ("month", "day", "hour", "weekday"),
 }

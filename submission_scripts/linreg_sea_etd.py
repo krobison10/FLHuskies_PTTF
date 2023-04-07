@@ -3,7 +3,7 @@ Trevor Tomlin
 03-28-2023
 Linear Regression trained on SEA
 """
-#import json
+# import json
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +20,7 @@ def load_model(solution_directory: Path) -> Any:
         model = pickle.load(fp)
 
     return model
+
 
 def predict(
     config: pd.DataFrame,
@@ -45,8 +46,8 @@ def predict(
     minutes_until_etd = partial_submission_format.merge(
         latest_etd, how="left", on="gufi"
     ).departure_runway_estimated_time
-    
-    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds()/60
+
+    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds() / 60
 
     # Empty dataframe gets passed to the function sometimes
     if len(minutes_until_etd) == 0:

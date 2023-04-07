@@ -45,12 +45,25 @@ def train_dnn(_data_train: pd.DataFrame, _data_test: pd.DataFrame) -> None:
 
     # Model Checkpoint
     check_pointer = ModelCheckpoint(
-        mytools.get_model_path("dnn_model.h5"), monitor="loss", verbose=1, save_best_only=True, save_weights_only=False, mode="auto", save_freq="epoch"
+        mytools.get_model_path("dnn_model.h5"),
+        monitor="loss",
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=False,
+        mode="auto",
+        save_freq="epoch",
     )
     # Model Early Stopping Rules
     early_stopping = EarlyStopping(monitor="val_loss", patience=10)
 
-    history = model.fit(X_train, y_train, validation_data=(X_test, y_test), verbose=1, epochs=30, callbacks=[check_pointer, early_stopping])
+    history = model.fit(
+        X_train,
+        y_train,
+        validation_data=(X_test, y_test),
+        verbose=1,
+        epochs=30,
+        callbacks=[check_pointer, early_stopping],
+    )
 
     print(history)
 

@@ -4,10 +4,10 @@
 # Dependency for train_table script.
 #
 
-import pandas as pd  # type: ignore
 import math
-
 from datetime import timedelta
+
+import pandas as pd  # type: ignore
 
 
 def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp, hours: int) -> float:
@@ -16,7 +16,9 @@ def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Ti
 
     merged_df = pd.merge(etd_filtered, runways_filtered, on="gufi")
 
-    merged_df["departure_delay"] = (merged_df["departure_runway_actual_time"] - merged_df["departure_runway_estimated_time"]).dt.total_seconds() / 60
+    merged_df["departure_delay"] = (
+        merged_df["departure_runway_actual_time"] - merged_df["departure_runway_estimated_time"]
+    ).dt.total_seconds() / 60
 
     avg_delay: float = merged_df["departure_delay"].mean()
     if math.isnan(avg_delay):
@@ -31,7 +33,9 @@ def average_stand_time(origin: pd.DataFrame, standtimes: pd.DataFrame, now: pd.T
 
     merged_df = pd.merge(origin_filtered, standtimes_filtered, on="gufi")
 
-    merged_df["avg_stand_time"] = (merged_df["origin_time"] - merged_df["departure_stand_actual_time"]).dt.total_seconds() / 60
+    merged_df["avg_stand_time"] = (
+        merged_df["origin_time"] - merged_df["departure_stand_actual_time"]
+    ).dt.total_seconds() / 60
 
     avg_stand_time: float = merged_df["avg_stand_time"].mean()
     if math.isnan(avg_stand_time):
@@ -45,7 +49,9 @@ def average_taxi_time(standtimes: pd.DataFrame, runways: pd.DataFrame, now: pd.T
 
     merged_df = pd.merge(runways_filtered, standtimes, on="gufi")
 
-    merged_df["avg_taxi_time"] = (merged_df["departure_runway_actual_time"] - merged_df["departure_stand_actual_time"]).dt.total_seconds() / 60
+    merged_df["avg_taxi_time"] = (
+        merged_df["departure_runway_actual_time"] - merged_df["departure_stand_actual_time"]
+    ).dt.total_seconds() / 60
 
     avg_taxi_time: float = merged_df["avg_taxi_time"].mean()
     if math.isnan(avg_taxi_time):

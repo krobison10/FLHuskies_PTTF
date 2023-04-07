@@ -46,7 +46,7 @@ input_features = [
     "visibility",
     "cloud",
     "lightning_prob",
-    "precip"
+    "precip",
 ]
 
 airports = [
@@ -72,4 +72,4 @@ for airport in airports:
 
 val_df = pd.concat(airport_tables, ignore_index=True)
 
-print("\nMAE: " + str( mean_absolute_error(val_df["minutes_until_pushback"], val_df["minutes_until_pushback_pred"]) ) )
+print("\nMAE: " + str(mean_absolute_error(val_df["minutes_until_pushback"], val_df["minutes_until_pushback_pred"])))
