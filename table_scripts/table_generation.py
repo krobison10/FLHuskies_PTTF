@@ -13,6 +13,7 @@ import pandas as pd  # type: ignore
 from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
+from add_averages import add_averages
 from add_lamp import add_lamp
 from add_mfs import add_mfs
 from extract_gufi_features import extract_and_add_gufi_features
@@ -25,6 +26,7 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
     filtered_table = add_etd(now, filtered_table, data_tables)
+    filtered_table = add_averages(now, filtered_table, data_tables)  # will increase runtime a bit
     filtered_table = add_config(now, filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
@@ -61,7 +63,10 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
         )
         .set_index("timestamp")
         .sort_values("timestamp"),
-        # "runways": pd.read_csv(get_csv_path(from_dir, _airport, f"{_airport}_runways.csv"), parse_dates=["departure_runway_actual_time", "timestamp"]),
+        "runways": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"),
+            parse_dates=["departure_runway_actual_time", "timestamp"],
+        ),
         "standtimes": pd.read_csv(
             get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"),
             parse_dates=["timestamp", "departure_stand_actual_time"],

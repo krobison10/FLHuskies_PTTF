@@ -21,7 +21,7 @@ if __name__ == "__main__":
     from utils import train_test_split
 
     # the path for root folder
-    _ROOT: str = os.path.join(os.path.dirname(__file__), "..", "..")
+    _ROOT: str = os.path.join(os.path.dirname(__file__), "..")
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
