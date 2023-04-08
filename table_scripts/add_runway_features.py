@@ -20,160 +20,159 @@ airports = [
     "KPHX",
     "KSEA"]
 
-def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame) -> pd.DataFrame:
+def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
 
     features = pd.DataFrame()
-    for airport in airports:
-        # Filter airport of interest
-        current = raw_data[airport].sort_values("timestamp").copy()
+    # Filter airport of interest
+    current = raw_data[airport].sort_values("timestamp").copy()
 
-        # Add fictitious row in a future timestamp
-        enlarge_configs = pd.DataFrame(
-            {
-                "timestamp": [master_table["timestamp"].max()],
-                "airport_config": [current.iloc[-1]["airport_config"]],
-                "airport": [airport],
-            }
+    # Add fictitious row in a future timestamp
+    enlarge_configs = pd.DataFrame(
+        {
+            "timestamp": [_df["timestamp"].max()],
+            "airport_config": [current.iloc[-1]["airport_config"]],
+            "airport": [airport],
+        }
+    )
+    current = current.append(enlarge_configs)
+
+    # Aggregate at a 15minute time window
+    current = current.groupby("timestamp").airport_config.last().reset_index()
+    current = (
+        current.set_index("timestamp")
+        .airport_config.resample("15min")
+        .ffill()
+        .reset_index()
+    )
+    current.columns = ["timestamp", "feat_1_cat_airportconfig"]
+    current = current[current["feat_1_cat_airportconfig"].isna() == False]
+
+    # Indicate number of active runways in each direction
+    current["feat_1_active_departurerunways"] = current[
+        "feat_1_cat_airportconfig"
+    ].apply(
+        lambda x: len(
+            str(x).replace("_A_", "|").replace("D_", "").split("|")[0].split("_")
         )
-        current = current.append(enlarge_configs)
-
-        # Aggregate at a 15minute time window
-        current = current.groupby("timestamp").airport_config.last().reset_index()
-        current = (
-            current.set_index("timestamp")
-            .airport_config.resample("15min")
-            .ffill()
-            .reset_index()
+    )
+    current["feat_1_active_arrivalrunways"] = current[
+        "feat_1_cat_airportconfig"
+    ].apply(
+        lambda x: len(
+            str(x).replace("_A_", "|").replace("D_", "").split("|")[1].split("_")
         )
-        current.columns = ["timestamp", "feat_1_cat_airportconfig"]
-        current = current[current["feat_1_cat_airportconfig"].isna() == False]
+    )
 
-        # Indicate number of active runways in each direction
-        current["feat_1_active_departurerunways"] = current[
-            "feat_1_cat_airportconfig"
-        ].apply(
-            lambda x: len(
-                str(x).replace("_A_", "|").replace("D_", "").split("|")[0].split("_")
+    # Indicate the angle of the configuration
+    numbers = current["feat_1_cat_airportconfig"].apply(
+        lambda x: [
+            int(s)
+            for s in x.replace("L", "").replace("R", "").split("_")
+            if s.isdigit()
+        ]
+    )
+
+    current["feat_1_max_directions"] = numbers.apply(
+        lambda x: max(x) if len(x) > 0 else 0
+    )
+    current["feat_1_min_directions"] = numbers.apply(
+        lambda x: min(x) if len(x) > 0 else 0
+    )
+    current["feat_1_unique_directions"] = numbers.apply(
+        lambda x: len(set(x)) if len(x) > 0 else 0
+    )
+
+    # Rolling variables of active runways for arrival and departures
+    for i in [4, 8, 12, 16, 20, 24]:
+        current[f"feat_1_active_dep_roll_{i}"] = (
+            current[f"feat_1_active_departurerunways"].rolling(i).mean()
+        )
+        current[f"feat_1_active_arrival_roll_{i}"] = (
+            current[f"feat_1_active_arrivalrunways"].rolling(i).mean()
+        )
+        current[f"feat_1_max_directions_roll_{i}"] = (
+            current["feat_1_max_directions"].rolling(i).mean()
+        )
+        current[f"feat_1_unique_directions_roll_{i}"] = (
+            current["feat_1_unique_directions"].rolling(i).mean()
+        )
+
+    runways = []
+    possible_runways = np.unique(raw_data[['departure_runways', 'arrival_runways']].values)
+
+    # making a list of active runways
+    for r in possible_runways:
+        runway = ''.join(filter(lambda x: x.isdigit(), r))
+        runways.append(runway)
+    
+    # Add binary indicator for each runway indicating if they are active in each direction
+    for r in runways:
+        current[f"feat_1_active_dep_{r}"] = (
+            current["feat_1_cat_airportconfig"]
+            .apply(lambda x: r in x.split("_A_")[0])
+            .astype(int)
+        )
+        current[f"feat_1_active_arrival_{r}"] = (
+            current["feat_1_cat_airportconfig"]
+            .apply(lambda x: r in x.split("_A_")[1])
+            .astype(int)
+        )
+
+        current[f"feat_1_active_dep_{r}R"] = (
+            current["feat_1_cat_airportconfig"]
+            .apply(
+                lambda x: (r in x.split("_A_")[0])
+                and (r + "L" not in x.split("_A_")[0])
             )
+            .astype(int)
         )
-        current["feat_1_active_arrivalrunways"] = current[
-            "feat_1_cat_airportconfig"
-        ].apply(
-            lambda x: len(
-                str(x).replace("_A_", "|").replace("D_", "").split("|")[1].split("_")
+        current[f"feat_1_active_arrival_{r}R"] = (
+            current["feat_1_cat_airportconfig"]
+            .apply(
+                lambda x: (r in x.split("_A_")[1])
+                and (r + "L" not in x.split("_A_")[1])
             )
+            .astype(int)
         )
 
-        # Indicate the angle of the configuration
-        numbers = current["feat_1_cat_airportconfig"].apply(
-            lambda x: [
-                int(s)
-                for s in x.replace("L", "").replace("R", "").split("_")
-                if s.isdigit()
-            ]
+        current[f"feat_1_active_dep_{r}L"] = (
+            current["feat_1_cat_airportconfig"]
+            .apply(
+                lambda x: (r in x.split("_A_")[0])
+                and (r + "R" not in x.split("_A_")[0])
+            )
+            .astype(int)
+        )
+        current[f"feat_1_active_arrival_{r}L"] = (
+            current["feat_1_cat_airportconfig"]
+            .apply(
+                lambda x: (r in x.split("_A_")[1])
+                and (r + "R" not in x.split("_A_")[1])
+            )
+            .astype(int)
         )
 
-        current["feat_1_max_directions"] = numbers.apply(
-            lambda x: max(x) if len(x) > 0 else 0
-        )
-        current["feat_1_min_directions"] = numbers.apply(
-            lambda x: min(x) if len(x) > 0 else 0
-        )
-        current["feat_1_unique_directions"] = numbers.apply(
-            lambda x: len(set(x)) if len(x) > 0 else 0
-        )
-
-        # Rolling variables of active runways for arrival and departures
         for i in [4, 8, 12, 16, 20, 24]:
-            current[f"feat_1_active_dep_roll_{i}"] = (
-                current[f"feat_1_active_departurerunways"].rolling(i).mean()
+            current[f"feat_1_active_dep_{r}_roll_{i}"] = (
+                current[f"feat_1_active_dep_{r}"].rolling(i).mean()
             )
-            current[f"feat_1_active_arrival_roll_{i}"] = (
-                current[f"feat_1_active_arrivalrunways"].rolling(i).mean()
-            )
-            current[f"feat_1_max_directions_roll_{i}"] = (
-                current["feat_1_max_directions"].rolling(i).mean()
-            )
-            current[f"feat_1_unique_directions_roll_{i}"] = (
-                current["feat_1_unique_directions"].rolling(i).mean()
+            current[f"feat_1_active_arrival_{r}_roll_{i}"] = (
+                current[f"feat_1_active_arrival_{r}"].rolling(i).mean()
             )
 
-        runways = []
-        possible_runways = np.unique(raw_data[['departure_runways', 'arrival_runways']].values)
-
-        # making a list of active runways
-        for r in possible_runways:
-            runway = ''.join(filter(lambda x: x.isdigit(), r))
-            runways.append(runway)
-        
-        # Add binary indicator for each runway indicating if they are active in each direction
-        for r in runways:
-            current[f"feat_1_active_dep_{r}"] = (
-                current["feat_1_cat_airportconfig"]
-                .apply(lambda x: r in x.split("_A_")[0])
-                .astype(int)
+            current[f"feat_1_active_dep_{r}R_roll_{i}"] = (
+                current[f"feat_1_active_dep_{r}R"].rolling(i).mean()
             )
-            current[f"feat_1_active_arrival_{r}"] = (
-                current["feat_1_cat_airportconfig"]
-                .apply(lambda x: r in x.split("_A_")[1])
-                .astype(int)
+            current[f"feat_1_active_arrival_{r}R_roll_{i}"] = (
+                current[f"feat_1_active_arrival_{r}R"].rolling(i).mean()
             )
 
-            current[f"feat_1_active_dep_{r}R"] = (
-                current["feat_1_cat_airportconfig"]
-                .apply(
-                    lambda x: (r in x.split("_A_")[0])
-                    and (r + "L" not in x.split("_A_")[0])
-                )
-                .astype(int)
+            current[f"feat_1_active_dep_{r}L_roll_{i}"] = (
+                current[f"feat_1_active_dep_{r}L"].rolling(i).mean()
             )
-            current[f"feat_1_active_arrival_{r}R"] = (
-                current["feat_1_cat_airportconfig"]
-                .apply(
-                    lambda x: (r in x.split("_A_")[1])
-                    and (r + "L" not in x.split("_A_")[1])
-                )
-                .astype(int)
+            current[f"feat_1_active_arrival_{r}L_roll_{i}"] = (
+                current[f"feat_1_active_arrival_{r}L"].rolling(i).mean()
             )
-
-            current[f"feat_1_active_dep_{r}L"] = (
-                current["feat_1_cat_airportconfig"]
-                .apply(
-                    lambda x: (r in x.split("_A_")[0])
-                    and (r + "R" not in x.split("_A_")[0])
-                )
-                .astype(int)
-            )
-            current[f"feat_1_active_arrival_{r}L"] = (
-                current["feat_1_cat_airportconfig"]
-                .apply(
-                    lambda x: (r in x.split("_A_")[1])
-                    and (r + "R" not in x.split("_A_")[1])
-                )
-                .astype(int)
-            )
-
-            for i in [4, 8, 12, 16, 20, 24]:
-                current[f"feat_1_active_dep_{r}_roll_{i}"] = (
-                    current[f"feat_1_active_dep_{r}"].rolling(i).mean()
-                )
-                current[f"feat_1_active_arrival_{r}_roll_{i}"] = (
-                    current[f"feat_1_active_arrival_{r}"].rolling(i).mean()
-                )
-
-                current[f"feat_1_active_dep_{r}R_roll_{i}"] = (
-                    current[f"feat_1_active_dep_{r}R"].rolling(i).mean()
-                )
-                current[f"feat_1_active_arrival_{r}R_roll_{i}"] = (
-                    current[f"feat_1_active_arrival_{r}R"].rolling(i).mean()
-                )
-
-                current[f"feat_1_active_dep_{r}L_roll_{i}"] = (
-                    current[f"feat_1_active_dep_{r}L"].rolling(i).mean()
-                )
-                current[f"feat_1_active_arrival_{r}L_roll_{i}"] = (
-                    current[f"feat_1_active_arrival_{r}L"].rolling(i).mean()
-                )
 
         # Add categorical features in 25 lookback period of previous configuration
         for i in range(1, 25):
@@ -195,12 +194,12 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame) -> pd.DataFrame
 
         # Add features of the current airport as global features to the master table
         for i in [4, 8, 12, 16, 20, 24]:
-            master_table[f"feat_1_{airport}_dep_roll_{i}"] = master_table[
+            _df[f"feat_1_{airport}_dep_roll_{i}"] = _df[
                 "timestamp"
             ].map(
                 dict(zip(current["timestamp"], current[f"feat_1_active_dep_roll_{i}"]))
             )
-            master_table[f"feat_1_{airport}_arr_roll_{i}"] = master_table[
+            _df[f"feat_1_{airport}_arr_roll_{i}"] = _df[
                 "timestamp"
             ].map(
                 dict(
@@ -209,10 +208,126 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame) -> pd.DataFrame
                     )
                 )
             )
-            master_table[f"feat_1_{airport}_nchanges_{i}"] = master_table[
+            _df[f"feat_1_{airport}_nchanges_{i}"] = _df[
                 "timestamp"
             ].map(dict(zip(current["timestamp"], current[f"feat_1_nchanges_last_{i}"])))
 
-    master_table = master_table.merge(features, how="left", on=["airport", "timestamp"])
+    _df = _df.merge(features, how="left", on=["airport", "timestamp"])
 
-    return master_table
+    return _df
+
+
+
+
+def add_runway_arrival_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
+    """
+    Extracts features based on past confirmed runway arrival events
+    :param pd.Dataframe _df: Existing feature set at a timestamp-airport level
+    :return pd.Dataframe _df: Master table enlarged with additional features
+    """
+
+    features = pd.DataFrame()
+    current = raw_data[airport].copy()
+
+    current.sort_values("timestamp", inplace=True)
+    current["flight_ind1"] = current["gufi"].apply(lambda x: x.split(".")[0])
+    current["flight_ind2"] = current["gufi"].apply(lambda x: x.split(".")[1])
+    current["indicator"] = 1
+
+    for i in [5, 10, 15, 30, 60, 120, 360]:
+        current[f"arrivals_last_{i}min"] = current.rolling(
+            f"{i}min", on="timestamp"
+        ).indicator.sum()
+
+    current["timestamp"] = current["timestamp"].dt.ceil("15min")
+    current = current.groupby("timestamp").agg(
+        {
+            "indicator": "sum",
+            "arrivals_last_5min": "last",
+            "arrivals_last_10min": "last",
+            "arrivals_last_15min": "last",
+            "arrivals_last_30min": "last",
+            "arrivals_last_60min": "last",
+            "arrivals_last_120min": "last",
+            "arrivals_last_360min": "last",
+            "flight_ind1": ["last", "nunique"],
+            "flight_ind2": ["last", "nunique"],
+            "arrival_runway": ["last", "nunique"],
+        }
+    )
+    current.columns = ["feat_2_" + c[0] + "_" + c[1] for c in current.columns]
+    current.rename(
+        columns={
+            "feat_2_flight_ind1_last": "feat_2_cat_flight_ind1_last",
+            "feat_2_flight_ind2_last": "feat_2_cat_flight_ind2_last",
+            "feat_2_arrival_runway_last": "feat_2_cat_arrival_runway_last",
+        },
+        inplace=True,
+    )
+    current.reset_index(inplace=True)
+    current["airport"] = airport
+
+    features = pd.concat([features, current])
+
+    _df = _df.merge(features, how="left", on=["airport", "timestamp"])
+
+    return _df
+
+
+def add_runway_departure_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
+    """
+    Extracts features based on past confirmed runway departure events
+    :param pd.Dataframe _df: Existing feature set at a timestamp-airport level
+    :return pd.Dataframe _df: Master table enlarged with additional features
+    """
+
+    features = pd.DataFrame()
+
+    current = raw_data[airport].copy()
+
+    current.sort_values("timestamp", inplace=True)
+    current["flight_ind1"] = current["gufi"].apply(lambda x: x.split(".")[0])
+    current["flight_ind2"] = current["gufi"].apply(lambda x: x.split(".")[1])
+    current["indicator"] = 1
+
+    for i in [5, 10, 15, 30, 60, 120, 360]:
+        current[f"deps_last_{i}min"] = current.rolling(
+            f"{i}min", on="timestamp"
+        ).indicator.sum()
+
+    current["timestamp"] = current["timestamp"].dt.ceil("15min")
+    current = current.groupby("timestamp").agg(
+        {
+            "indicator": "sum",
+            "deps_last_5min": "last",
+            "deps_last_10min": "last",
+            "deps_last_15min": "last",
+            "deps_last_30min": "last",
+            "deps_last_60min": "last",
+            "deps_last_120min": "last",
+            "deps_last_360min": "last",
+            "flight_ind1": ["last", "nunique"],
+            "flight_ind2": ["last", "nunique"],
+            "departure_runway": ["last", "nunique"],
+        }
+    )
+
+    current.columns = ["feat_3_" + c[0] + "_" + c[1] for c in current.columns]
+    current.rename(
+        columns={
+            "feat_3_flight_ind1_last": "feat_3_cat_flight_ind1_last",
+            "feat_3_flight_ind2_last": "feat_3_cat_flight_ind2_last",
+            "feat_3_departure_runway_last": "feat_3_cat_dep_runway_last",
+        },
+        inplace=True,
+    )
+
+    current.reset_index(inplace=True)
+    current["airport"] = airport
+
+    features = pd.concat([features, current])
+
+    _df = _df.merge(features, how="left", on=["airport", "timestamp"])
+
+    return _df
+
