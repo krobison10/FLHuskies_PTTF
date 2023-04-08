@@ -9,6 +9,9 @@ catboost_info/
 # Ignore all CSV files
 *.csv
 
+# Ignore all png files
+*.png
+
 # But allow CSV files with bz2 extension
 !*.csv.bz2
 
