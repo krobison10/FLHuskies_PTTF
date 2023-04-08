@@ -92,25 +92,25 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
-    # Add additional runway configurations features
-    _df = add_runway_features(_df,feature_tables["config"],airport=_airport)
-    print("Runway features: DONE")
+    # # Add additional runway configurations features
+    # _df = add_runway_features(_df,feature_tables["config"],airport=_airport)
+    # print("Runway features: DONE")
 
-    # Add additional runway configurations features
-    _df = add_runway_arrival_features(_df,feature_tables["config"]["arrival_runways"],airport=_airport)
-    print("Runway arr features: DONE")
+    # # Add additional runway configurations features
+    # _df = add_runway_arrival_features(_df,feature_tables["config"]["arrival_runways"],airport=_airport)
+    # print("Runway arr features: DONE")
 
-    # Add additional runway configurations features
-    _df = add_runway_departure_features(_df,feature_tables["config"]["departure_runways"],airport=_airport)
-    print("Runway dep features: DONE")
+    # # Add additional runway configurations features
+    # _df = add_runway_departure_features(_df,feature_tables["config"]["departure_runways"],airport=_airport)
+    # print("Runway dep features: DONE")
 
-    # Add global lamp features, based on the overall trends
-    _df = add_global_lamp(_df,feature_tables["lamp"],airport=_airport)
-    print("LAMP features: DONE")
+    # # Add global lamp features, based on the overall trends
+    # _df = add_global_lamp(_df,feature_tables["lamp"],airport=_airport)
+    # print("LAMP features: DONE")
 
-    # Add additional etd features
-    _df = add_etd_features(_df,feature_tables["etd"],airport=_airport)
-    print("ETD features: DONE")
+    # # Add additional etd features
+    # _df = add_etd_features(_df,feature_tables["etd"],airport=_airport)
+    # print("ETD features: DONE")
 
     # Add mfs information
     _df = add_mfs(_df, get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
