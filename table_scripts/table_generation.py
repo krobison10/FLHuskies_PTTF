@@ -2,7 +2,7 @@
 # Authors:
 # - Kyler Robison
 # - Yudong Lin
-#
+# - Daniil Filienko
 # generate the full table for a specific airport
 #
 
@@ -17,6 +17,9 @@ from add_averages import add_averages
 from add_lamp import add_lamp
 from add_mfs import add_mfs
 from extract_gufi_features import extract_and_add_gufi_features
+from add_global_lamp import add_global_lamp
+from add_runway_features import add_runway_features, add_runway_arrival_features, add_runway_departure_features
+from add_etd_features import add_etd_features
 from tqdm import tqdm
 from utils import get_csv_path
 
@@ -89,6 +92,21 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
+    # Add additional runway configurations features
+    _df = add_runway_features(_df,feature_tables["config"],airport=_airport)
+
+    # Add additional runway configurations features
+    _df = add_runway_arrival_features(_df,feature_tables["config"]["arrival_runways"],airport=_airport)
+
+    # Add additional runway configurations features
+    _df = add_runway_departure_features(_df,feature_tables["config"]["departure_runways"],airport=_airport)
+
+    # Add global lamp features, based on the overall trends
+    _df = add_global_lamp(_df,feature_tables["lamp"],airport=_airport)
+   
+    # Add additional etd features
+    _df = add_etd_features(_df,feature_tables["etd"],airport=_airport)
+    
     # Add mfs information
     _df = add_mfs(_df, get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
 

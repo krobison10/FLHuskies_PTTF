@@ -6,7 +6,7 @@
 
 import pandas as pd
 
-def add_runway_departure_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
+def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
     """
     Extracts estimated time of departure features and appends it to the existing dataframe
     :param pd.DataFrame _df: Existing feature set at a timestamp-airport level
@@ -66,7 +66,6 @@ def add_runway_departure_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airpo
                 "estdep_next_300min": "sum",
                 "estdep_next_330min": "sum",
                 "estdep_next_360min": "sum",
-                "estdep_next_720min": "sum",
             }
         )
         .reset_index()
@@ -83,4 +82,3 @@ def add_runway_departure_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airpo
     )
 
     return _df
-
