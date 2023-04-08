@@ -55,13 +55,6 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
             str(x).replace("_A_", "|").replace("D_", "").split("|")[0].split("_")
         )
     )
-    current["feat_1_active_arrivalrunways"] = current[
-        "feat_1_cat_airportconfig"
-    ].apply(
-        lambda x: len(
-            str(x).replace("_A_", "|").replace("D_", "").split("|")[1].split("_")
-        )
-    )
 
     # Indicate the angle of the configuration
     numbers = current["feat_1_cat_airportconfig"].apply(
@@ -86,9 +79,6 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
     for i in [4, 8, 12, 16, 20, 24]:
         current[f"feat_1_active_dep_roll_{i}"] = (
             current[f"feat_1_active_departurerunways"].rolling(i).mean()
-        )
-        current[f"feat_1_active_arrival_roll_{i}"] = (
-            current[f"feat_1_active_arrivalrunways"].rolling(i).mean()
         )
         current[f"feat_1_max_directions_roll_{i}"] = (
             current["feat_1_max_directions"].rolling(i).mean()
