@@ -26,15 +26,6 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
     # Filter airport of interest
     current = raw_data.sort_values("timestamp").copy()
 
-    # Add fictitious row in a future timestamp
-    enlarge_configs = pd.DataFrame(
-        {
-            "timestamp": [_df["timestamp"].max()],
-            "airport_config": [current.iloc[-1]["timestamp","start_time","departure_runways","arrival_runways"]],
-        }
-    )
-    current = current.append(enlarge_configs)
-
     # Aggregate at a 15minute time window
     current = current.groupby("timestamp").airport_config.last().reset_index()
     current = (
