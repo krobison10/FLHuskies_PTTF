@@ -30,8 +30,7 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
     enlarge_configs = pd.DataFrame(
         {
             "timestamp": [_df["timestamp"].max()],
-            "airport_config": [current.iloc[-1]["airport_config"]],
-            "airport": [airport],
+            "airport_config": [current.iloc[-1]["timestamp","start_time","departure_runways","arrival_runways"]],
         }
     )
     current = current.append(enlarge_configs)
