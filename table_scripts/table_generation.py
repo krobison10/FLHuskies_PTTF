@@ -76,15 +76,15 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
         ),
     }
 
-    # # process all prediction times in parallel
-    # with multiprocessing.Pool() as executor:
-    #     fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
-    #     unique_timestamp = _df.timestamp.unique()
-    #     inputs = zip(pd.to_datetime(unique_timestamp))
-    #     timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
+    # process all prediction times in parallel
+    with multiprocessing.Pool() as executor:
+        fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
+        unique_timestamp = _df.timestamp.unique()
+        inputs = zip(pd.to_datetime(unique_timestamp))
+        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
-    # # concatenate individual prediction times to a single dataframe
-    # _df = pd.concat(timestamp_tables, ignore_index=True)
+    # concatenate individual prediction times to a single dataframe
+    _df = pd.concat(timestamp_tables, ignore_index=True)
 
     # # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
