@@ -15,24 +15,24 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd
 
     etd_features = pd.DataFrame()
 
-    etd = raw_data[airport].copy()
+    etd = raw_data.copy()
     etd["timestamp"] = etd.timestamp.dt.ceil("15min")
-    etd["estimated_runway_departure_time"] = pd.to_datetime(
-        etd["estimated_runway_departure_time"]
+    etd["departure_runway_estimated_time"] = pd.to_datetime(
+        etd["departure_runway_estimated_time"]
     )
-    etd = etd[etd["timestamp"] < etd["estimated_runway_departure_time"]]
+    etd = etd[etd["timestamp"] < etd["departure_runway_estimated_time"]]
 
     complete_etd = etd.copy()
     for i in range(1, 4 * 25):
         current = etd.copy()
         current["timestamp"] = current["timestamp"] + pd.Timedelta(f"{i * 15}min")
         current = current[
-            current["timestamp"] < current["estimated_runway_departure_time"]
+            current["timestamp"] < current["departure_runway_estimated_time"]
         ]
         complete_etd = pd.concat([complete_etd, current])
 
     complete_etd["time_ahead"] = (
-        complete_etd["estimated_runway_departure_time"] - complete_etd["timestamp"]
+        complete_etd["departure_runway_estimated_time"] - complete_etd["timestamp"]
     ).dt.total_seconds()
     complete_etd = complete_etd.groupby(["gufi", "timestamp"]).first().reset_index()
 
@@ -78,7 +78,7 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd
     etd_features = pd.concat([etd_features, etd_aggregation])
 
     _df = _df.merge(
-        etd_features, how="left", on=["airport", "timestamp"]
+        etd_features, how="left", on=["timestamp"]
     )
 
     return _df

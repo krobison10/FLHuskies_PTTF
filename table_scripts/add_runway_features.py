@@ -24,27 +24,29 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
 
     features = pd.DataFrame()
     # Filter airport of interest
-    current = raw_data.sort_values("timestamp").copy()
+    current = raw_data.copy()
 
     # Add fictitious row in a future timestamp
     enlarge_configs = pd.DataFrame(
         {
             "timestamp": [_df["timestamp"].max()],
-            "airport_config": [raw_data["departure_runways"].max()],
+            "airport_config": [current.iloc[-1]["departure_runways"]],
+            "airport_config2": [current.iloc[-1]["arrival_runways"]]
         }
     )
     
-    current = current.append(enlarge_configs)
+    current = current._append(enlarge_configs)
 
     # Aggregate at a 15minute time window
     current = current.groupby("timestamp").airport_config.last().reset_index()
     current = (
         current.set_index("timestamp")
+        .airport_config2.resample("15min")
         .airport_config.resample("15min")
         .ffill()
         .reset_index()
     )
-    current.columns = ["timestamp", "feat_1_cat_airportconfig"]
+    current.columns = ["timestamp", "feat_1_cat_airportconfig", "feat_1_cat_airportconfig"]
     current = current[current["feat_1_cat_airportconfig"].isna() == False]
 
     # Indicate number of active runways in each direction
@@ -52,29 +54,21 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
         "feat_1_cat_airportconfig"
     ].apply(
         lambda x: len(
-            str(x).replace("_A_", "|").replace("D_", "").split("|")[0].split("_")
+            str(x).split(",")
         )
     )
 
-    # Indicate the angle of the configuration
-    numbers = current["feat_1_cat_airportconfig"].apply(
-        lambda x: [
-            int(s)
-            for s in x.replace("L", "").replace("R", "").split("_")
-            if s.isdigit()
-        ]
+    # Indicate number of active runways in each direction
+    current["feat_1_active_departurerunways"] = current[
+        "feat_1_cat_airportconfig"
+    ].apply(
+        lambda x: len(
+            str(x).split(",")
+        )
     )
 
-    current["feat_1_max_directions"] = numbers.apply(
-        lambda x: max(x) if len(x) > 0 else 0
-    )
-    current["feat_1_min_directions"] = numbers.apply(
-        lambda x: min(x) if len(x) > 0 else 0
-    )
-    current["feat_1_unique_directions"] = numbers.apply(
-        lambda x: len(set(x)) if len(x) > 0 else 0
-    )
-
+    print(current.head(5))
+    
     # Rolling variables of active runways for arrival and departures
     for i in [4, 8, 12, 16, 20, 24]:
         current[f"feat_1_active_dep_roll_{i}"] = (
@@ -202,7 +196,7 @@ def add_runway_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) ->
                 "timestamp"
             ].map(dict(zip(current["timestamp"], current[f"feat_1_nchanges_last_{i}"])))
 
-    _df = _df.merge(features, how="left", on=["airport", "timestamp"])
+    _df = _df.merge(features, how="left", on=["timestamp"])
 
     return _df
 
@@ -217,9 +211,9 @@ def add_runway_arrival_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport
     """
 
     features = pd.DataFrame()
-    current = raw_data[airport].copy()
+    current = raw_data.copy()
 
-    current.sort_values("timestamp", inplace=True)
+
     current["flight_ind1"] = current["gufi"].apply(lambda x: x.split(".")[0])
     current["flight_ind2"] = current["gufi"].apply(lambda x: x.split(".")[1])
     current["indicator"] = 1
@@ -257,9 +251,10 @@ def add_runway_arrival_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport
     current.reset_index(inplace=True)
     current["airport"] = airport
 
+    print ("GOOD")
     features = pd.concat([features, current])
 
-    _df = _df.merge(features, how="left", on=["airport", "timestamp"])
+    _df = _df.merge(features, how="left", on=["timestamp"])
 
     return _df
 
@@ -273,9 +268,9 @@ def add_runway_departure_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airpo
 
     features = pd.DataFrame()
 
-    current = raw_data[airport].copy()
+    current = raw_data.copy()
 
-    current.sort_values("timestamp", inplace=True)
+
     current["flight_ind1"] = current["gufi"].apply(lambda x: x.split(".")[0])
     current["flight_ind2"] = current["gufi"].apply(lambda x: x.split(".")[1])
     current["indicator"] = 1
@@ -315,9 +310,10 @@ def add_runway_departure_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airpo
     current.reset_index(inplace=True)
     current["airport"] = airport
 
+    print ("DONE")
     features = pd.concat([features, current])
 
-    _df = _df.merge(features, how="left", on=["airport", "timestamp"])
+    _df = _df.merge(features, how="left", on=["timestamp"])
 
     return _df
 

@@ -18,9 +18,12 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
 
     weather = pd.DataFrame()
     
-    current = raw_data[airport].copy()
+    current = raw_data.copy()
 
     current["forecast_timestamp"] = pd.to_datetime(current["forecast_timestamp"])
+
+    current["timestamp"] = pd.to_datetime(current["timestamp"])
+
     current["lightning_prob"] = current["lightning_prob"].map(
         {"L": 0, "M": 1, "N": 2, "H": 3}
     )
