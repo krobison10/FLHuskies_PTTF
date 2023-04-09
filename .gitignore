@@ -168,3 +168,4 @@ dmypy.json
 .DS_Store
 
 model_scripts/catboost_info/catboost_training.json
+models/yudong_models/
