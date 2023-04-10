@@ -76,15 +76,16 @@ if __name__ == "__main__":
         print("------------------------------")
 
     # put together big table and save properly according to other arguments
-    master_table: pd.DataFrame = pd.concat(
-        [pd.read_csv(individual_table) for individual_table in glob(os.path.join(_ROOT, "full_tables", "*_full.csv"))],
-        ignore_index=True,
-    ).sort_values(["gufi", "timestamp"])
-    if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-        master_table.to_csv(os.path.join(_ROOT, "full_tables", "ALL_full.csv"), index=False)
-    if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
-        train_test_split(master_table, _ROOT, save=True)
-    del master_table
+    if args.a is None:
+        master_table: pd.DataFrame = pd.concat(
+            [pd.read_csv(individual_table) for individual_table in glob(os.path.join(_ROOT, "full_tables", "*_full.csv"))],
+            ignore_index=True,
+        ).sort_values(["gufi", "timestamp"])
+        if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
+            master_table.to_csv(os.path.join(_ROOT, "full_tables", "ALL_full.csv"), index=False)
+        if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
+            train_test_split(master_table, _ROOT, save=True)
+        del master_table
 
     # zip all generated csv files
     if save_table_as == "zip":
