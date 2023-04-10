@@ -44,16 +44,26 @@ def average_stand_time(origin: pd.DataFrame, standtimes: pd.DataFrame, now: pd.T
     return round(avg_stand_time, 2)
 
 
-def average_taxi_time(standtimes: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp, hours: int) -> float:
+def average_taxi_time(mfs: pd.DataFrame, standtimes: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp,
+                        hours: int, departures: bool = True) -> float:
     runways_filtered = filter_by_timestamp(runways, now, hours)
 
-    merged_df = pd.merge(runways_filtered, standtimes, on="gufi")
+    mfs = mfs.loc[mfs["isdeparture"] == departures]
 
-    merged_df["avg_taxi_time"] = (
-        merged_df["departure_runway_actual_time"] - merged_df["departure_stand_actual_time"]
-    ).dt.total_seconds() / 60
+    merged_df = pd.merge(runways_filtered, mfs, on="gufi")
 
-    avg_taxi_time: float = merged_df["avg_taxi_time"].mean()
+    merged_df = pd.merge(merged_df, standtimes, on="gufi")
+
+    if departures:
+        merged_df["taxi_time"] = (
+            merged_df["departure_runway_actual_time"] - merged_df["departure_stand_actual_time"]
+        ).dt.total_seconds() / 60
+    else:
+        merged_df["taxi_time"] = (
+            merged_df["arrival_stand_actual_time"] - merged_df["arrival_runway_actual_time"]
+        ).dt.total_seconds() / 60
+
+    avg_taxi_time: float = merged_df["taxi_time"].mean()
     if math.isnan(avg_taxi_time):
         avg_taxi_time = 0
 

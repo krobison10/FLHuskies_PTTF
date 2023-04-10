@@ -68,12 +68,13 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
         .sort_index(),
         "runways": pd.read_csv(
             get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"),
-            parse_dates=["departure_runway_actual_time", "timestamp"],
+            parse_dates=["timestamp", "departure_runway_actual_time", "arrival_runway_actual_time"],
         ),
         "standtimes": pd.read_csv(
             get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"),
-            parse_dates=["timestamp", "departure_stand_actual_time"],
+            parse_dates=["timestamp", "departure_stand_actual_time", "arrival_stand_actual_time"],
         ),
+        "mfs": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
     }
 
     # # process all prediction times in parallel
@@ -92,8 +93,8 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # TODO: determine what dataset is being used for the arrival and departure features
 
     # # Add global lamp features, based on the overall trends
-    _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
-    print("LAMP features: DONE")
+    # _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
+    # print("LAMP features: DONE")
 
     # Add additional etd features
     _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
