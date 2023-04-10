@@ -10,16 +10,15 @@ import multiprocessing
 from functools import partial
 
 import pandas as pd  # type: ignore
+from add_averages import add_averages
 from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
-from add_averages import add_averages
-from add_lamp import add_lamp
-from add_mfs import add_mfs
-from extract_gufi_features import extract_and_add_gufi_features
-from add_global_lamp import add_global_lamp
-from add_runway_features import add_runway_features, add_runway_arrival_features, add_runway_departure_features
 from add_etd_features import add_etd_features
+from add_global_lamp import add_global_lamp
+from add_lamp import add_lamp
+from add_runway_features import add_runway_arrival_features, add_runway_departure_features, add_runway_features
+from extract_gufi_features import extract_and_add_gufi_features
 from tqdm import tqdm
 from utils import get_csv_path
 
@@ -74,7 +73,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
             get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"),
             parse_dates=["timestamp", "departure_stand_actual_time", "arrival_stand_actual_time"],
         ),
-        "mfs": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
+        "mfs": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"), dtype={"major_carrier": str}),
     }
 
     # process all prediction times in parallel
@@ -97,11 +96,11 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # Add additional etd features
     _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
 
+    # Add mfs information
+    _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
+
     # remove feature tables from cache as it is no longer needed
     del feature_tables
-
-    # Add mfs information
-    _df = add_mfs(_df, get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
 
     # extract and add mfs information
     _df = extract_and_add_gufi_features(_df)
