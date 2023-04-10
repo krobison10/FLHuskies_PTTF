@@ -115,7 +115,4 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
     # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
     _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
 
-    print("DEMO")
-    _df.to_csv("out")
-
     return _df

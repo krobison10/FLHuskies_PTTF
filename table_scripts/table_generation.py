@@ -77,28 +77,28 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
         "mfs": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
     }
 
-    # # process all prediction times in parallel
-    # with multiprocessing.Pool() as executor:
-    #     fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
-    #     unique_timestamp = _df.timestamp.unique()
-    #     inputs = zip(pd.to_datetime(unique_timestamp))
-    #     timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
+    # process all prediction times in parallel
+    with multiprocessing.Pool() as executor:
+        fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
+        unique_timestamp = _df.timestamp.unique()
+        inputs = zip(pd.to_datetime(unique_timestamp))
+        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
 
-    # # concatenate individual prediction times to a single dataframe
-    # _df = pd.concat(timestamp_tables, ignore_index=True)
+    # concatenate individual prediction times to a single dataframe
+    _df = pd.concat(timestamp_tables, ignore_index=True)
 
     # # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
     # TODO: determine what dataset is being used for the arrival and departure features
-
-    # # Add global lamp features, based on the overall trends
-    # _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
-    # print("LAMP features: DONE")
+    # Add global lamp features, based on the overall trends
+    _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
 
     # Add additional etd features
     _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
-    print("ETD features: DONE")
+
+    # remove feature tables from cache as it is no longer needed
+    del feature_tables
 
     # Add mfs information
     _df = add_mfs(_df, get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"))
@@ -108,8 +108,5 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # extract holiday features
     _df = add_date_features(_df)
-
-    # # remove feature tables from cache as it is no longer needed
-    del feature_tables
 
     return _df
