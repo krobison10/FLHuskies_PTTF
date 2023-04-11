@@ -13,9 +13,9 @@ def add_traffic(
     now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
     mfs = data_tables["mfs"]
-    etd = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30)
-    runways = feature_engineering.filter_by_timestamp(data_tables["runways"], now, 30)
-    standtimes = feature_engineering.filter_by_timestamp(data_tables["standtimes"], now, 30)
+    etd = data_tables["etd"]
+    runways = data_tables["runways"]
+    standtimes = data_tables["standtimes"]
 
     deps_3hr = count_actual_flights(runways, now, 3, departures=True)
     flights_selected["deps_3hr"] = pd.Series([deps_3hr] * len(flights_selected), index=flights_selected.index)
@@ -35,7 +35,7 @@ def add_traffic(
     arrs_taxiing = count_planes_taxiing(mfs, runways, standtimes, flights="arrivals")
     flights_selected["arrs_taxiing"] = pd.Series([arrs_taxiing] * len(flights_selected), index=flights_selected.index)
 
-    # apply count of expected departures withing various windows
+    # apply count of expected departures within various windows
     flights_selected["exp_deps_15min"] = flights_selected.apply(
         lambda row: count_expected_departures(row["gufi"], etd, 15), axis=1
     )
