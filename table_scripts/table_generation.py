@@ -14,6 +14,7 @@ from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
 from add_averages import add_averages
+from add_traffic import add_traffic
 from add_lamp import add_lamp
 from add_mfs import add_mfs
 from extract_gufi_features import extract_and_add_gufi_features
@@ -29,7 +30,8 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
     filtered_table = add_etd(now, filtered_table, data_tables)
-    filtered_table = add_averages(now, filtered_table, data_tables)  # will increase runtime a bit
+    filtered_table = add_traffic(now, filtered_table, data_tables) # adds significant runtime
+    filtered_table = add_averages(now, filtered_table, data_tables)
     filtered_table = add_config(now, filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
