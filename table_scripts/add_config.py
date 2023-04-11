@@ -9,9 +9,9 @@ import pandas as pd  # type: ignore
 import numpy as np
 
 # find and add current runway configuration
-def add_config(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # filter features to 30 hours before prediction time to prediction time and save as a copy
-    config: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["config"], now, 30)
+    config: pd.DataFrame = data_tables["config"]
 
     # most recent row of airport configuration
     if config.shape[0] > 0:

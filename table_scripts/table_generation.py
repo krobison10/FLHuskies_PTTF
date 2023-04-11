@@ -10,6 +10,8 @@ import multiprocessing
 from functools import partial
 
 import pandas as pd  # type: ignore
+import feature_engineering
+
 from add_averages import add_averages
 from add_config import add_config
 from add_date import add_date_features
@@ -28,13 +30,26 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     # subset table to only contain flights for the current timestamp
     filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
-    filtered_table = add_etd(now, filtered_table, data_tables)
+    # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
+    data_tables = filter_tables(now, data_tables)
+
+    filtered_table = add_etd(filtered_table, data_tables)
     filtered_table = add_traffic(now, filtered_table, data_tables) # adds significant runtime
     filtered_table = add_averages(now, filtered_table, data_tables)
-    filtered_table = add_config(now, filtered_table, data_tables)
+    filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
     return filtered_table
+
+
+def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    new_dict = {}
+    for key in data_tables:
+        if key == "mfs":
+            new_dict[key] = data_tables[key].copy()
+        else:
+            new_dict[key] = feature_engineering.filter_by_timestamp(data_tables[key], now, 30)
+    return new_dict
 
 
 def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataFrame:
