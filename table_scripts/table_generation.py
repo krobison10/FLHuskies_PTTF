@@ -15,7 +15,6 @@ from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
 from add_traffic import add_traffic
-from add_mfs import add_mfs
 from add_global_lamp import add_global_lamp
 from add_runway_features import add_runway_features, add_runway_arrival_features, add_runway_departure_features
 from add_etd_features import add_etd_features
