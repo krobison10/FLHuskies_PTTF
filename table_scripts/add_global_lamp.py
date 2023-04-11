@@ -61,7 +61,7 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
 
     current_feats = past_temperatures.copy()
 
-    for p in range(1, 24):
+    for p in range(1, 7):
         next_temp = (
             current[
                 (current.time_ahead_prediction <= p)
@@ -81,26 +81,36 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
         )
         current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
 
-    current_feats["airport"] = airport
-
     weather = pd.concat([weather, current_feats])
 
-    _df = _df.merge(weather, how="left", on=["airport", "timestamp"])
+    _df = _df.merge(weather, how="left", on=["timestamp"])
 
     # Add global weather features
     weather_feats = [c for c in weather.columns if "feat_lamp" in c]
+   # Create an empty DataFrame to hold the aggregated weather features
+    weather_agg = pd.DataFrame()
+
+    # Iterate over the weather features
     for feat in weather_feats:
-        _df[feat + "_global_min"] = _df["timestamp"].map(
-            weather.groupby("timestamp")[feat].min()
-        )
-        _df[feat + "_global_mean"] = _df["timestamp"].map(
-            weather.groupby("timestamp")[feat].mean()
-        )
-        _df[feat + "_global_max"] = _df["timestamp"].map(
-            weather.groupby("timestamp")[feat].max()
-        )
-        _df[feat + "_global_std"] = _df["timestamp"].map(
-            weather.groupby("timestamp")[feat].std()
-        )
+        # Group weather by timestamp and calculate the desired aggregation functions
+        feat_min = weather.groupby("timestamp")[feat].min()
+        feat_mean = weather.groupby("timestamp")[feat].mean()
+        feat_max = weather.groupby("timestamp")[feat].max()
+        feat_std = weather.groupby("timestamp")[feat].std()
+
+        # Concatenate the aggregated features to weather_agg DataFrame
+        feat_agg = pd.concat([feat_min, feat_mean, feat_max, feat_std], axis=1)
+
+        # Rename the columns in feat_agg DataFrame
+        feat_agg.columns = [feat + "_global_min", feat + "_global_mean", feat + "_global_max", feat + "_global_std"]
+
+        # Merge feat_agg to weather_agg DataFrame on "timestamp" column
+        weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
+
+    # Reset the index of weather_agg DataFrame
+    weather_agg.reset_index(inplace=True)
+
+    # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
+    _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
 
     return _df

@@ -74,7 +74,6 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd
     etd_aggregation.columns = [
         "feat_5_" + c if c != "timestamp" else c for c in etd_aggregation.columns
     ]
-    etd_aggregation["airport"] = airport
     etd_features = pd.concat([etd_features, etd_aggregation])
 
     _df = _df.merge(
