@@ -81,11 +81,9 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
         )
         current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
 
-    current_feats["airport"] = airport
-
     weather = pd.concat([weather, current_feats])
 
-    _df = _df.merge(weather, how="left", on=["airport", "timestamp"])
+    _df = _df.merge(weather, how="left", on=["timestamp"])
 
     # Add global weather features
     weather_feats = [c for c in weather.columns if "feat_lamp" in c]
