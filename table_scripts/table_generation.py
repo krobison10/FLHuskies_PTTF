@@ -34,7 +34,7 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     data_tables = filter_tables(now, data_tables)
 
     filtered_table = add_etd(filtered_table, data_tables)
-    filtered_table = add_traffic(now, filtered_table, data_tables) # adds significant runtime
+    filtered_table = add_traffic(now, filtered_table, data_tables)
     filtered_table = add_averages(now, filtered_table, data_tables)
     filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
@@ -44,12 +44,20 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
 
 def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     new_dict = {}
+
     for key in data_tables:
-        if key == "mfs":
-            new_dict[key] = data_tables[key].copy()
-        else:
+        if key != "mfs":
             new_dict[key] = feature_engineering.filter_by_timestamp(data_tables[key], now, 30)
+
+    new_dict["mfs"] = filter_mfs(data_tables["mfs"], new_dict["standtimes"])
+
     return new_dict
+
+
+def filter_mfs(mfs, standtimes):
+    gufis_wanted = standtimes["gufi"]
+    mfs_filtered = mfs.loc[mfs["gufi"].isin(gufis_wanted)]
+    return mfs_filtered
 
 
 def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataFrame:
