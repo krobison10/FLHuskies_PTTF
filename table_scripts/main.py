@@ -13,6 +13,7 @@ if __name__ == "__main__":
     import argparse
     import os
     import zipfile
+    from datetime import datetime
     from glob import glob
 
     import pandas as pd  # type: ignore
@@ -92,7 +93,8 @@ if __name__ == "__main__":
 
     # zip all generated csv files
     if save_table_as == "zip":
-        zip_file_path: str = os.path.join(_ROOT, "all_tables.zip")
+        current_timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_file_path: str = os.path.join(_ROOT, f"all_tables_{current_timestamp}.zip")
         if os.path.exists(zip_file_path):
             os.remove(zip_file_path)
         zip_file: zipfile.ZipFile = zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9)
