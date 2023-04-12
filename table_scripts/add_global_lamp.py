@@ -6,9 +6,10 @@
 
 import pandas as pd
 
+
 # add global lamp forecast weather information with 6 hour moving window of
 # av, max, and min, based on the historic trends
-def add_global_lamp(_df: pd.DataFrame,current:pd.DataFrame, airport:str) -> pd.DataFrame:
+def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> pd.DataFrame:
     """
     Extracts features of weather forecasts for each airport and appends it to the
     existing master table
@@ -17,68 +18,42 @@ def add_global_lamp(_df: pd.DataFrame,current:pd.DataFrame, airport:str) -> pd.D
     """
 
     weather = pd.DataFrame()
-    
-    current["lightning_prob"] = current["lightning_prob"].map(
-        {"L": 0, "M": 1, "N": 2, "H": 3}
-    )
 
-    current["cloud"] = (
-        current["cloud"]
-        .map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2})
-        .fillna(3)
-    )
+    current["lightning_prob"] = current["lightning_prob"].map({"L": 0, "M": 1, "N": 2, "H": 3})
+
+    current["cloud"] = current["cloud"].map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2}).fillna(3)
 
     current["precip"] = current["precip"].astype(float)
 
-    current["time_ahead_prediction"] = (
-        current["forecast_timestamp"] - current["timestamp"]
-    ).dt.total_seconds() / 3600
+    current["time_ahead_prediction"] = (current["forecast_timestamp"] - current["timestamp"]).dt.total_seconds() / 3600
     current.sort_values(["timestamp", "time_ahead_prediction"], inplace=True)
 
     past_temperatures = (
-        current.groupby("timestamp")
-        .first()
-        .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
+        current.groupby("timestamp").first().drop(columns=["forecast_timestamp", "time_ahead_prediction"])
     )
 
-    past_temperatures = (
-        past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
-    )
-    print("Done")
+    past_temperatures = past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
 
     past_temperatures.columns = [
-        "feats_lamp_" + c[0] + "_" + c[1] + "_last6h"
-        if c[0] != "timestamp"
-        else "timestamp"
+        "feats_lamp_" + c[0] + "_" + c[1] + "_last6h" if c[0] != "timestamp" else "timestamp"
         for c in past_temperatures.columns
     ]
-    past_temperatures = (
-        past_temperatures.set_index("timestamp")
-        .resample("15min")
-        .ffill()
-        .reset_index()
-    )
+    past_temperatures = past_temperatures.set_index("timestamp").resample("15min").ffill().reset_index()
 
     current_feats = past_temperatures.copy()
 
     for p in range(1, 7):
         next_temp = (
-            current[
-                (current.time_ahead_prediction <= p)
-                & (current.time_ahead_prediction > p - 1)
-            ]
+            current[(current.time_ahead_prediction <= p) & (current.time_ahead_prediction > p - 1)]
             .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
             .groupby("timestamp")
             .mean()
             .reset_index()
         )
         next_temp.columns = [
-            "feat_lamp_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp"
-            for c in next_temp.columns
+            "feat_lamp_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp" for c in next_temp.columns
         ]
-        next_temp = (
-            next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
-        )
+        next_temp = next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
         current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
 
     weather = pd.concat([weather, current_feats])
@@ -87,7 +62,7 @@ def add_global_lamp(_df: pd.DataFrame,current:pd.DataFrame, airport:str) -> pd.D
 
     # Add global weather features
     weather_feats = [c for c in weather.columns if "feat_lamp" in c]
-   # Create an empty DataFrame to hold the aggregated weather features
+    # Create an empty DataFrame to hold the aggregated weather features
     weather_agg = pd.DataFrame()
 
     # Iterate over the weather features

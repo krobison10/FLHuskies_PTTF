@@ -4,14 +4,18 @@
 # extract potential useful features from gufi
 #
 
-import re
-from datetime import datetime
-
 import pandas as pd  # type: ignore
 
 
 def extract_and_add_gufi_features(_df: pd.DataFrame) -> pd.DataFrame:
+    from pandarallel import pandarallel
+
+    pandarallel.initialize()
+
     def _split_gufi(x: pd.DataFrame) -> pd.Series:
+        import re
+        from datetime import datetime
+
         information: list = x["gufi"].split(".")
         gufi_flight_number: str = information[0]
         first_int = re.search(r"\d", gufi_flight_number)
@@ -42,6 +46,6 @@ def extract_and_add_gufi_features(_df: pd.DataFrame) -> pd.DataFrame:
             "gufi_flight_date",
             "gufi_flight_FAA_system",
         ]
-    ] = _df.apply(lambda x: _split_gufi(x), axis=1)
+    ] = _df.parallel_apply(lambda x: _split_gufi(x), axis=1)
 
     return _df
