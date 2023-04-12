@@ -9,11 +9,10 @@ import pandas as pd  # type: ignore
 
 
 # calculate etd
-def add_etd(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def add_etd(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     final_table = flights_selected
 
-    # filter features to 30 hours before prediction time to prediction time and save as a copy
-    etd: pd.DataFrame = feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30)
+    etd = data_tables["etd"]
 
     # get the latest ETD for each flight
     latest_etd: pd.DataFrame = etd.groupby("gufi").last()

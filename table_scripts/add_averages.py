@@ -12,9 +12,7 @@ import pandas as pd  # type: ignore
 def add_averages(
     now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
-    latest_etd: pd.DataFrame = (
-        feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).groupby("gufi").last()
-    )
+    latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
     runways: pd.DataFrame = data_tables["runways"]
     standtimes: pd.DataFrame = data_tables["standtimes"]
     mfs: pd.DataFrame = data_tables["mfs"]
