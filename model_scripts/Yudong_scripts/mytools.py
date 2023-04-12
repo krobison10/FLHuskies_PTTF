@@ -41,7 +41,15 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
 
 def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
     _df: pd.DataFrame = pd.read_csv(
-        _path, parse_dates=["timestamp"], dtype={"minutes_until_etd": int, "minutes_until_pushback": int, "precip": str}
+        _path,
+        parse_dates=["timestamp"],
+        dtype={
+            "minutes_until_etd": int,
+            "minutes_until_pushback": int,
+            "precip": str,
+            "dep_ratio": str,
+            "arr_ratio": str,
+        },
     ).sort_values(["gufi", "timestamp"])
     if remove_duplicate_gufi is True:
         _df = _df.drop_duplicates(subset=["gufi"])
@@ -91,4 +99,7 @@ def normalizeNumericalFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFra
 
 
 def get_model_path(_fileName: str) -> str:
-    return os.path.join(os.path.dirname(__file__), "..", "..", "models", _fileName)
+    _dir: str = os.path.join(os.path.dirname(__file__), "..", "..", "models", "yudong_models")
+    if not os.path.exists(_dir):
+        os.mkdir(_dir)
+    return os.path.join(_dir, _fileName)
