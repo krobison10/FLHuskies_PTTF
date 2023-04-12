@@ -7,7 +7,7 @@
 import pandas as pd
 
 # add global lamp forecast weather information with 6 hour moving window of
-# av, stdt, max, and min, based on the historic trends
+# av, max, and min, based on the historic trends
 def add_global_lamp(_df: pd.DataFrame,current:pd.DataFrame, airport:str) -> pd.DataFrame:
     """
     Extracts features of weather forecasts for each airport and appends it to the
@@ -96,13 +96,12 @@ def add_global_lamp(_df: pd.DataFrame,current:pd.DataFrame, airport:str) -> pd.D
         feat_min = weather.groupby("timestamp")[feat].min()
         feat_mean = weather.groupby("timestamp")[feat].mean()
         feat_max = weather.groupby("timestamp")[feat].max()
-        feat_std = weather.groupby("timestamp")[feat].std()
 
         # Concatenate the aggregated features to weather_agg DataFrame
-        feat_agg = pd.concat([feat_min, feat_mean, feat_max, feat_std], axis=1)
+        feat_agg = pd.concat([feat_min, feat_mean, feat_max], axis=1)
 
         # Rename the columns in feat_agg DataFrame
-        feat_agg.columns = [feat + "_global_min", feat + "_global_mean", feat + "_global_max", feat + "_global_std"]
+        feat_agg.columns = [feat + "_global_min", feat + "_global_mean", feat + "_global_max"]
 
         # Merge feat_agg to weather_agg DataFrame on "timestamp" column
         weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
