@@ -8,7 +8,7 @@ import pandas as pd
 
 # add global lamp forecast weather information with 6 hour moving window of
 # av, stdt, max, and min, based on the historic trends
-def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
+def add_global_lamp(_df: pd.DataFrame,current:pd.DataFrame, airport:str) -> pd.DataFrame:
     """
     Extracts features of weather forecasts for each airport and appends it to the
     existing master table
@@ -18,21 +18,18 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
 
     weather = pd.DataFrame()
     
-    current = raw_data.copy()
-
-    current["forecast_timestamp"] = pd.to_datetime(current["forecast_timestamp"])
-
-    current["timestamp"] = pd.to_datetime(current["timestamp"])
-
     current["lightning_prob"] = current["lightning_prob"].map(
         {"L": 0, "M": 1, "N": 2, "H": 3}
     )
+
     current["cloud"] = (
         current["cloud"]
         .map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2})
         .fillna(3)
     )
+
     current["precip"] = current["precip"].astype(float)
+
     current["time_ahead_prediction"] = (
         current["forecast_timestamp"] - current["timestamp"]
     ).dt.total_seconds() / 3600
@@ -43,9 +40,12 @@ def add_global_lamp(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.
         .first()
         .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
     )
+
     past_temperatures = (
         past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
     )
+    print("Done")
+
     past_temperatures.columns = [
         "feats_lamp_" + c[0] + "_" + c[1] + "_last6h"
         if c[0] != "timestamp"

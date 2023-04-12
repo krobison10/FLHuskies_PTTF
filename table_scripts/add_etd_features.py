@@ -6,7 +6,7 @@
 
 import pandas as pd
 
-def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
+def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.DataFrame:
     """
     Extracts estimated time of departure features and appends it to the existing dataframe
     :param pd.DataFrame _df: Existing feature set at a timestamp-airport level
@@ -15,7 +15,6 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd
 
     etd_features = pd.DataFrame()
 
-    etd = raw_data.copy()
     etd["timestamp"] = etd.timestamp.dt.ceil("15min")
     etd["departure_runway_estimated_time"] = pd.to_datetime(
         etd["departure_runway_estimated_time"]
