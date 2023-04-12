@@ -9,9 +9,8 @@ import pandas as pd  # type: ignore
 
 # add lamp forecast weather information
 def add_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    _lamp: pd.DataFrame = data_tables["lamp"]
     # forecasts that can be used for prediction
-    forecasts_available: pd.DataFrame = _lamp.loc[(now - pd.Timedelta(hours=30) <= _lamp.index) & (_lamp.index <= now)]
+    forecasts_available: pd.DataFrame = data_tables["lamp"]
     # numerical features for lamp
     numerical_feature: tuple[str, ...] = (
         "temperature",
