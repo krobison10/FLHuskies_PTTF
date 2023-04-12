@@ -10,14 +10,14 @@ from datetime import timedelta
 import pandas as pd  # type: ignore
 
 
-def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp, hours: int) -> float:
+def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp, hours: int, column_name: str = "departure_runway_actual_time") -> float:
     etd_filtered = filter_by_timestamp(etd, now, hours)
     runways_filtered = filter_by_timestamp(runways, now, hours)
 
     merged_df = pd.merge(etd_filtered, runways_filtered, on="gufi")
 
     merged_df["departure_delay"] = (
-        merged_df["departure_runway_actual_time"] - merged_df["departure_runway_estimated_time"]
+        merged_df[column_name] - merged_df["departure_runway_estimated_time"]
     ).dt.total_seconds() / 60
 
     avg_delay: float = merged_df["departure_delay"].mean()
@@ -68,24 +68,6 @@ def average_taxi_time(mfs: pd.DataFrame, standtimes: pd.DataFrame, runways: pd.D
         avg_taxi_time = 0
 
     return round(avg_taxi_time, 2)
-
-
-def average_diff_departure_pushback(origin: pd.DataFrame, dep_time: pd.DataFrame, now: pd.Timestamp, hours: int, name:str) -> float:
-    origin_filtered = origin.loc[(origin.departure_time > now - timedelta(hours=hours)) & (origin.departure_time <= now)]
-    departure_filtered = filter_by_timestamp(dep_time, now, hours)
-
-    merged_df = pd.merge(origin_filtered, departure_filtered, on="gufi")
-
-    merged_df[name] = (  
-        merged_df["departure_time"] - merged_df["departure_stand_actual_time"]
-    ).dt.total_seconds() / 60
-
-    avg_ETDvsPush_time: float = merged_df[name].mean()
-    if math.isnan(avg_ETDvsPush_time):
-        avg_ETDvsPush_time = 15
-
-    return round(avg_ETDvsPush_time, 2)
-
 
 # returns a version of the passed in dataframe that only contains entries
 # between the time 'now' and n hours prior

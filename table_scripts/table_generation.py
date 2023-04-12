@@ -13,12 +13,12 @@ import pandas as pd  # type: ignore
 import feature_engineering
 
 from add_averages import add_averages
+from add_delta import add_delta
 from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
 from add_traffic import add_traffic
 from add_global_lamp import add_global_lamp
-from add_runway_features import add_runway_features, add_runway_arrival_features, add_runway_departure_features
 from add_etd_features import add_etd_features
 from add_lamp import add_lamp
 from extract_gufi_features import extract_and_add_gufi_features
@@ -32,10 +32,10 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
 
     # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
     data_tables = filter_tables(now, data_tables)
-
     filtered_table = add_etd(filtered_table, data_tables)
     filtered_table = add_traffic(now, filtered_table, data_tables)
     filtered_table = add_averages(now, filtered_table, data_tables)
+    filtered_table = add_delta(now, filtered_table, data_tables)
     filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
