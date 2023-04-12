@@ -70,6 +70,23 @@ def average_taxi_time(mfs: pd.DataFrame, standtimes: pd.DataFrame, runways: pd.D
     return round(avg_taxi_time, 2)
 
 
+def average_diff_departure_pushback(origin: pd.DataFrame, dep_time: pd.DataFrame, now: pd.Timestamp, hours: int, name:str) -> float:
+    origin_filtered = origin.loc[(origin.departure_time > now - timedelta(hours=hours)) & (origin.departure_time <= now)]
+    departure_filtered = filter_by_timestamp(dep_time, now, hours)
+
+    merged_df = pd.merge(origin_filtered, departure_filtered, on="gufi")
+
+    merged_df[name] = (  
+        merged_df["departure_time"] - merged_df["departure_stand_actual_time"]
+    ).dt.total_seconds() / 60
+
+    avg_ETDvsPush_time: float = merged_df[name].mean()
+    if math.isnan(avg_ETDvsPush_time):
+        avg_ETDvsPush_time = 15
+
+    return round(avg_ETDvsPush_time, 2)
+
+
 # returns a version of the passed in dataframe that only contains entries
 # between the time 'now' and n hours prior
 def filter_by_timestamp(df: pd.DataFrame, now: pd.Timestamp, hours: int) -> pd.DataFrame:

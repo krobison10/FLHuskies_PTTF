@@ -36,13 +36,13 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd
     ).dt.total_seconds()
     complete_etd = complete_etd.groupby(["gufi", "timestamp"]).first().reset_index()
 
-    for i in [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 720]:
+    for i in [30, 60, 90, 120, 150, 180]:
         complete_etd[f"estdep_next_{i}min"] = (
             complete_etd["time_ahead"] < i * 60
         ).astype(int)
     complete_etd.sort_values("time_ahead", inplace=True)
 
-    for i in [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 720]:
+    for i in [30, 60, 90, 120, 150, 180]:
         complete_etd[f"estdep_num_next_{i}min"] = (
             complete_etd["time_ahead"] < i * 60
         ).astype(int)
@@ -60,12 +60,6 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd
                 "estdep_next_120min": "sum",
                 "estdep_next_150min": "sum",
                 "estdep_next_180min": "sum",
-                "estdep_next_210min": "sum",
-                "estdep_next_240min": "sum",
-                "estdep_next_270min": "sum",
-                "estdep_next_300min": "sum",
-                "estdep_next_330min": "sum",
-                "estdep_next_360min": "sum",
             }
         )
         .reset_index()
