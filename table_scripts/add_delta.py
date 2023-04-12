@@ -13,9 +13,7 @@ import pandas as pd  # type: ignore
 def add_delta(
     now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
-    latest_etd: pd.DataFrame = (
-        feature_engineering.filter_by_timestamp(data_tables["etd"], now, 30).groupby("gufi").last()
-    )
+    latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
     
     standtimes: pd.DataFrame = data_tables["standtimes"]
 
