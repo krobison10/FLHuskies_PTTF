@@ -42,22 +42,14 @@ def add_ratios(config: pd.DataFrame, flights_selected: pd.DataFrame):
     # Find the maximum count across all columns
     max_count_arr = (config["arrival_runways"].str.count(',').max()) + 1
 
-    # Find the mean dep runways count across all columns
-    mean_count_dep = config['departure_runways'].str.count(',').mean()
-
-    # Find the mean arr runways  count across all columns
-    mean_count_arr = config['arrival_runways'].str.count(',').mean()
-
-    # Get the ration of how much of the departure runways are used
+    # Get the ratio of how much of the departure runways are used
     flights_selected['dep_ratio'] = ((config["departure_runways"].str.count(',') + 1) / max_count_dep)
 
-    # Replacing non-existent values with the average
-    flights_selected['dep_ratio'] = np.where(flights_selected['dep_ratio'].isna(), mean_count_dep / max_count_dep,
-                                             flights_selected['dep_ratio'])
+    # Replace NaN values in dep_ratio column with closest previous available value
+    flights_selected['dep_ratio'].fillna(method='ffill', inplace=True)
 
-    # Get the ration of how much of the arrival runways are used
+    # Get the ratio of how much of the arrival runways are used
     flights_selected['arr_ratio'] = ((config["arrival_runways"].str.count(',') + 1) / max_count_arr)
 
-    # Replacing non-existent values with the average
-    flights_selected['arr_ratio'] = np.where(flights_selected['arr_ratio'].isna(), mean_count_arr / max_count_arr,
-                                             flights_selected['arr_ratio'])
+    # Replace NaN values in arr_ratio column with closest previous available value
+    flights_selected['arr_ratio'].fillna(method='ffill', inplace=True)

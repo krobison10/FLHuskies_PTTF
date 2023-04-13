@@ -1,5 +1,3 @@
-
-#
 # Daniil Filienko
 #
 # Running the model emsemble with Kyler's Train Split for Trevor
@@ -8,7 +6,6 @@
 import matplotlib.pyplot as plt
 from train_test_split import *
 import pandas as pd
-import pickle
 import numpy as np
 from pathlib import Path
 import seaborn as sns
@@ -21,8 +18,8 @@ from sklearn.metrics import mean_absolute_error
 DATA_DIRECTORY = Path("full_tables")
 
 airports = [
-    "KATL",
     "KCLT",
+    "KATL",
     "KDEN",
     "KDFW",
     "KJFK",
@@ -66,18 +63,9 @@ for airport in airports:
     features_remove = ("gufi_flight_date","minutes_until_pushback")
     features = [x for x in features_all if x not in features_remove]
 
-    # ---------------------------------------- BASELINE ----------------------------------------
-    # add columns representing standard and improved baselines to validation table
-    val_df["baseline"] = val_df.apply(lambda row: max(row["minutes_until_etd"] - 15, 0), axis=1)
-    # print performance of baseline estimates
-    mae = mean_absolute_error(val_df["minutes_until_pushback"], val_df["baseline"])
-    print(f"\nMAE for {airport} with baseline: {mae:.4f}")
-    
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
     X_train = (train_df[features])
-    print("Features!!!!!!")
-    print(features)
     X_test = (val_df[features])
     y_train = (train_df["minutes_until_pushback"])
     y_test = (val_df["minutes_until_pushback"])
@@ -109,8 +97,9 @@ for airport in airports:
     # y_tests.append(y_test)
     # y_preds.append(y_pred)
 
+print("Features!!!!!!")
+print(features)
 # y_tests = np.hstack(y_tests)
 # y_pred = np.hstack(y_preds)
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 exit()
-
