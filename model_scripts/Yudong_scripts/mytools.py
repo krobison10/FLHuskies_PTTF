@@ -47,6 +47,8 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
             "minutes_until_etd": int,
             "minutes_until_pushback": int,
             "precip": str,
+            "gufi_flight_major_carrier": str,
+            "arrival_runways": str,
             "dep_ratio": str,
             "arr_ratio": str,
         },
