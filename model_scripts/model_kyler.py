@@ -4,6 +4,7 @@
 # Basic run of various models with the new validation technique.
 #
 
+import os
 import pandas as pd
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
@@ -13,14 +14,19 @@ from sklearn.metrics import mean_absolute_error
 
 # ---------------------------------------- LOAD ----------------------------------------
 
-# airport = "ALL"
-# airport = "legacy_ALL"
-airport = "ALL"
-
-train_df = pd.read_csv(f"../train_tables/{airport}_train.csv")
-# train_df = pd.read_csv(f"../full_tables/master_full.csv")
-
-val_df = pd.read_csv(f"../validation_tables/{airport}_validation.csv")
+# specify a smaller list or just one airport in list for a single evaluation
+airports = [
+    "KATL",
+    "KCLT",
+    "KDEN",
+    "KDFW",
+    "KJFK",
+    "KMEM",
+    "KMIA",
+    "KORD",
+    "KPHX",
+    "KSEA",
+]
 
 input_features = [
     "airport",
@@ -51,21 +57,29 @@ encoded_columns = [
     "flight_type",
 ]
 
+# whether to display train set MAE or not for each airport
+TRAIN_MAE = False
+
+# whether to use encoders for all airports, or encoders for each airport.
+GLOBAL_ENCODERS = False # Absolutely leave this false, takes forever and uses a lot of memory
+
 encoders = {}
 
-# need to make provisions for handling unknown values
-for col in encoded_columns:
-    encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+# fits encoders over all airports training data
+if GLOBAL_ENCODERS:
+    df = pd.read_csv(os.path.join("..", "train_tables", "ALL_train.csv"), low_memory=False)
+    for col in encoded_columns:
+        encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
 
-    if col == "precip":
-        train_df[col] = train_df[col].astype(str)
-        val_df[col] = val_df[col].astype(str)
+        if col == "precip":
+            df[col] = df[col].astype(str)
 
-    encoded_col = encoder.fit_transform(train_df[[col]])
-    train_df[[col]] = encoded_col
+        encoders[col] = encoder.fit_transform(df[[col]])
+    del df
 
-    encoded_col = encoder.transform(val_df[[col]])
-    val_df[[col]] = encoded_col
+predictions = pd.Series(dtype=object)
+labels = pd.Series(dtype=object)
+
 
 # ---------------------------------------- BASELINE ----------------------------------------
 
@@ -81,30 +95,50 @@ for col in encoded_columns:
 
 # df['minutes_until_etd'] = df['minutes_until_etd'].apply(lambda x: max(x, 0))
 
-X_train = train_df[input_features]
-X_test = val_df[input_features]
+for airport in airports:
+    print(f"Loading {airport} tables...")
 
-y_train = train_df["minutes_until_pushback"]
-y_test = val_df["minutes_until_pushback"]
+    train_df = pd.read_csv(os.path.join("..", "train_tables", f"{airport}_train.csv"), low_memory=False)
 
-# ---------------------------------------- TRAIN ----------------------------------------
+    val_df = pd.read_csv(os.path.join("..", "validation_tables", f"{airport}_validation.csv"), low_memory=False)
 
-print("\nTraining LightGBM Regressor")
+    # need to make provisions for handling unknown values
+    for col in encoded_columns:
+        if col == "precip":
+            train_df[col] = train_df[col].astype(str)
+            val_df[col] = val_df[col].astype(str)
 
-model = LGBMRegressor(objective="regression_l1")
+        if GLOBAL_ENCODERS:
+            train_df[[col]] = encoders[col].transform(train_df[[col]])
+            val_df[[col]] = encoders[col].transform(val_df[[col]])
+        else:
+            encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
 
-model.fit(X_train, y_train)
+            train_df[[col]] = encoder.fit_transform(train_df[[col]])
 
-y_pred = model.predict(X_test)
-print(f"MAE on test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
+            val_df[[col]] = encoder.transform(val_df[[col]])
 
-exit()
+    X_train = train_df[input_features]
+    y_train = train_df["minutes_until_pushback"]
 
-print("\nTraining CatBoost Regressor")
+    X_test = val_df[input_features]
+    y_test = val_df["minutes_until_pushback"]
 
-model = CatBoostRegressor(loss_function="MAE", n_estimators=500, silent=True, allow_writing_files=False)
+    print(f"Training on {airport}...")
 
-model.fit(X_train, y_train)
+    model = LGBMRegressor(objective="regression_l1")
 
-y_pred = model.predict(X_test)
-print(f"MAE on test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
+    model.fit(X_train, y_train)
+
+    if TRAIN_MAE:
+        train_pred = model.predict(X_train)
+        print(f"Train error: {mean_absolute_error(y_train, train_pred):.4f}")
+
+    val_pred = model.predict(X_test)
+    print(f"Validation error: {mean_absolute_error(y_test, val_pred):.4f}\n")
+
+    predictions = pd.concat([predictions, pd.Series(val_pred.tolist())], ignore_index=True)
+    labels = pd.concat([labels, pd.Series(y_test.tolist())], ignore_index=True)
+
+if len(airports) > 1:
+    print(f"MAE on all airports: {mean_absolute_error(predictions, labels):.4f}\n")
