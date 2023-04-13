@@ -114,6 +114,12 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
+    # extract and add mfs information
+    _df = extract_and_add_gufi_features(_df)
+
+    # extract holiday features
+    _df = add_date_features(_df)
+
     # TODO: determine what dataset is being used for the arrival and departure features
     # Add global lamp features, based on the overall trends
     _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
@@ -123,14 +129,5 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # Add mfs information
     _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
-
-    # remove feature tables from cache as it is no longer needed
-    del feature_tables
-
-    # extract and add mfs information
-    _df = extract_and_add_gufi_features(_df)
-
-    # extract holiday features
-    _df = add_date_features(_df)
 
     return _df
