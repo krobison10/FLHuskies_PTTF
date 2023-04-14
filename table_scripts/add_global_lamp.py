@@ -42,7 +42,7 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
 
     current_feats = past_temperatures.copy()
 
-    for p in 1,6,24:
+    for p in 1,2,4,6,12,18,24:
         next_temp = (
             current[(current.time_ahead_prediction <= p) & (current.time_ahead_prediction > p - 1)]
             .drop(columns=["forecast_timestamp", "time_ahead_prediction"])

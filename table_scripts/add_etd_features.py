@@ -56,6 +56,8 @@ def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.Data
                 "estdep_next_30min": "sum",
                 "estdep_next_60min": "sum",
                 "estdep_next_180min": "sum",
+                "estdep_next_360min": "sum",
+                "estdep_next_720min": "sum",
                 "estdep_next_1400min": "sum",
             }
         )
