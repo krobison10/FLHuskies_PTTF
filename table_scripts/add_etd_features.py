@@ -54,9 +54,9 @@ def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.Data
             {
                 "gufi": "count",
                 "estdep_next_30min": "sum",
-                "estdep_next_60min": "sum",
-                "estdep_next_180min": "sum",
-                "estdep_next_1800min": "sum",
+                "estdep_next_1hr": "sum",
+                "estdep_next_3hrs": "sum",
+                "estdep_next_1day": "sum",
             }
         )
         .reset_index()
