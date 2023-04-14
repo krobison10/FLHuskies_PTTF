@@ -10,6 +10,8 @@ import numpy as np
 from pathlib import Path
 import seaborn as sns
 from lightgbm import LGBMRegressor, Dataset
+import lightgbm as lgb
+
 from sklearn.preprocessing import OrdinalEncoder
 
 from sklearn.metrics import mean_absolute_error
@@ -17,9 +19,9 @@ from sklearn.metrics import mean_absolute_error
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY = Path("full_tables")
 
-airports = [
-    "KCLT",
+airports = [    
     "KATL",
+    "KCLT",
     "KDEN",
     "KDFW",
     "KJFK",
@@ -69,22 +71,36 @@ for airport in airports:
     X_test = (val_df[features])
     y_train = (train_df["minutes_until_pushback"])
     y_test = (val_df["minutes_until_pushback"])
-    
-    fit_params={ 
-                "eval_metric" : 'MAE', 
-                'verbose': 100,
-                'feature_name': 'auto', # that's actually the default
-                'categorical_feature': 'auto' # that's actually the default
-            }
-    
-    ensembleRegressor = LGBMRegressor(objective = "regression_l1")
+    train_data = lgb.Dataset(X_train, label=y_train)
 
-    ensembleRegressor.fit(X_train, y_train, **fit_params)
+    params = {
+        # 'boosting_type': 'gbdt', # Type of boosting algorithm
+        'objective': 'regression_l1', # Type of task (regression)
+        'metric': 'mae', # Evaluation metric (mean squared error)
+        'learning_rate': 0.02, # Learning rate for boosting
+        'verbose': 0, # Verbosity level (0 for silent)
+        'n_estimators': 4000
+    }
+
+    regressor = lgb.train(params, train_data)
+
+    y_pred = regressor.predict(X_test)
+
+    # fit_params={ 
+    #             "eval_metric" : 'MAE', 
+    #             'verbose': 100,
+    #             'feature_name': 'auto', # that's actually the default
+    #             'categorical_feature': 'auto' # that's actually the default
+    #         }
+    
+    # ensembleRegressor = LGBMRegressor(objective="regression_l1", boosting_type='rf')
+
+    # ensembleRegressor.fit(X_train, y_train, **fit_params)
 
     # ensembleRegressor.fit(X_train, y_train,cat_features=cat_features,use_best_model=True)
 
     # ensembleRegressor.fit(X_train, y_train, **fit_params)
-    y_pred = ensembleRegressor.predict(X_test,num_iteration=ensembleRegressor.best_iteration_)
+    # y_pred = ensembleRegressor.predict(X_test,num_iteration=ensembleRegressor.best_iteration_)
 
     print("Finished training")
     print(f"MAE on {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
@@ -92,12 +108,8 @@ for airport in airports:
     y_tests = np.concatenate((y_tests, y_test))
     y_preds = np.concatenate((y_preds, y_pred))
 
-    plotImp(ensembleRegressor,X_test,airport=airport)
+    # plotImp(ensembleRegressor,X_test,airport=airport)
 
-    # y_tests.append(y_test)
-    # y_preds.append(y_pred)
-
-print("Features!!!!!!")
 print(features)
 # y_tests = np.hstack(y_tests)
 # y_pred = np.hstack(y_preds)
