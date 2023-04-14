@@ -171,7 +171,7 @@ for airline in airlines_train:
 
     filename = f'model_{airline}.sav'
     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-    print("Saved the model for the airport: ", airport)
+    print("Saved the model for the airline: ", airline)
 
 
 for airline in airlines_val:
