@@ -148,6 +148,7 @@ for airport in airports:
         # appending the predictions and test to a single datasets to evaluate overall performance
         y_tests = np.concatenate((y_tests, y_test))
         y_preds = np.concatenate((y_preds, y_pred))
+        X_test = X_test.values.reshape(-1, 1)
         X_tests = np.concatenate((X_tests, X_test))
         plotImp(regressor,X_test,airport=airport, airline=airline)
 
