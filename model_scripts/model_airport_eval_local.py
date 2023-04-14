@@ -76,9 +76,9 @@ def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20), airline = 
     plt.tight_layout()
     plt.savefig(f'lgbm_importances_{airport}_{airline}.png')
 
-y_tests = np.array([])
-y_preds = np.array([])
-X_tests = np.array([])
+y_tests = [0]
+y_preds = [0]
+# X_tests = [0]
 for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
     df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
@@ -147,9 +147,9 @@ for airport in airports:
         print(f"MAE for {airline} at {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
         # appending the predictions and test to a single datasets to evaluate overall performance
         
-        y_tests = np.concatenate((y_tests, y_test.flatten()))
-        y_preds = np.concatenate((y_preds, y_pred.flatten()))
-        X_tests = np.concatenate((X_tests, X_test.index.values))
+        y_tests = np.concatenate((y_tests, y_test))
+        y_preds = np.concatenate((y_preds, y_pred))
+        # X_tests = np.concatenate((X_tests, X_test))
         plotImp(regressor,X_test,airport=airport, airline=airline)
 
         # # SAVING THE MODEL
@@ -159,7 +159,7 @@ for airport in airports:
             pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
             print(f"Saved the model for the {airport} at {airline}")
     
-    plotImp(regressor,X_tests,airport=airport)
+    # plotImp(regressor,X_tests,airport=airport)
     print(f"MAE on {airport} test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
     # # SAVING THE MODEL
@@ -170,7 +170,7 @@ for airport in airports:
         print("Saved the model for the airport: ", airport)
 
 
-plotImp(regressor,X_tests)
+# plotImp(regressor,X_tests)
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
 
