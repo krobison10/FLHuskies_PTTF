@@ -29,7 +29,7 @@ def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFra
         [arrival_runways] * len(flights_selected), index=flights_selected.index
     )
 
-    add_ratios(config, flights_selected)
+    flights_selected = add_ratios(config, flights_selected)
 
     return flights_selected
 
@@ -37,19 +37,21 @@ def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFra
 
 def add_ratios(config: pd.DataFrame, flights_selected: pd.DataFrame):
     # Find the maximum count across all columns
-    max_count_dep = (config["departure_runways"].str.count(',').max()) + 1
+    max_count_dep = (flights_selected["departure_runways"].str.count(',').max()) + 1
 
     # Find the maximum count across all columns
-    max_count_arr = (config["arrival_runways"].str.count(',').max()) + 1
+    max_count_arr = (flights_selected["arrival_runways"].str.count(',').max()) + 1
 
     # Get the ratio of how much of the departure runways are used
-    flights_selected['dep_ratio'] = ((config["departure_runways"].str.count(',') + 1) / max_count_dep)
+    flights_selected['dep_ratio'] = ((flights_selected["departure_runways"].str.count(',') + 1) / max_count_dep)
 
     # Replace NaN values in dep_ratio column with closest previous available value
     flights_selected['dep_ratio'].fillna(method='ffill', inplace=True)
 
     # Get the ratio of how much of the arrival runways are used
-    flights_selected['arr_ratio'] = ((config["arrival_runways"].str.count(',') + 1) / max_count_arr)
+    flights_selected['arr_ratio'] = ((flights_selected["arrival_runways"].str.count(',') + 1) / max_count_arr)
 
     # Replace NaN values in arr_ratio column with closest previous available value
     flights_selected['arr_ratio'].fillna(method='ffill', inplace=True)
+
+    return flights_selected
