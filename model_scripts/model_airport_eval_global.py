@@ -154,7 +154,7 @@ for airline in train_dfs.keys():
     X_val = val[features]
     y_val = val[features_val]
 
-    train_data = lgb.Dataset(X_train, label=y_train)
+    train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
 
     # Hyperparameters
     params = {
