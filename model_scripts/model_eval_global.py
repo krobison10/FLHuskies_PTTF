@@ -81,8 +81,8 @@ print(features)
 X_train = train[features]
 y_train = train[features_val]
 
-X_val = train[features]
-y_val = train[features_val]
+X_val = val[features]
+y_val = val[features_val]
 
 train_data = lgb.Dataset(X_train, label=y_train)
 

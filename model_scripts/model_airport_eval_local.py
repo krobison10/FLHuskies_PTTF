@@ -66,6 +66,8 @@ parser: argparse.ArgumentParser = argparse.ArgumentParser()
 parser.add_argument("-s", help="save the model")
 args: argparse.Namespace = parser.parse_args()
 
+carrier: str = "major" if args.s is None else str(args.s)
+
 def plot_feature_importance(model, feature_names, max_num_features=10, importance_type='split', airport = "ALL", fig_size = (40, 20), airline = "ALL"):
     """
     Plots a graph of feature importance for a LightGBM model.
@@ -128,8 +130,13 @@ for airport in airports:
         if col_type == 'object' or col_type == 'string' or "cat" in c:
             val_df[c] = val_df[c].astype('category')
 
-    train_dfs = filter_dataframes_by_column(train_df,"gufi_flight_major_carrier")
-    val_dfs = filter_dataframes_by_column(val_df,"gufi_flight_major_carrier")
+    if carrier == "major":
+        train_dfs = filter_dataframes_by_column(train_df,"major_carrier")
+        val_dfs = filter_dataframes_by_column(val_df,"major_carrier")
+    else:
+        train_dfs = filter_dataframes_by_column(train_df,"gufi_flight_major_carrier")
+        val_dfs = filter_dataframes_by_column(val_df,"gufi_flight_major_carrier")
+
 
     offset = 2
     features_all = (train_df.columns.values.tolist())[offset:(len(train_df.columns.values))]
@@ -138,7 +145,7 @@ for airport in airports:
     
     for airline in train_dfs.keys():
         train_df = train_dfs[airline]
-        val_df = train_dfs[airline]
+        val_df = val_dfs[airline]
         # evaluating individual airport accuracy
         print(f"Training LIGHTGBM model for {airline} at {airport}\n")
         X_train = (train_df[features])
@@ -185,22 +192,22 @@ for airport in airports:
         # X_tests = np.concatenate((X_tests, X_test))
         plot_feature_importance(regressor,features,airport=airport, airline=airline)
 
-        # # SAVING THE MODEL
-        save_table_as: str = "no_save" if args.s is None else str(args.s)
-        if save_table_as != "no_save":
-            filename = f'model_{airport}.sav'
-            pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-            print(f"Saved the model for the {airport} at {airline}")
+        # # # SAVING THE MODEL
+        # save_table_as: str = "no_save" if args.s is None else str(args.s)
+        # if save_table_as != "no_save":
+        #     filename = f'model_{airport}.sav'
+        #     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+        #     print(f"Saved the model for the {airport} at {airline}")
     
     plot_feature_importance(regressor,features,airport=airport, airline=airline)
     print(f"MAE on {airport} test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
-    # # SAVING THE MODEL
-    save_table_as: str = "no_save" if args.s is None else str(args.s)
-    if save_table_as != "no_save":
-        filename = f'model_{airport}.sav'
-        pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-        print("Saved the model for the airport: ", airport)
+    # # # SAVING THE MODEL
+    # save_table_as: str = "no_save" if args.s is None else str(args.s)
+    # if save_table_as != "no_save":
+    #     filename = f'model_{airport}.sav'
+    #     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+    #     print("Saved the model for the airport: ", airport)
 
 
 plot_feature_importance(regressor,features,airport=airport, airline=airline)
