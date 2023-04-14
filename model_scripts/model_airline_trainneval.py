@@ -1,7 +1,7 @@
 # Daniil Filienko
 #
 # Running the model emsemble with Kyler's Train Split
-# save and then report accuracy values for 
+# to train, save the models per airline, and then attain accuracy values for 
 # individual airports and overall
 
 import matplotlib.pyplot as plt
@@ -150,6 +150,30 @@ features_all = (train.columns.values.tolist())[offset:(len(train.columns.values)
 features_remove = ("gufi_flight_date","minutes_until_pushback")
 features = [x for x in features_all if x not in features_remove]
 features_val = ["minutes_until_pushback","airport"]
+
+for airline in airlines_train:    
+    train = train_dfs[airline]
+    X_train = train[features]
+    y_train = train[features_val]
+
+    train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
+
+    # Hyperparameters
+    params = {
+    # 'boosting_type': 'gbdt', # Type of boosting algorithm
+    'objective': 'regression_l1', # Type of task (regression)
+    'metric': 'mae', # Evaluation metric (mean squared error)
+    'learning_rate': 0.02, # Learning rate for boosting
+    'verbose': 0, # Verbosity level (0 for silent)
+    'n_estimators': 4000
+    }
+
+    regressor = lgb.train(params, train_data)
+
+    filename = f'model_{airline}.sav'
+    pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+    print("Saved the model for the airline: ", airline)
+
 
 for airline in airlines_val:
     if airline not in train[carrier_column_name].values:
