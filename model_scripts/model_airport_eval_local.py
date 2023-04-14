@@ -66,16 +66,49 @@ parser: argparse.ArgumentParser = argparse.ArgumentParser()
 parser.add_argument("-s", help="save the model")
 args: argparse.Namespace = parser.parse_args()
 
-def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20), airline = "ALL"):
-    feature_imp = pd.DataFrame({'Value':model.feature_importances_,'Feature':X.columns})
-    plt.figure(figsize=fig_size)
-    sns.set(font_scale = 1)
-    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", 
-                                                        ascending=False)[0:num])
-    plt.title('LightGBM Features (avg over folds)')
-    plt.tight_layout()
-    plt.savefig(f'lgbm_importances_{airport}_{airline}.png')
+def plot_feature_importance(model, feature_names, max_num_features=10, importance_type='split', airport = "ALL", fig_size = (40, 20), airline = "ALL"):
+    """
+    Plots a graph of feature importance for a LightGBM model.
 
+    Parameters:
+        -- model: LightGBM model object
+            The trained LightGBM model.
+        -- feature_names: list or array-like
+            List of feature names used in the model.
+        -- max_num_features: int, optional (default=10)
+            Maximum number of top features to display in the graph.
+        -- importance_type: str, optional (default='split')
+            Type of feature importance to use. Must be one of {'split', 'gain'}.
+        -- figsize: tuple, optional (default=(8, 6))
+            Figure size of the plot.
+
+    Returns:
+        None
+    """
+
+    # Get feature importance values
+    importance_vals = model.feature_importance(importance_type=importance_type)
+    
+    # Get feature names
+    feature_names = np.array(feature_names)
+
+    # Sort feature importance values and corresponding feature names in descending order
+    sorted_idx = np.argsort(importance_vals)[::-1]
+    sorted_importance_vals = importance_vals[sorted_idx]
+    sorted_feature_names = feature_names[sorted_idx]
+
+    # Truncate to maximum number of features
+    sorted_importance_vals = sorted_importance_vals[:max_num_features]
+    sorted_feature_names = sorted_feature_names[:max_num_features]
+
+    # Create a bar plot of feature importance
+    plt.figure(figsize=fig_size)
+    plt.barh(range(len(sorted_importance_vals)), sorted_importance_vals)
+    plt.yticks(range(len(sorted_importance_vals)), sorted_feature_names)
+    plt.xlabel('Feature Importance')
+    plt.title('Feature Importance for LightGBM Model')
+    plt.savefig(f'lgbm_importances_{airport}_{airline}.png')
+    
 y_tests = [0]
 y_preds = [0]
 # X_tests = [0]
@@ -150,7 +183,7 @@ for airport in airports:
         y_tests = np.concatenate((y_tests, y_test))
         y_preds = np.concatenate((y_preds, y_pred))
         # X_tests = np.concatenate((X_tests, X_test))
-        plotImp(regressor,X_test,airport=airport, airline=airline)
+        plot_feature_importance(regressor,features,airport=airport, airline=airline)
 
         # # SAVING THE MODEL
         save_table_as: str = "no_save" if args.s is None else str(args.s)
@@ -159,7 +192,7 @@ for airport in airports:
             pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
             print(f"Saved the model for the {airport} at {airline}")
     
-    # plotImp(regressor,X_tests,airport=airport)
+    plot_feature_importance(regressor,features,airport=airport, airline=airline)
     print(f"MAE on {airport} test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
     # # SAVING THE MODEL
@@ -170,7 +203,7 @@ for airport in airports:
         print("Saved the model for the airport: ", airport)
 
 
-# plotImp(regressor,X_tests)
+plot_feature_importance(regressor,features,airport=airport, airline=airline)
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
 
