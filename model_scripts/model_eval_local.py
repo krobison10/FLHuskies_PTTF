@@ -11,13 +11,15 @@ from pathlib import Path
 import seaborn as sns
 from lightgbm import LGBMRegressor, Dataset
 import lightgbm as lgb
-
+import pickle
 from sklearn.preprocessing import OrdinalEncoder
-
 from sklearn.metrics import mean_absolute_error
+import argparse
+from pathlib import Path
 
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY = Path("full_tables")
+OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 
 airports = [    
     "KATL",
@@ -31,6 +33,11 @@ airports = [
     "KPHX",
     "KSEA",
 ]
+
+
+parser: argparse.ArgumentParser = argparse.ArgumentParser()
+parser.add_argument("-s", help="save the model")
+args: argparse.Namespace = parser.parse_args()
 
 def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20)):
     feature_imp = pd.DataFrame({'Value':model.feature_importances_,'Feature':X.columns})
@@ -108,10 +115,19 @@ for airport in airports:
     y_tests = np.concatenate((y_tests, y_test))
     y_preds = np.concatenate((y_preds, y_pred))
 
+    # # SAVING THE MODEL
+    save_table_as: str = "save" if args.s is None else str(args.s)
+    if save_table_as == "save":
+        filename = f'model_{airport}.sav'
+        pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+        print("Saved the model for the airport: ", airport)
+
     # plotImp(ensembleRegressor,X_test,airport=airport)
 
 print(features)
 # y_tests = np.hstack(y_tests)
 # y_pred = np.hstack(y_preds)
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
+
+
 exit()
