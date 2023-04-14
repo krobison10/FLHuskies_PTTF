@@ -125,15 +125,21 @@ for c in val.columns:
     if col_type == 'object' or col_type == 'string' or "cat" in c:
         val[c] = val[c].astype('category')
 
+
 #remove test for training the models
 # test[cat_feature] = test[cat_feature].astype(str)
 if carrier == "major":
     train_dfs = filter_dataframes_by_column(train,"major_carrier")
     val_dfs = filter_dataframes_by_column(val,"major_carrier")
+    carrier_column_name = "major_carrier"
+
 else:
     train_dfs = filter_dataframes_by_column(train,"gufi_flight_major_carrier")
     val_dfs = filter_dataframes_by_column(val,"gufi_flight_major_carrier")
+    carrier_column_name = "gufi_flight_major_carrier"
 
+airlines_train = train[carrier_column_name].unique()
+airlines_val = val[carrier_column_name].unique()
 print("Generated a shared dataframe")
 
 # Preventing GUFI from being an attribute to analyze
@@ -144,15 +150,10 @@ features_remove = ("gufi_flight_date","minutes_until_pushback")
 features = [x for x in features_all if x not in features_remove]
 features_val = ["minutes_until_pushback","airport"]
 
-
-for airline in train_dfs.keys():
+for airline in airlines_train:    
     train = train_dfs[airline]
-    val = train_dfs[airline]
     X_train = train[features]
     y_train = train[features_val]
-
-    X_val = val[features]
-    y_val = val[features_val]
 
     train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
 
@@ -168,17 +169,41 @@ for airline in train_dfs.keys():
 
     regressor = lgb.train(params, train_data)
 
+    filename = f'model_{airline}.sav'
+    pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+    print("Saved the model for the airport: ", airport)
+
+
+for airline in airlines_val:
+    if airline not in train[carrier_column_name].values:
+        #Replace the unknown value with the most frequently [assuming best trained] model
+        pickled_airline = train[carrier_column_name].mode().iloc[0]
+
+    val = val_dfs[airline]
+
+    X_val = val[features]
+    y_val = val[features_val]
+
+    # open file where we stored the pickled model
+    filename = f'model_{pickled_airline}.sav'
+    regressor = pickle.load(open(filename, 'rb'))
+
     y_pred = regressor.predict(X_val)
 
-    print(f"Regression tree train error for ALL:", mean_absolute_error(y_val["minutes_until_pushback"], y_pred))
+    y_tests = np.concatenate((y_tests, y_val["minutes_until_pushback"]))
+    y_preds = np.concatenate((y_preds, y_pred))
+    print(f"Regression tree train error for {airline}:", mean_absolute_error(y_pred,y_val["minutes_until_pushback"]))
     plot_feature_importance(regressor,features, airline=airline)
 
-for airport in AIRPORTS:
-    X_val_local = X_val.loc[X_val['airport'] == airport]
-    y_val_local = y_val.loc[y_val['airport'] == airport]
+print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))
 
-    y_pred = regressor.predict(X_val_local)
-    plot_feature_importance(regressor,features,airport=airport)
-    print(f"Regression tree train error for {airport}:", mean_absolute_error(y_val_local["minutes_until_pushback"], y_pred))
+plot_feature_importance(regressor,features)
 
+# for airport in AIRPORTS:
+#     X_val_local = X_val.loc[X_val['airport'] == airport]
+#     y_val_local = y_val.loc[y_val['airport'] == airport]
+
+#     y_pred = regressor.predict(X_val_local)
+#     plot_feature_importance(regressor,features,airport=airport)
+#     print(f"Regression tree train error for {airport}:", mean_absolute_error(y_val_local["minutes_until_pushback"], y_pred))
 exit()
