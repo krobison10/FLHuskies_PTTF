@@ -66,7 +66,7 @@ parser: argparse.ArgumentParser = argparse.ArgumentParser()
 parser.add_argument("-s", help="save the model")
 args: argparse.Namespace = parser.parse_args()
 
-def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20)):
+def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20), airline = "ALL"):
     feature_imp = pd.DataFrame({'Value':model.feature_importances_,'Feature':X.columns})
     plt.figure(figsize=fig_size)
     sns.set(font_scale = 1)
@@ -74,10 +74,11 @@ def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20)):
                                                         ascending=False)[0:num])
     plt.title('LightGBM Features (avg over folds)')
     plt.tight_layout()
-    plt.savefig(f'lgbm_importances_{airport}_local.png')
+    plt.savefig(f'lgbm_importances_{airport}_{airline}.png')
 
 y_tests = [0]
 y_preds = [0]
+X_tests = [0]
 for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
     df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
@@ -147,7 +148,9 @@ for airport in airports:
         # appending the predictions and test to a single datasets to evaluate overall performance
         y_tests = np.concatenate((y_tests, y_test))
         y_preds = np.concatenate((y_preds, y_pred))
-        
+        X_tests = np.concatenate((X_tests, X_test))
+        plotImp(regressor,X_test,airport=airport, airline=airline)
+
         # # SAVING THE MODEL
         save_table_as: str = "no_save" if args.s is None else str(args.s)
         if save_table_as != "no_save":
@@ -155,6 +158,7 @@ for airport in airports:
             pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
             print(f"Saved the model for the {airport} at {airline}")
     
+    plotImp(regressor,X_tests,airport=airport)
     print(f"MAE on {airport} test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
     # # SAVING THE MODEL
@@ -164,11 +168,8 @@ for airport in airports:
         pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
         print("Saved the model for the airport: ", airport)
 
-    # plotImp(ensembleRegressor,X_test,airport=airport)
 
-print(features)
-# y_tests = np.hstack(y_tests)
-# y_pred = np.hstack(y_preds)
+plotImp(regressor,X_tests)
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
 
