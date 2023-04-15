@@ -155,7 +155,7 @@ for airport in airports:
         y_tests = np.concatenate((y_tests, y_test))
         y_preds = np.concatenate((y_preds, y_pred))
         # X_tests = np.concatenate((X_tests, X_test))
-        plotImp(regressor,X_test,airport=airport, airline=airline)
+        # plotImp(regressor,X_test,airport=airport, airline=airline)
 
         # # # SAVING THE MODEL
         # save_table_as: str = "no_save" if args.s is None else str(args.s)

@@ -135,7 +135,7 @@ for airline in airlines_val:
     y_tests = np.concatenate((y_tests, y_val["minutes_until_pushback"]))
     y_preds = np.concatenate((y_preds, y_pred))
     print(f"Regression tree train error for {airline}:", mean_absolute_error(y_pred,y_val["minutes_until_pushback"]))
-    plotImp(regressor,X_val, airline=airline)
+    # plotImp(regressor,X_val, airline=airline)
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))
 
