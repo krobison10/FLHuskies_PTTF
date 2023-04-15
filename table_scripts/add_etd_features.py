@@ -6,7 +6,7 @@
 
 import pandas as pd
 
-def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.DataFrame:
+def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame, airport:str) -> pd.DataFrame:
     """
     Extracts estimated time of departure features and appends it to the existing dataframe
     :param pd.DataFrame _df: Existing feature set at a timestamp-airport level
@@ -15,6 +15,8 @@ def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.Data
 
     etd_features = pd.DataFrame()
 
+    etd = raw_data.copy()
+    
     etd["timestamp"] = etd.timestamp.dt.ceil("15min")
     etd["departure_runway_estimated_time"] = pd.to_datetime(
         etd["departure_runway_estimated_time"]
@@ -55,9 +57,16 @@ def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.Data
                 "gufi": "count",
                 "estdep_next_30min": "sum",
                 "estdep_next_60min": "sum",
+                "estdep_next_90min": "sum",
+                "estdep_next_120min": "sum",
+                "estdep_next_150min": "sum",
                 "estdep_next_180min": "sum",
+                "estdep_next_210min": "sum",
+                "estdep_next_240min": "sum",
+                "estdep_next_270min": "sum",
+                "estdep_next_300min": "sum",
+                "estdep_next_330min": "sum",
                 "estdep_next_360min": "sum",
-                "estdep_next_720min": "sum",
             }
         )
         .reset_index()
@@ -66,6 +75,7 @@ def add_etd_features(_df: pd.DataFrame,etd:pd.DataFrame, airport:str) -> pd.Data
     etd_aggregation.columns = [
         "feat_5_" + c if c != "timestamp" else c for c in etd_aggregation.columns
     ]
+
     etd_features = pd.concat([etd_features, etd_aggregation])
 
     _df = _df.merge(

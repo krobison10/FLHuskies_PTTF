@@ -9,7 +9,7 @@ import pandas as pd
 
 # add global lamp forecast weather information with 6 hour moving window of
 # av, max, and min, based on the historic trends
-def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> pd.DataFrame:
+def add_global_lamp(_df: pd.DataFrame, raw_data: pd.DataFrame, airport: str) -> pd.DataFrame:
     """
     Extracts features of weather forecasts for each airport and appends it to the
     existing master table
@@ -18,6 +18,8 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
     """
 
     weather = pd.DataFrame()
+
+    current = raw_data.copy()
 
     current["lightning_prob"] = current["lightning_prob"].map({"L": 0, "M": 1, "N": 2, "H": 3})
 
@@ -82,7 +84,7 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
         weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
 
     # Reset the index of weather_agg DataFrame
-    weather_agg.fillna(0).astype(float)
+    weather_agg.ffill().astype(float)
 
     # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
     _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
