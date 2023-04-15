@@ -93,7 +93,6 @@ for c in val.columns:
     if col_type == 'object' or col_type == 'string' or "cat" in c:
         val[c] = val[c].astype('category')
 
-
 #remove train for testing the models
 if carrier == "major":
     val_dfs = filter_dataframes_by_column(val,"major_carrier")
@@ -105,6 +104,8 @@ else:
 
 airlines_val = val[carrier_column_name].unique()
 print("Generated a shared dataframe")
+y_tests = [0]
+y_preds = [0]
 
 # Preventing GUFI from being an attribute to analyze
 offset = 2
