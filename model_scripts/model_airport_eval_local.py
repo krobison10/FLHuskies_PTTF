@@ -86,65 +86,91 @@ for airport in airports:
     df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
     # df.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
 
-    train_df, val_df = split(table=df, airport=airport, save=False)
+    train, val = split(table=df, airport=airport, save=False)
     
-    for c in train_df.columns:
-        col_type = train_df[c].dtype
+    for c in train.columns:
+        col_type = train[c].dtype
         if col_type == 'object' or col_type == 'string' or "cat" in c:
-            train_df[c] = train_df[c].astype('category')
-    for c in val_df.columns:
-        col_type = val_df[c].dtype
+            train[c] = train[c].astype('category')
+    for c in val.columns:
+        col_type = val[c].dtype
         if col_type == 'object' or col_type == 'string' or "cat" in c:
-            val_df[c] = val_df[c].astype('category')
+            val[c] = val[c].astype('category')
 
-    if carrier == "major":
-        train_dfs = filter_dataframes_by_column(train_df,"major_carrier")
-        val_dfs = filter_dataframes_by_column(val_df,"major_carrier")
+    if carrier != "major":
+        train_dfs = filter_dataframes_by_column(train,"major_carrier")
+        val_dfs = filter_dataframes_by_column(val,"major_carrier")
+        carrier_column_name = "major_carrier"
     else:
-        train_dfs = filter_dataframes_by_column(train_df,"gufi_flight_major_carrier")
-        val_dfs = filter_dataframes_by_column(val_df,"gufi_flight_major_carrier")
+        train_dfs = filter_dataframes_by_column(train,"gufi_flight_major_carrier")
+        val_dfs = filter_dataframes_by_column(val,"gufi_flight_major_carrier")
+        carrier_column_name = "gufi_flight_major_carrier"
+
 
 
     offset = 2
-    features_all = (train_df.columns.values.tolist())[offset:(len(train_df.columns.values))]
+    features_all = (df.columns.values.tolist())[offset:(len(df.columns.values))]
     features_remove = ("gufi_flight_date","minutes_until_pushback")
     features = [x for x in features_all if x not in features_remove]
-    
-    for airline in train_dfs.keys():
-        train_df = train_dfs[airline]
-        val_df = val_dfs[airline]
-        # evaluating individual airport accuracy
-        print(f"Training LIGHTGBM model for {airline} at {airport}\n")
-        X_train = (train_df[features])
-        X_test = (val_df[features])
-        y_train = (train_df["minutes_until_pushback"])
-        y_test = (val_df["minutes_until_pushback"])
+        
+    airlines_train = train[carrier_column_name].unique()
+    airlines_val = val[carrier_column_name].unique()
+
+    for airline in airlines_train:    
+        train = train_dfs[airline]
+        X_train = train[features]
+        y_train = train["minutes_until_pushback"]
+        
         train_data = lgb.Dataset(X_train, label=y_train)
 
-        params = {
+        # Hyperparameters
+        # params = {
+        # # 'boosting_type': 'gbdt', # Type of boosting algorithm
+        # 'objective': 'regression_l1', # Type of task (regression)
+        # 'metric': 'mae', # Evaluation metric (mean squared error)
+        # 'learning_rate': 0.02, # Learning rate for boosting
+        # 'verbose': 0, # Verbosity level (0 for silent)
+        # 'n_estimators': 4000
+        # }
+
+        # regressor = lgb.train(params, train_data)
+
+        fit_params = { 
             'objective': 'regression_l1', # Type of task (regression)
             'metric': 'mae', # Evaluation metric (mean squared error)
-            "n_estimators":4000,
+            "n_estimators": 4000,
             "learning_rate":0.02
         }
 
-        regressor = lgb.train(params, train_data)
+        regressor = LGBMRegressor(**fit_params)
 
-        y_pred = regressor.predict(X_test)
+        regressor.fit(X_train, y_train)
 
-        print("Finished training")
-        print(f"MAE for {airline} at {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
-       
-        # appending the predictions and test to a single datasets to evaluate overall performance
-        y_tests = np.concatenate((y_tests, y_test))
-        y_preds = np.concatenate((y_preds, y_pred))
-        # plotImp(regressor,X_test,airport=airport, airline=airline)
-
-        filename = f'model_{airline}_{airport}.sav'
+        filename = f'model_{airline}_at_{airport}_gufi.sav'
         pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-        print(f"Saved the model for the {airport} at {airline}")
-    
-    print(f"MAE on {airport} test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
+        print(f"Saved the model for {airline} at: ", airport)
+       
+
+    for airline in airlines_val:
+        if airline not in train[carrier_column_name].values:
+            #Replace the unknown value with the most frequently [assuming best trained] model
+            pickled_airline = train[carrier_column_name].mode().iloc[0]
+
+        val = val_dfs[airline]
+
+        X_val = val[features]
+        y_val = val["minutes_until_pushback"]
+
+        # open file where we stored the pickled model
+        filename = f'model_{airline}_at_{airport}_gufi.sav'
+        regressor = pickle.load(open(OUTPUT_DIRECTORY / filename, 'rb'))
+
+        y_pred = regressor.predict(X_val)
+
+        y_tests = np.concatenate((y_tests, y_val))
+        y_preds = np.concatenate((y_preds, y_pred))
+        print(f"Regression tree train error for {airline} at {airport}:", mean_absolute_error(y_pred,y_val))
+        # plotImp(regressor,X_val, airline=airline)
 
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 

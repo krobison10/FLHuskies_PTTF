@@ -103,7 +103,7 @@ for c in val.columns:
 
 #remove test for training the models
 # test[cat_feature] = test[cat_feature].astype(str)
-if carrier == "major":
+if carrier != "major":
     train_dfs = filter_dataframes_by_column(train,"major_carrier")
     val_dfs = filter_dataframes_by_column(val,"major_carrier")
     carrier_column_name = "major_carrier"
@@ -148,7 +148,7 @@ for airline in airlines_train:
     fit_params = { 
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
-        "n_estimators": 4500,
+        "n_estimators": 4000,
         "learning_rate":0.02
     }
 
@@ -156,7 +156,7 @@ for airline in airlines_train:
 
     regressor.fit(X_train, label)
 
-    filename = f'model_{airline}.sav'
+    filename = f'model_{airline}_gufi.sav'
     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
     print("Saved the model for the airline: ", airline)
 
