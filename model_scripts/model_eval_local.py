@@ -81,7 +81,7 @@ for airport in airports:
     train_data = lgb.Dataset(X_train, label=y_train)
 
     params = {
-        # 'boosting_type': 'gbdt', # Type of boosting algorithm
+        'boosting_type': 'rf', # Type of boosting algorithm
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
         'learning_rate': 0.02, # Learning rate for boosting
@@ -122,7 +122,7 @@ for airport in airports:
         pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
         print("Saved the model for the airport: ", airport)
 
-    # plotImp(ensembleRegressor,X_test,airport=airport)
+    plotImp(regressor,X_test,airport=airport)
 
 print(features)
 # y_tests = np.hstack(y_tests)
