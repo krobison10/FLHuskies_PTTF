@@ -106,7 +106,7 @@ fit_params = {
 
 regressor = LGBMRegressor(**fit_params)
 
-regressor.fit(X_train, y_train)
+regressor.fit(X_train, label)
 
 y_pred = regressor.predict(X_val,num_iteration=regressor.best_iteration_)
 

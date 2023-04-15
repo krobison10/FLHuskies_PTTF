@@ -81,6 +81,8 @@ def plotImp(model, X, airport = "ALL", num=20, fig_size=(40, 20)):
     plt.tight_layout()
     plt.savefig(f"lgbm_importances_{airport}_global.png")
 
+y_preds = [0]
+y_tests = [0]
 print("Started")
 # train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
 # val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
@@ -126,8 +128,10 @@ for airline in airlines_train:
     train = train_dfs[airline]
     X_train = train[features]
     y_train = train[features_val]
+    
+    label = y_train["minutes_until_pushback"]
 
-    train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
+    train_data = lgb.Dataset(X_train, label=label)
 
     # Hyperparameters
     # params = {
@@ -144,13 +148,13 @@ for airline in airlines_train:
     fit_params = { 
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
-        "n_estimators":4500,
+        "n_estimators": 4500,
         "learning_rate":0.02
     }
 
     regressor = LGBMRegressor(**fit_params)
 
-    regressor.fit(X_train, y_train)
+    regressor.fit(X_train, label)
 
     filename = f'model_{airline}.sav'
     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
