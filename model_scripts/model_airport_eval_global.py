@@ -127,7 +127,7 @@ for airline in airlines_val:
     y_val = val[features_val]
 
     # open file where we stored the pickled model
-    filename = f'model_{pickled_airline}.sav'
+    filename = f'model_{pickled_airline}_gufi.sav'
     regressor = pickle.load(open(OUTPUT_DIRECTORY / filename, 'rb'))
 
     y_pred = regressor.predict(X_val)
