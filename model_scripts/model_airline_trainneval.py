@@ -179,7 +179,9 @@ for airline in airlines_train:
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
         'learning_rate': 0.02, # Learning rate for boosting
-        'n_estimators': 4000
+        'n_estimators': 4000, 
+        'bagging_freq': 5,  # Frequency of bagging 
+        'bagging_fraction': 0.8  # Fraction of data for bagging
     }
 
     regressor = LGBMRegressor(**fit_params)

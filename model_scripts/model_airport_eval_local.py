@@ -160,7 +160,9 @@ for airport in airports:
             'metric': 'mae', # Evaluation metric (mean squared error)
             'learning_rate': 0.02, # Learning rate for boosting
             'verbose': 0, # Verbosity level (0 for silent)
-            'n_estimators': 4000
+            'n_estimators': 4000, 
+            'bagging_freq': 5,  # Frequency of bagging 
+            'bagging_fraction': 0.8  # Fraction of data for bagging
         }
 
         regressor = lgb.train(params, train_data)
