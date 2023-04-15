@@ -70,7 +70,7 @@ for airport in airports:
     offset = 2
     features_all = (train_df.columns.values.tolist())[offset:(len(train_df.columns.values))]
     features_remove = ("gufi_flight_date","minutes_until_pushback")
-    features = [x for x in features_all if x not in features_remove]
+    features = [x for x in features_all if x not in features_remove and not ("lamp" in x and "next" in x)]
 
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
@@ -83,8 +83,8 @@ for airport in airports:
     fit_params={ 
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
-        "n_estimators":4500,
-        "learning_rate":0.02
+        'num_leaves': 1024 * 8,
+        'n_estimators': 128,
         }
     
     regressor = LGBMRegressor(**fit_params)
