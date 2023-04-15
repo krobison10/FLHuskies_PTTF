@@ -183,9 +183,9 @@ for airline in airlines_train:
         'n_estimators': 4000
     }
 
-    regressor = LGBMRegressor(objective = "regression_l1")
+    regressor = LGBMRegressor(objective = "regression_l1", **fit_params)
 
-    regressor.fit(X_train, y_train, **fit_params)
+    regressor.fit(X_train, y_train)
 
     filename = f'model_{airline}.sav'
     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
