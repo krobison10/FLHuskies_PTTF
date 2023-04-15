@@ -19,25 +19,11 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
 
     weather = pd.DataFrame()
 
-    current["lightning_prob"] = current["lightning_prob"].map({"L": 0, "M": 1, "N": 2, "H": 3}).fillna(0).astype(float)
+    current["lightning_prob"] = current["lightning_prob"].map({"L": 0, "M": 1, "N": 2, "H": 3})
 
-    current["cloud"] = current["cloud"].map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2}).fillna(3).astype(float)
+    current["cloud"] = current["cloud"].map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2}).fillna(3)
 
-    current["precip"] = current["precip"].fillna(0).astype(float)
-
-    current["wind_direction"] = current["wind_direction"].ffill().astype(float)
-
-    current["wind_speed"] = current["wind_speed"].ffill().astype(float)
-
-    current["wind_gust"] = current["wind_gust"].fillna(0).astype(float)
-
-    current["cloud_ceiling"] = current["cloud_ceiling"].fillna(5).astype(float)
-
-    current["visibility"] = current["visibility"].fillna(5).astype(float)
-
-    current["precip"] = current["precip"].fillna(3).astype(float)
-
-    current["temperature"] = current["temperature"].ffill().astype(float)
+    current["precip"] = current["precip"].astype(float)
 
     current["time_ahead_prediction"] = (current["forecast_timestamp"] - current["timestamp"]).dt.total_seconds() / 3600
     current.sort_values(["timestamp", "time_ahead_prediction"], inplace=True)
@@ -64,11 +50,9 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
             .mean()
             .reset_index()
         )
-
         next_temp.columns = [
             "feat_lamp_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp" for c in next_temp.columns
         ]
-
         next_temp = next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
         current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
 
@@ -98,7 +82,7 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
         weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
 
     # Reset the index of weather_agg DataFrame
-    weather_agg.reset_index(inplace=True)
+    weather_agg.fillna(0).astype(float).reset_index(inplace=True)
 
     # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
     _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
