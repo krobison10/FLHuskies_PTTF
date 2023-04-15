@@ -100,7 +100,7 @@ params = {
     'n_estimators': 4000
 }
 
-regressor = lgb.train(params, train_data)
+regressor = lgb.train(params, train_data["minutes_until_pushback"])
 
 y_pred = regressor.predict(X_val)
 

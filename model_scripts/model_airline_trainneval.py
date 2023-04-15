@@ -20,6 +20,7 @@ DATA_DIRECTORY_TRAIN = Path("./train_tables")
 DATA_DIRECTORY_VAL = Path("./validation_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 OUTPUT_FIGURES_DIRECTORY = Path("./figures")
+DATA_DIRECTORY = Path("full_tables")
 
 AIRPORTS = [    
     "KATL",
@@ -113,8 +114,11 @@ def plot_feature_importance(model, feature_names, max_num_features=10, importanc
     plt.savefig(f'lgbm_importances_{airport}_{airline}.png')
 
 print("Started")
-train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
-val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
+# train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
+# val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
+
+df = pd.read_csv(DATA_DIRECTORY / f"ALL_full.csv",parse_dates=["gufi_flight_date","timestamp"])
+train, val = split(table=df, save=False)
 
 for c in train.columns:
     col_type = train[c].dtype
@@ -133,7 +137,6 @@ if carrier == "major":
     train_dfs = filter_dataframes_by_column(train,"major_carrier")
     val_dfs = filter_dataframes_by_column(val,"major_carrier")
     carrier_column_name = "major_carrier"
-
 else:
     train_dfs = filter_dataframes_by_column(train,"gufi_flight_major_carrier")
     val_dfs = filter_dataframes_by_column(val,"gufi_flight_major_carrier")
