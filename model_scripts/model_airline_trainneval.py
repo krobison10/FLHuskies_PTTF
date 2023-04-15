@@ -15,6 +15,7 @@ from sklearn.metrics import mean_absolute_error
 import argparse
 from pathlib import Path
 from lightgbm import LGBMRegressor
+import seaborn as sns
 
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY_TRAIN = Path("./train_tables")
@@ -71,48 +72,14 @@ args: argparse.Namespace = parser.parse_args()
 carrier: str = "major" if args.s is None else str(args.s)
 
 
-def plot_feature_importance(model, feature_names, max_num_features=10, importance_type='split', airport = "ALL", fig_size = (40, 20), airline = "ALL"):
-    """
-    Plots a graph of feature importance for a LightGBM model.
-
-    Parameters:
-        -- model: LightGBM model object
-            The trained LightGBM model.
-        -- feature_names: list or array-like
-            List of feature names used in the model.
-        -- max_num_features: int, optional (default=10)
-            Maximum number of top features to display in the graph.
-        -- importance_type: str, optional (default='split')
-            Type of feature importance to use. Must be one of {'split', 'gain'}.
-        -- figsize: tuple, optional (default=(8, 6))
-            Figure size of the plot.
-
-    Returns:
-        None
-    """
-
-    # Get feature importance values
-    importance_vals = model.feature_importance(importance_type=importance_type)
-    
-    # Get feature names
-    feature_names = np.array(feature_names)
-
-    # Sort feature importance values and corresponding feature names in descending order
-    sorted_idx = np.argsort(importance_vals)[::-1]
-    sorted_importance_vals = importance_vals[sorted_idx]
-    sorted_feature_names = feature_names[sorted_idx]
-
-    # Truncate to maximum number of features
-    sorted_importance_vals = sorted_importance_vals[:max_num_features]
-    sorted_feature_names = sorted_feature_names[:max_num_features]
-
-    # Create a bar plot of feature importance
+def plotImp(model, X, airport = "ALL", num=20, fig_size=(40, 20)):
+    feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": X.columns})
     plt.figure(figsize=fig_size)
-    plt.barh(range(len(sorted_importance_vals)), sorted_importance_vals)
-    plt.yticks(range(len(sorted_importance_vals)), sorted_feature_names)
-    plt.xlabel('Feature Importance')
-    plt.title('Feature Importance for LightGBM Model')
-    plt.savefig(f'lgbm_importances_{airport}_{airline}.png')
+    sns.set(font_scale=1)
+    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[0:num])
+    plt.title("LightGBM Features (avg over folds)")
+    plt.tight_layout()
+    plt.savefig(f"lgbm_importances_{airport}_global.png")
 
 print("Started")
 # train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
@@ -175,13 +142,10 @@ for airline in airlines_train:
     # regressor = lgb.train(params, train_data)
 
     fit_params = { 
-        'boosting_type': 'rf', # Type of boosting algorithm
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
-        'learning_rate': 0.02, # Learning rate for boosting
-        'n_estimators': 4000, 
-        'bagging_freq': 5,  # Frequency of bagging 
-        'bagging_fraction': 0.8  # Fraction of data for bagging
+        "n_estimators":4500,
+        "learning_rate":0.02
     }
 
     regressor = LGBMRegressor(**fit_params)
@@ -212,12 +176,9 @@ for airline in airlines_val:
     y_tests = np.concatenate((y_tests, y_val["minutes_until_pushback"]))
     y_preds = np.concatenate((y_preds, y_pred))
     print(f"Regression tree train error for {airline}:", mean_absolute_error(y_pred,y_val["minutes_until_pushback"]))
-    plot_feature_importance(regressor,features, airline=airline)
+    plotImp(regressor,X_val, airline=airline)
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))
-
-plot_feature_importance(regressor,features)
-
 # for airport in AIRPORTS:
 #     X_val_local = X_val.loc[X_val['airport'] == airport]
 #     y_val_local = y_val.loc[y_val['airport'] == airport]

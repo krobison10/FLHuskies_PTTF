@@ -81,11 +81,10 @@ for airport in airports:
     train_data = lgb.Dataset(X_train, label=y_train)
 
     fit_params={ 
-        'boosting_type': 'rf', # Type of boosting algorithm
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
-        'bagging_freq': 10,  # Frequency of bagging 
-        'bagging_fraction': 0.8  # Fraction of data for bagging
+        "n_estimators":4500,
+        "learning_rate":0.02
         }
     
     regressor = LGBMRegressor(**fit_params)
