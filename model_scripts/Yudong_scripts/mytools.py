@@ -100,8 +100,8 @@ def normalizeNumericalFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFra
     _encodeFeatures(_data_train, _data_test, cols, MinMaxScaler())
 
 
-def get_model_path(_fileName: str) -> str:
+def get_model_path(_fileName: str | None) -> str:
     _dir: str = os.path.join(os.path.dirname(__file__), "..", "..", "models", "yudong_models")
     if not os.path.exists(_dir):
         os.mkdir(_dir)
-    return os.path.join(_dir, _fileName)
+    return os.path.join(_dir, _fileName) if _fileName is not None else _dir

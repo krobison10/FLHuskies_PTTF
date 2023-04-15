@@ -102,6 +102,7 @@ for _ignore in hyperparameter["ignore_features"]:
 # using argparse to parse the argument from command line
 parser: argparse.ArgumentParser = argparse.ArgumentParser()
 parser.add_argument("-a", help="airport")
+parser.add_argument("-o", help="override")
 args: argparse.Namespace = parser.parse_args()
 
 
@@ -123,7 +124,7 @@ for airport in airports:
     input_features.sort()
     if airport not in model_records:
         model_records[airport] = {}
-    else:
+    elif args.o is None or str(args.o).lower().startswith("f"):
         for value in model_records[airport].values():
             if (
                 value["num_leaves"] == hyperparameter["num_leaves"]
@@ -167,6 +168,7 @@ for airport in airports:
         n_estimators=hyperparameter["n_estimators"],
         objective="regression_l1",
         device_type="gpu",
+        learning_rate=0.05,
     )
 
     model.fit(X_train, y_train)
@@ -192,10 +194,13 @@ for airport in airports:
         "best" not in model_records[airport]
         or model_records[airport]["best"]["mae"] > model_records[airport][model_name]["mae"]
     ):
-        print("The best result so far, saved!")
+        if "best" in model_records[airport]:
+            print(f'The best result so far (previous best: {model_records[airport]["best"]["mae"]}), saved!')
         model_records[airport]["best"] = model_records[airport][model_name]
         model_records[airport]["best"]["achieve_at"] = model_name
         dump(model, mytools.get_model_path(f"lgbm_{airport}_model.joblib"))
+    else:
+        print(f'Worse than previous best: {model_records[airport]["best"]["mae"]})')
 
     with open(model_records_path, "w", encoding="utf-8") as f:
         json.dump(model_records, f, indent=4, ensure_ascii=False, sort_keys=True)
