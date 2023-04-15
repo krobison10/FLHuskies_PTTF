@@ -179,11 +179,10 @@ for airline in airlines_train:
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
         'learning_rate': 0.02, # Learning rate for boosting
-        'verbose': 0, # Verbosity level (0 for silent)
         'n_estimators': 4000
     }
 
-    regressor = LGBMRegressor(objective = "regression_l1", **fit_params)
+    regressor = LGBMRegressor(**fit_params)
 
     regressor.fit(X_train, y_train)
 

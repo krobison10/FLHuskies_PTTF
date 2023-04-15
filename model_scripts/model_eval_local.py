@@ -89,7 +89,7 @@ for airport in airports:
         'n_estimators': 4000
         }
     
-    regressor = LGBMRegressor(objective = "regression_l1",**fit_params)
+    regressor = LGBMRegressor(**fit_params)
 
     regressor.fit(X_train, y_train)
 
