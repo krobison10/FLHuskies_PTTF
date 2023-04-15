@@ -19,7 +19,9 @@ def add_delta(
 
     # How long, on average, passes between the time that departure is estimated to happen
     # and the actual pushback happen
-    PDd_1hr = feature_engineering.average_departure_delay(latest_etd,standtimes, now, 1, "departure_stand_actual_time")
+    latest_etd = feature_engineering.filter_by_timestamp(latest_etd, now, 1)
+    standtimes = feature_engineering.filter_by_timestamp(standtimes, now, 1)
+    PDd_1hr = feature_engineering.average_departure_delay(latest_etd, standtimes, "departure_stand_actual_time")
     flights_selected["1h_ETDP"] = pd.Series([PDd_1hr] * len(flights_selected), index=flights_selected.index)
 
     return flights_selected
