@@ -14,6 +14,7 @@ import pickle
 from sklearn.metrics import mean_absolute_error
 import argparse
 from pathlib import Path
+from lightgbm import LGBMRegressor
 
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY_TRAIN = Path("./train_tables")
@@ -162,16 +163,29 @@ for airline in airlines_train:
     train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
 
     # Hyperparameters
-    params = {
-    # 'boosting_type': 'gbdt', # Type of boosting algorithm
-    'objective': 'regression_l1', # Type of task (regression)
-    'metric': 'mae', # Evaluation metric (mean squared error)
-    'learning_rate': 0.02, # Learning rate for boosting
-    'verbose': 0, # Verbosity level (0 for silent)
-    'n_estimators': 4000
+    # params = {
+    # # 'boosting_type': 'gbdt', # Type of boosting algorithm
+    # 'objective': 'regression_l1', # Type of task (regression)
+    # 'metric': 'mae', # Evaluation metric (mean squared error)
+    # 'learning_rate': 0.02, # Learning rate for boosting
+    # 'verbose': 0, # Verbosity level (0 for silent)
+    # 'n_estimators': 4000
+    # }
+
+    # regressor = lgb.train(params, train_data)
+
+    fit_params = { 
+        'boosting_type': 'rf', # Type of boosting algorithm
+        'objective': 'regression_l1', # Type of task (regression)
+        'metric': 'mae', # Evaluation metric (mean squared error)
+        'learning_rate': 0.02, # Learning rate for boosting
+        'verbose': 0, # Verbosity level (0 for silent)
+        'n_estimators': 4000
     }
 
-    regressor = lgb.train(params, train_data)
+    regressor = LGBMRegressor(objective = "regression_l1")
+
+    regressor.fit(X_train, y_train, **fit_params)
 
     filename = f'model_{airline}.sav'
     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))

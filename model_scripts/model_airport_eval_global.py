@@ -14,8 +14,7 @@ import pickle
 from sklearn.metrics import mean_absolute_error
 import argparse
 from pathlib import Path
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline
+from lightgbm import LGBMRegressor
 
 
 # ---------------------------------------- MAIN ----------------------------------------

@@ -80,35 +80,34 @@ for airport in airports:
     y_test = (val_df["minutes_until_pushback"])
     train_data = lgb.Dataset(X_train, label=y_train)
 
-    params = {
+    fit_params={ 
         'boosting_type': 'rf', # Type of boosting algorithm
         'objective': 'regression_l1', # Type of task (regression)
         'metric': 'mae', # Evaluation metric (mean squared error)
         'learning_rate': 0.02, # Learning rate for boosting
         'verbose': 0, # Verbosity level (0 for silent)
         'n_estimators': 4000
-    }
-
-    regressor = lgb.train(params, train_data)
-
-    y_pred = regressor.predict(X_test)
-
-    # fit_params={ 
-    #             "eval_metric" : 'MAE', 
-    #             'verbose': 100,
-    #             'feature_name': 'auto', # that's actually the default
-    #             'categorical_feature': 'auto' # that's actually the default
-    #         }
+        }
     
-    # ensembleRegressor = LGBMRegressor(objective="regression_l1", boosting_type='rf')
+    regressor = LGBMRegressor(objective = "regression_l1")
 
-    # ensembleRegressor.fit(X_train, y_train, **fit_params)
+    regressor.fit(X_train, y_train, **fit_params)
 
-    # ensembleRegressor.fit(X_train, y_train,cat_features=cat_features,use_best_model=True)
+    y_pred = regressor.predict(X_test,num_iteration=regressor.best_iteration_)
 
-    # ensembleRegressor.fit(X_train, y_train, **fit_params)
-    # y_pred = ensembleRegressor.predict(X_test,num_iteration=ensembleRegressor.best_iteration_)
+    # params = {
+    #     'boosting_type': 'rf', # Type of boosting algorithm
+    #     'objective': 'regression_l1', # Type of task (regression)
+    #     'metric': 'mae', # Evaluation metric (mean squared error)
+    #     'learning_rate': 0.02, # Learning rate for boosting
+    #     'verbose': 0, # Verbosity level (0 for silent)
+    #     'n_estimators': 4000
+    # }
 
+    # regressor = lgb.train(params, train_data)
+
+    # y_pred = regressor.predict(X_test)
+    
     print("Finished training")
     print(f"MAE on {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
     # appending the predictions and test to a single datasets to evaluate overall performance

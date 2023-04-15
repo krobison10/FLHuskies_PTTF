@@ -1,7 +1,7 @@
 # @author:Daniil Filienko
 from pathlib import Path
 from sklearn.metrics import mean_absolute_error
-from lightgbm import LGBMRegressor, Dataset
+from lightgbm import LGBMRegressor
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -94,13 +94,8 @@ label = y_train["minutes_until_pushback"]
 
 train_data = lgb.Dataset(X_train, label=label)
 
-# Remove the testing of the features
-# X_test = test[features]
-
-# y_test = test["minutes_until_pushback"]
-
-params = {
-    # 'boosting_type': 'rf', # Type of boosting algorithm
+fit_params = { 
+    'boosting_type': 'rf', # Type of boosting algorithm
     'objective': 'regression_l1', # Type of task (regression)
     'metric': 'mae', # Evaluation metric (mean squared error)
     'learning_rate': 0.02, # Learning rate for boosting
@@ -108,9 +103,23 @@ params = {
     'n_estimators': 4000
 }
 
-regressor = lgb.train(params, train_data)
+regressor = LGBMRegressor(objective = "regression_l1")
 
-y_pred = regressor.predict(X_val)
+regressor.fit(X_train, y_train, **fit_params)
+
+y_pred = regressor.predict(X_val,num_iteration=regressor.best_iteration_)
+
+# params = {
+#     # 'boosting_type': 'rf', # Type of boosting algorithm
+#     'objective': 'regression_l1', # Type of task (regression)
+#     'metric': 'mae', # Evaluation metric (mean squared error)
+#     'learning_rate': 0.02, # Learning rate for boosting
+#     'verbose': 0, # Verbosity level (0 for silent)
+#     'n_estimators': 4000
+# }
+# regressor = lgb.train(params, train_data)
+
+# y_pred = regressor.predict(X_val)
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_val["minutes_until_pushback"], y_pred))
 plotImp(regressor, X_val)

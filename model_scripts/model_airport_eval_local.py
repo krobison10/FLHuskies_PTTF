@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import seaborn as sns
-from lightgbm import LGBMRegressor, Dataset
+from lightgbm import LGBMRegressor
 import lightgbm as lgb
 import pickle
 from sklearn.preprocessing import OrdinalEncoder
