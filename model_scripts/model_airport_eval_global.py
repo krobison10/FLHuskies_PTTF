@@ -152,6 +152,7 @@ features = [x for x in features_all if x not in features_remove]
 features_val = ["minutes_until_pushback","airport"]
 
 for airline in airlines_val:
+    pickled_airline = airline
     if airline not in train[carrier_column_name].values:
         #Replace the unknown value with the most frequently [assuming best trained] model
         pickled_airline = train[carrier_column_name].mode().iloc[0]
