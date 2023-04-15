@@ -6,6 +6,7 @@
 
 import os
 import pandas as pd
+from sys import platform
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
 from sklearn.preprocessing import OrdinalEncoder
@@ -28,7 +29,7 @@ airports = [
     "KSEA",
 ]
 
-input_features = [
+features_old = [
     "airport",
     "minutes_until_etd",
     "temperature",
@@ -46,19 +47,124 @@ input_features = [
     "flight_type",
 ]
 
-encoded_columns = [
-    "airport",
+features_all = [
+    "minutes_until_etd",
+    "deps_3hr",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "delay_3hr",
+    "delay_30hr",
+    "standtime_3hr",
+    "standtime_30hr",
+    "dep_taxi_3hr",
+    "dep_taxi_30hr",
+    "arr_taxi_3hr",
+    "arr_taxi_30hr",
+    "1h_ETDP",
+    "departure_runways",
+    "arrival_runways",
+    "dep_ratio",
+    "arr_ratio",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
     "cloud",
     "lightning_prob",
     "precip",
+    "gufi_flight_number",
+    "gufi_flight_major_carrier",
+    "gufi_flight_destination_airport",
+    "gufi_timestamp_until_etd",
+    "gufi_flight_FAA_system",
+    "year",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "weekday",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type"
+]
+
+features_trimmed = [
+    "minutes_until_etd",
+    "deps_3hr",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "delay_3hr",
+    "delay_30hr",
+    "standtime_3hr",
+    "standtime_30hr",
+    "dep_taxi_3hr",
+    "dep_taxi_30hr",
+    "arr_taxi_3hr",
+    "arr_taxi_30hr",
+    "1h_ETDP",
+    "departure_runways",
+    "arrival_runways",
+    "dep_ratio",
+    "arr_ratio",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "gufi_flight_number",
+    "gufi_flight_major_carrier",
+    "gufi_flight_destination_airport",
+    "gufi_timestamp_until_etd",
+    "year",
+    "month",
+    "day",
+    "hour",
+    "weekday",
+    "aircraft_type",
+    "major_carrier",
+]
+
+encoded_columns = [
+    "airport",
+    "departure_runways",
+    "arrival_runways",
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "gufi_flight_number",
+    "gufi_flight_major_carrier",
+    "gufi_flight_destination_airport",
+    "gufi_flight_FAA_system",
     "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
     "flight_type",
+
+    "dep_ratio",
+    "arr_ratio"
 ]
 
+input_features = features_trimmed
+
 # whether to display train set MAE or not for each airport
-TRAIN_MAE = False
+TRAIN_MAE = True
 
 # whether to use encoders for all airports, or encoders for each airport.
 GLOBAL_ENCODERS = False # Absolutely leave this false, takes forever and uses a lot of memory
@@ -126,7 +232,7 @@ for airport in airports:
 
     print(f"Training on {airport}...")
 
-    model = LGBMRegressor(objective="regression_l1")
+    model = LGBMRegressor(objective="regression_l1", num_leaves=4096, n_estimators=128, n_jobs=-1)
 
     model.fit(X_train, y_train)
 
