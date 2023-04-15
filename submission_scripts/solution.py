@@ -468,13 +468,13 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame) -> pd.DataFrame:
     ).dt.total_seconds()
     complete_etd = complete_etd.groupby(["gufi", "timestamp"]).first().reset_index()
 
-    for i in [30, 60, 180, 360, 720, 1400]:
+    for i in [30, 60, 180, 720, 1400]:
         complete_etd[f"estdep_next_{i}min"] = (
             complete_etd["time_ahead"] < i * 60
         ).astype(int)
     complete_etd.sort_values("time_ahead", inplace=True)
 
-    for i in [30, 60, 180, 360, 720]:
+    for i in [30, 60, 180, 720, 1400]:
         complete_etd[f"estdep_num_next_{i}min"] = (
             complete_etd["time_ahead"] < i * 60
         ).astype(int)
@@ -497,7 +497,8 @@ def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame) -> pd.DataFrame:
                 #"estdep_next_270min": "sum",
                 #"estdep_next_300min": "sum",
                 #"estdep_next_330min": "sum",
-                "estdep_next_360min": "sum",
+                #"estdep_next_360min": "sum",
+                "estdep_next_1400min": "sum",
             }
         )
         .reset_index()
@@ -711,7 +712,7 @@ def predict(
     #_df = add_global_lamp(_df, lamp.reset_index(drop=True))
     _df = add_etd_features(_df, etd)
 
-    _df = _df.merge(mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"), how="left", on="gufi")
+    _df = _df.merge(mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi", "isdeparture"]].fillna("UNK"), how="left", on="gufi")
 
     # for col in ["temperature","wind_direction","wind_speed","wind_gust","cloud_ceiling","visibility"]:
     #     _df[col] = _df["timestamp"].apply(lambda now: lamp.sort_values("timestamp").iloc[-1][col]).fillna(0)
@@ -738,22 +739,9 @@ def predict(
     features_remove = ("gufi_flight_date","minutes_until_pushback")
     features = [x for x in features_all if x not in features_remove and not str(x).startswith("feat_lamp_") and not str(x).startswith("feats_lamp_")]
 
-    #print(model[airport].feature_name_)
-
-    s = set(model[airport].feature_name())
-
-    p = set(features)
-
-    
-    print(s.symmetric_difference(p))
-    print()
-    print(s)
-    print()
-    print(p)
-
     prediction = partial_submission_format.copy()
     
-    prediction["minutes_until_pushback"] = model[airport].predict(_df[features])
+    prediction["minutes_until_pushback"] = model[airport].predict(_df[features], categorical_features="auto")
 
     prediction["minutes_until_pushback"] = prediction.minutes_until_pushback.clip(lower=0).fillna(0)
 
