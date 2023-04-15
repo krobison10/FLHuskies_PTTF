@@ -72,14 +72,14 @@ args: argparse.Namespace = parser.parse_args()
 carrier: str = "major" if args.s is None else str(args.s)
 
 
-def plotImp(model, X, airport = "ALL", num=20, fig_size=(40, 20)):
+def plotImp(model, X, airport = "ALL", airline = "ALL",num=20, fig_size=(40, 20)):
     feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": X.columns})
     plt.figure(figsize=fig_size)
     sns.set(font_scale=1)
     sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[0:num])
     plt.title("LightGBM Features (avg over folds)")
     plt.tight_layout()
-    plt.savefig(f"lgbm_importances_{airport}_global.png")
+    plt.savefig(f"lgbm_importances_{airline}at_{airport}_global.png")
 
 y_preds = [0]
 y_tests = [0]
