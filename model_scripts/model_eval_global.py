@@ -99,7 +99,6 @@ fit_params = {
     'objective': 'regression_l1', # Type of task (regression)
     'metric': 'mae', # Evaluation metric (mean squared error)
     'learning_rate': 0.02, # Learning rate for boosting
-    'verbose': 0, # Verbosity level (0 for silent)
     'n_estimators': 4000
 }
 
