@@ -126,6 +126,12 @@ if __name__ == "__main__":
 
     for airport in ALL_AIRPORTS:
         train_df: pd.DataFrame = mytools.get_train_tables(airport, remove_duplicate_gufi=False)
+
+        # temporary remove global lamp feature fom testing
+        for col in train_df.columns.values.tolist():
+            if str(col).startswith("feat_lamp_") and col not in ignore_features:
+                ignore_features.append(col)
+
         train_df.drop(columns=ignore_features, inplace=True)
 
         val_df: pd.DataFrame = mytools.get_validation_tables(airport, remove_duplicate_gufi=False)
