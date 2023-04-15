@@ -84,7 +84,7 @@ y_train = train[features_val]
 X_val = val[features]
 y_val = val[features_val]
 
-train_data = lgb.Dataset(X_train, label=y_train)
+train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
 
 # Remove the testing of the features
 # X_test = test[features]
@@ -100,7 +100,7 @@ params = {
     'n_estimators': 4000
 }
 
-regressor = lgb.train(params, train_data["minutes_until_pushback"])
+regressor = lgb.train(params, train_data)
 
 y_pred = regressor.predict(X_val)
 
