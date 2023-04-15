@@ -97,7 +97,7 @@ for airport in airports:
         if col_type == 'object' or col_type == 'string' or "cat" in c:
             val[c] = val[c].astype('category')
 
-    if carrier != "major":
+    if carrier == "major":
         train_dfs = filter_dataframes_by_column(train,"major_carrier")
         val_dfs = filter_dataframes_by_column(val,"major_carrier")
         carrier_column_name = "major_carrier"

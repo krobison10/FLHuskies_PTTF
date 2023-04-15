@@ -103,7 +103,7 @@ for c in val.columns:
 
 #remove test for training the models
 # test[cat_feature] = test[cat_feature].astype(str)
-if carrier != "major":
+if carrier == "major":
     train_dfs = filter_dataframes_by_column(train,"major_carrier")
     val_dfs = filter_dataframes_by_column(val,"major_carrier")
     carrier_column_name = "major_carrier"
