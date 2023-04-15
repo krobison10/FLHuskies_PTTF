@@ -124,7 +124,7 @@ for airport in airports:
         params = {
             'objective': 'regression_l1', # Type of task (regression)
             'metric': 'mae', # Evaluation metric (mean squared error)
-            "n_estimators":4500,
+            "n_estimators":4000,
             "learning_rate":0.02
         }
 
@@ -132,47 +132,19 @@ for airport in airports:
 
         y_pred = regressor.predict(X_test)
 
-        # fit_params={ 
-        #             "eval_metric" : 'MAE', 
-        #             'verbose': 100,
-        #             'feature_name': 'auto', # that's actually the default
-        #             'categorical_feature': 'auto' # that's actually the default
-        #         }
-
-        # ensembleRegressor = LGBMRegressor(objective="regression_l1", boosting_type='rf')
-
-        # ensembleRegressor.fit(X_train, y_train, **fit_params)
-
-        # ensembleRegressor.fit(X_train, y_train,cat_features=cat_features,use_best_model=True)
-
-        # ensembleRegressor.fit(X_train, y_train, **fit_params)
-        # y_pred = ensembleRegressor.predict(X_test,num_iteration=ensembleRegressor.best_iteration_)
-
         print("Finished training")
         print(f"MAE for {airline} at {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
+       
         # appending the predictions and test to a single datasets to evaluate overall performance
-        
         y_tests = np.concatenate((y_tests, y_test))
         y_preds = np.concatenate((y_preds, y_pred))
-        # X_tests = np.concatenate((X_tests, X_test))
         # plotImp(regressor,X_test,airport=airport, airline=airline)
 
-        # # # SAVING THE MODEL
-        # save_table_as: str = "no_save" if args.s is None else str(args.s)
-        # if save_table_as != "no_save":
-        #     filename = f'model_{airport}.sav'
-        #     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-        #     print(f"Saved the model for the {airport} at {airline}")
+        filename = f'model_{airline}_{airport}.sav'
+        pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
+        print(f"Saved the model for the {airport} at {airline}")
     
     print(f"MAE on {airport} test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
-
-    # # # SAVING THE MODEL
-    # save_table_as: str = "no_save" if args.s is None else str(args.s)
-    # if save_table_as != "no_save":
-    #     filename = f'model_{airport}.sav'
-    #     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-    #     print("Saved the model for the airport: ", airport)
-
 
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
 
