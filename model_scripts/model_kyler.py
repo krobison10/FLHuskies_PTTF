@@ -47,6 +47,43 @@ features_old = [
     "flight_type",
 ]
 
+apr_14_features = [
+    "gufi_flight_major_carrier",
+    "deps_3hr",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "standtime_30hr",
+    "dep_taxi_30hr",
+    "arr_taxi_30hr",
+    "minute",
+    "gufi_flight_destination_airport",
+    "month",
+    "day",
+    "hour",
+    "year",
+    "weekday",
+    "airport",
+    "minutes_until_etd",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "cloud",
+    "lightning_prob",
+    "precip",
+]
+
 features_all = [
     "minutes_until_etd",
     "deps_3hr",
@@ -161,7 +198,7 @@ encoded_columns = [
     "arr_ratio"
 ]
 
-input_features = features_trimmed
+input_features = apr_14_features
 
 # whether to display train set MAE or not for each airport
 TRAIN_MAE = True
