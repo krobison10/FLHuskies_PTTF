@@ -82,9 +82,9 @@ def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame, airport: str) -> p
         weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
 
     # Reset the index of weather_agg DataFrame
-    weather_agg.fillna(0).astype(float).reset_index(inplace=True)
+    weather_agg.fillna(0).astype(float)
 
     # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
     _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
 
-    return _df.fillna(0).astype(float)
+    return _df
