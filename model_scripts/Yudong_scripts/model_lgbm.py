@@ -21,7 +21,7 @@ hyperparameter: dict = {
     "num_leaves": 1024 * 4,
     "n_estimators": 128,
     "boosting_type": "gbdt",
-    "ignore_features": ["gufi_flight_FAA_system", "is_us_holiday"],
+    "ignore_features": ["gufi_flight_FAA_system", "visibility", "cloud", "precip", "aircraft_engine_class"],
 }
 
 features: dict[str, list[str]] = {
@@ -36,6 +36,27 @@ features: dict[str, list[str]] = {
         "lightning_prob",
         "precip",
     ],
+    "runway_features": [
+        "deps_3hr",
+        "deps_30hr",
+        "arrs_3hr",
+        "arrs_30hr",
+        "deps_taxiing",
+        "arrs_taxiing",
+        "exp_deps_15min",
+        "exp_deps_30min",
+    ],
+    "average": [
+        "delay_3hr",
+        "delay_30hr",
+        "standtime_3hr",
+        "standtime_30hr",
+        "dep_taxi_3hr",
+        "dep_taxi_30hr",
+        "arr_taxi_3hr",
+        "arr_taxi_30hr",
+        "1h_ETDP",
+    ],
     "mfs": ["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type"],
     "time": [
         "month",
@@ -44,12 +65,14 @@ features: dict[str, list[str]] = {
         "minute",
         "year",
         "weekday",
-        "is_us_holiday",
         "minutes_until_etd",
         "gufi_timestamp_until_etd",
     ],
-    "guif": ["gufi_flight_destination_airport", "gufi_flight_FAA_system"],
-    "config": ["departure_runways"],
+    "guif": ["gufi_flight_major_carrier", "gufi_flight_destination_airport", "gufi_flight_FAA_system"],
+    "config": [
+        "departure_runways",
+        "arrival_runways",
+    ],  # "dep_ratio", "arr_ratio"
 }
 
 input_features: list[str] = []
@@ -65,9 +88,10 @@ encoded_columns: list[str] = [
     "major_carrier",
     "flight_type",
     "departure_runways",
+    "arrival_runways",
     "gufi_flight_destination_airport",
     "gufi_flight_FAA_system",
-    "is_us_holiday",
+    "gufi_flight_major_carrier",
 ]
 
 for _ignore in hyperparameter["ignore_features"]:
@@ -184,8 +208,8 @@ for airport in airports:
             y_pred = model.predict(X_test)
             mae = round(mean_absolute_error(y_test, y_pred), 4)
             print(f"--------------------------------------------------")
-            print(f"MAE when apply cumulative model on validation data for airport {airport}: {mae}")
-            individual_model_best_mae = model_records[airport]["best"]["mae"]
+            print(f"MAE when apply cumulative model on validation data for airport {theAirport}: {mae}")
+            individual_model_best_mae = model_records[theAirport]["best"]["mae"]
             print(f"Compare to individual model's best current best {individual_model_best_mae},")
             if individual_model_best_mae > mae:
                 print("Cumulative model is better.")
