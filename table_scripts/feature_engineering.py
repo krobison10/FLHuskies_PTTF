@@ -10,9 +10,8 @@ from datetime import timedelta
 import pandas as pd  # type: ignore
 
 
-def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp, hours: int, column_name: str = "departure_runway_actual_time") -> float:
-    etd_filtered = filter_by_timestamp(etd, now, hours)
-    runways_filtered = filter_by_timestamp(runways, now, hours)
+def average_departure_delay(etd_filtered: pd.DataFrame, runways_filtered: pd.DataFrame,
+                            column_name: str = "departure_runway_actual_time") -> float:
 
     merged_df = pd.merge(etd_filtered, runways_filtered, on="gufi")
 
@@ -27,9 +26,7 @@ def average_departure_delay(etd: pd.DataFrame, runways: pd.DataFrame, now: pd.Ti
     return round(avg_delay, 2)
 
 
-def average_stand_time(origin: pd.DataFrame, standtimes: pd.DataFrame, now: pd.Timestamp, hours: int) -> float:
-    origin_filtered = origin.loc[(origin.origin_time > now - timedelta(hours=hours)) & (origin.origin_time <= now)]
-    standtimes_filtered = filter_by_timestamp(standtimes, now, hours)
+def average_stand_time(origin_filtered: pd.DataFrame, standtimes_filtered: pd.DataFrame) -> float:
 
     merged_df = pd.merge(origin_filtered, standtimes_filtered, on="gufi")
 
@@ -44,14 +41,12 @@ def average_stand_time(origin: pd.DataFrame, standtimes: pd.DataFrame, now: pd.T
     return round(avg_stand_time, 2)
 
 
-def average_taxi_time(mfs: pd.DataFrame, standtimes: pd.DataFrame, runways: pd.DataFrame, now: pd.Timestamp,
-                        hours: int, departures: bool = True) -> float:
-    runways_filtered = filter_by_timestamp(runways, now, hours)
+def average_taxi_time(mfs: pd.DataFrame, standtimes: pd.DataFrame, runways_filtered: pd.DataFrame,
+                      departures: bool = True) -> float:
 
     mfs = mfs.loc[mfs["isdeparture"] == departures]
 
     merged_df = pd.merge(runways_filtered, mfs, on="gufi")
-
     merged_df = pd.merge(merged_df, standtimes, on="gufi")
 
     if departures:
