@@ -111,7 +111,7 @@ for airport in airports:
     offset = 2
     features_all = (df.columns.values.tolist())[offset:(len(df.columns.values))]
     features_remove = ("gufi_flight_date","minutes_until_pushback")
-    features = [x for x in features_all if x not in features_remove]
+    features = [x for x in features_all if x not in features_remove or ("lamp" in x and "next" in x)]
         
     airlines_train = train[carrier_column_name].unique()
     airlines_val = val[carrier_column_name].unique()
