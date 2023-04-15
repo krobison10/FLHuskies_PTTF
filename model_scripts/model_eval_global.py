@@ -56,12 +56,12 @@ val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi
 
 for c in train.columns:
     col_type = train[c].dtype
-    if col_type == 'object' or col_type == 'string' or "cat" in c:
+    if col_type != 'float' or col_type == 'string' in c:
         train[c] = train[c].astype('category')
 
 for c in val.columns:
     col_type = val[c].dtype
-    if col_type == 'object' or col_type == 'string' or "cat" in c:
+    if col_type == 'object' or col_type == 'string' in c:
         val[c] = val[c].astype('category')
 
 #remove test for training the models
@@ -72,19 +72,27 @@ print("Generated a shared dataframe")
 # Preventing GUFI from being an attribute to analyze
 offset = 2
 features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
+features_all_val = (val.columns.values.tolist())[offset:(len(val.columns.values))]
+
+print("Difference, in train but not val: ",[x for x in features_all if x not in features_all_val])
+print("Difference, in val but not train: ",[x for x in features_all_val if x not in features_all])
 
 features_remove = ("gufi_flight_date","minutes_until_pushback")
 features = [x for x in features_all if x not in features_remove]
 features_val = ["minutes_until_pushback","airport"]
 
-print(features)
 X_train = train[features]
 y_train = train[features_val]
 
 X_val = val[features]
 y_val = val[features_val]
 
-train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
+print("Train:",X_train.shape)
+print("Val:",X_val.shape)
+
+label = y_train["minutes_until_pushback"]
+
+train_data = lgb.Dataset(X_train, label=label)
 
 # Remove the testing of the features
 # X_test = test[features]
@@ -92,7 +100,7 @@ train_data = lgb.Dataset(X_train, label=y_train["minutes_until_pushback"])
 # y_test = test["minutes_until_pushback"]
 
 params = {
-    # 'boosting_type': 'gbdt', # Type of boosting algorithm
+    # 'boosting_type': 'rf', # Type of boosting algorithm
     'objective': 'regression_l1', # Type of task (regression)
     'metric': 'mae', # Evaluation metric (mean squared error)
     'learning_rate': 0.02, # Learning rate for boosting
@@ -103,11 +111,6 @@ params = {
 regressor = lgb.train(params, train_data)
 
 y_pred = regressor.predict(X_val)
-
-print("Finished training")
-
-# y_pred = test["minutes_until_departure"] - 15  
-# print("Baseline:", mean_absolute_error(y_test, y_pred))
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_val["minutes_until_pushback"], y_pred))
 plotImp(regressor, X_val)

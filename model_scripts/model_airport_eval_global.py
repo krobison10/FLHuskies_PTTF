@@ -14,6 +14,9 @@ import pickle
 from sklearn.metrics import mean_absolute_error
 import argparse
 from pathlib import Path
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+
 
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY_TRAIN = Path("./train_tables")
@@ -149,7 +152,7 @@ print("Generated a shared dataframe")
 
 # Preventing GUFI from being an attribute to analyze
 offset = 2
-features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
+features_all = (df.columns.values.tolist())[offset:(len(df.columns.values))]
 
 features_remove = ("gufi_flight_date","minutes_until_pushback")
 features = [x for x in features_all if x not in features_remove]
