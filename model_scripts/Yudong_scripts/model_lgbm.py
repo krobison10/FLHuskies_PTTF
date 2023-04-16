@@ -18,10 +18,10 @@ from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 hyperparameter: dict = {
-    "num_leaves": 1024 * 4,
+    "num_leaves": 1024 * 8,
     "n_estimators": 128,
     "boosting_type": "gbdt",
-    "ignore_features": ["gufi_flight_FAA_system", "visibility", "cloud", "precip", "aircraft_engine_class"],
+    "ignore_features": ["gufi_flight_FAA_system" "visibility", "aircraft_engine_class"],
 }
 
 features: dict[str, list[str]] = {
@@ -66,13 +66,14 @@ features: dict[str, list[str]] = {
         "year",
         "weekday",
         "minutes_until_etd",
+        "quarter",
         "gufi_timestamp_until_etd",
     ],
     "guif": ["gufi_flight_major_carrier", "gufi_flight_destination_airport", "gufi_flight_FAA_system"],
     "config": [
         "departure_runways",
         "arrival_runways",
-    ],  # "dep_ratio", "arr_ratio"
+    ],
 }
 
 input_features: list[str] = []
@@ -167,11 +168,11 @@ for airport in airports:
         hyperparameter["num_leaves"],
         n_estimators=hyperparameter["n_estimators"],
         objective="regression_l1",
-        device_type="gpu",
+        # device_type="gpu",
         learning_rate=0.05,
     )
 
-    model.fit(X_train, y_train)
+    model.fit(X_train, y_train, categorical_feature=encoded_columns)
 
     y_pred = model.predict(X_train)
     mae: float = round(mean_absolute_error(y_train, y_pred), 4)

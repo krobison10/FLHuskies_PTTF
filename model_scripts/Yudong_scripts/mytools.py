@@ -105,3 +105,50 @@ def get_model_path(_fileName: str | None) -> str:
     if not os.path.exists(_dir):
         os.mkdir(_dir)
     return os.path.join(_dir, _fileName) if _fileName is not None else _dir
+
+
+def log_importance(model, low_score_threshold: int = 2000) -> None:
+    _div: str = "--------------------------------------------------"
+    with open(get_model_path("report.txt"), "a", encoding="utf-8") as f:
+        # --- log gain information -----
+        feature_importance_table: dict[str, int] = dict(
+            zip(model.feature_name(), model.feature_importance("gain").tolist())
+        )
+        f.write("feature importance table (gain):\n")
+        _keys: list[str] = sorted(feature_importance_table, key=lambda k: feature_importance_table[k])
+        for key in _keys:
+            f.write(f" - {key}: {feature_importance_table[key]}\n")
+        f.write(_div + "\n")
+        for key in _keys:
+            if feature_importance_table[key] <= low_score_threshold:
+                msg = f"feature {key} has a low score of {feature_importance_table[key]}"
+                print(msg)
+                f.write(msg + "\n")
+        print(_div)
+        f.write(_div + "\n")
+        for key in feature_importance_table:
+            if key.startswith("feat_lamp_") and feature_importance_table[key] > low_score_threshold:
+                msg = f"find useful global lamp feature {key} has a score of {feature_importance_table[key]}"
+                print(msg)
+                f.write(msg + "\n")
+        # ----- log split information -----
+        print(_div)
+        f.write(_div + "\n")
+        feature_importance_table = dict(zip(model.feature_name(), model.feature_importance("split").tolist()))
+        f.write("feature importance table (split):\n")
+        _keys: list[str] = sorted(feature_importance_table, key=lambda k: feature_importance_table[k])
+        for key in _keys:
+            f.write(f" - {key}: {feature_importance_table[key]}\n")
+        f.write(_div + "\n")
+        for key in _keys:
+            if feature_importance_table[key] <= low_score_threshold:
+                msg = f"feature {key} has a low score of {feature_importance_table[key]}"
+                print(msg)
+                f.write(msg + "\n")
+        print(_div)
+        f.write(_div + "\n")
+        for key in feature_importance_table:
+            if key.startswith("feat_lamp_") and feature_importance_table[key] > low_score_threshold:
+                msg = f"find useful global lamp feature {key} has a score of {feature_importance_table[key]}"
+                print(msg)
+                f.write(msg + "\n")
