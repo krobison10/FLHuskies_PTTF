@@ -32,12 +32,12 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
 
     # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
     data_tables = filter_tables(now, data_tables)
-    # filtered_table = add_etd(filtered_table, data_tables)
-    # filtered_table = add_traffic(now, filtered_table, data_tables)
+    filtered_table = add_etd(filtered_table, data_tables)
+    filtered_table = add_traffic(now, filtered_table, data_tables)
     filtered_table = add_averages(now, filtered_table, data_tables)
-    # filtered_table = add_delta(now, filtered_table, data_tables)
-    # filtered_table = add_config(filtered_table, data_tables)
-    # filtered_table = add_lamp(now, filtered_table, data_tables)
+    filtered_table = add_delta(now, filtered_table, data_tables)
+    filtered_table = add_config(filtered_table, data_tables)
+    filtered_table = add_lamp(now, filtered_table, data_tables)
 
     return filtered_table
 
@@ -130,8 +130,6 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # Add estimated flight length for each of the flights
     _df = add_estimated_flight_time(_df, feature_tables)
-
-    print("Done")
     # # Add additional etd features
     # _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
 

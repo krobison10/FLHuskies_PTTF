@@ -38,7 +38,7 @@ if __name__ == "__main__":
     save_table_as: str = "both" if args.s is None else str(args.s)
 
     # airports need to process
-    airports: tuple[str, ...] = ("KMEM", "KMIA", "KORD", "KPHX", "KSEA")
+    airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
     if args.a is not None:
         airport_selected: str = str(args.a).upper()
         if airport_selected in airports:
