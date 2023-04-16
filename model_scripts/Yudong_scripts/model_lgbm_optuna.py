@@ -18,15 +18,16 @@ def _train(
 ):
     dtrain = lgb.Dataset(X_train, label=y_train)
 
-    params: dict[str, Any] = {
+    params: dict = {
         "boosting_type": "gbdt",
         "objective": "regression_l1",
         "device_type": "gpu",
         "verbosity": -1,
-        "num_leaves": trial.suggest_int("num_leaves", 1024, 1024 * 8),
+        "num_leaves": trial.suggest_int("num_leaves", 1024 * 4, 1024 * 10),
         "n_estimators": trial.suggest_int("n_estimators", 64, 64 * 3),
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0),
         "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0),
+        "num_leaves": trial.suggest_int("num_leaves", 1024 * 4, 1024 * 10),
         "feature_fraction": trial.suggest_float("feature_fraction", 0.4, 1.0),
         "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
         "bagging_freq": trial.suggest_int("bagging_freq", 1, 7),
@@ -85,10 +86,10 @@ if __name__ == "__main__":
         "airport",
         "gufi_flight_date",
         "isdeparture",
-        "dep_ratio",
-        "arr_ratio",
         "gufi_flight_number",
         "precip",
+        "dep_ratio",
+        "arr_ratio",
     ]
 
     encoded_columns: list[str] = [
@@ -126,11 +127,6 @@ if __name__ == "__main__":
 
     for airport in ALL_AIRPORTS:
         train_df: pd.DataFrame = mytools.get_train_tables(airport, remove_duplicate_gufi=False)
-
-        # temporary remove global lamp feature fom testing
-        for col in train_df.columns.values.tolist():
-            if str(col).startswith("feat_lamp_") and col not in ignore_features:
-                ignore_features.append(col)
 
         train_df.drop(columns=ignore_features, inplace=True)
 
