@@ -29,8 +29,8 @@ def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFra
         [arrival_runways] * len(flights_selected), index=flights_selected.index
     )
 
-    flights_selected = add_ratios(flights_selected, "departure_runways")
-    flights_selected = add_ratios(flights_selected, "arrival_runways")
+    # flights_selected = add_ratios(flights_selected, "departure_runways")
+    # flights_selected = add_ratios(flights_selected, "arrival_runways")
 
     return flights_selected
 
