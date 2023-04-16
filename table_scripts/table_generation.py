@@ -18,7 +18,7 @@ from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
 from add_traffic import add_traffic
-from add_global_lamp import add_global_lamp
+from add_estimated_flight_time import add_estimated_flight_time
 from add_etd_features import add_etd_features
 from add_lamp import add_lamp
 from extract_gufi_features import extract_and_add_gufi_features
@@ -79,6 +79,14 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
             get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"),
             parse_dates=["departure_runway_estimated_time", "timestamp"],
         ).sort_values("timestamp"),
+        "tfm": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_tfm.csv"),
+            parse_dates=["arrival_runway_estimated_time", "timestamp"],
+        ).sort_values("timestamp"),
+        "tbfm": pd.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_tbfm.csv"),
+            parse_dates=["scheduled_runway_estimated_time", "timestamp"],
+        ).sort_values("timestamp"),
         "config": pd.read_csv(
             get_csv_path(data_dir, _airport, f"{_airport}_config.csv"), parse_dates=["timestamp"]
         ).sort_values("timestamp", ascending=False),
@@ -120,9 +128,8 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # extract holiday features
     _df = add_date_features(_df)
 
-    # TODO: determine what dataset is being used for the arrival and departure features
-    # Add global lamp features, based on the overall trends
-    # _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
+    # Add estimated flight length for each of the flights
+    _df = add_estimated_flight_time(_df, feature_tables)
 
     # Add additional etd features
     _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
