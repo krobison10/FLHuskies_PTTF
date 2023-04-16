@@ -16,12 +16,16 @@ def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[
 
     latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
 
-    # Estimated flight duration for all of the flights within last 30 hours
-    flights_selected["flight_time"] = (
-        latest_tfm["arrival_runway_estimated_time"] - latest_etd["departure_runway_estimated_time"]
-    ).dt.total_seconds() / 60
+    merged_df = pd.merge(latest_tfm, latest_etd, on="gufi")
 
-    flights_selected["flight_time"] = flights_selected["flight_time"].fillna(0)
-    flights_selected["flight_time"] = flights_selected["flight_time"].round(2)
+    # Estimated flight duration for all of the flights within last 30 hours
+    merged_df["flight_time"] = (
+        merged_df["arrival_runway_estimated_time"] - merged_df["departure_runway_estimated_time"]
+    ).dt.total_seconds() / 60
+    
+    merged_df["flight_time"] = merged_df["flight_time"].fillna(0)
+    merged_df["flight_time"] = merged_df["flight_time"].round()
+
+    flights_selected = pd.merge(flights_selected, merged_df[["flight_time"]], on="gufi", how = "left")
 
     return flights_selected
