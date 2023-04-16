@@ -18,8 +18,24 @@ from datetime import timedelta
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 import re
-from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
+encoded_columns = [
+    "airport",
+    "departure_runways",
+    "arrival_runways",
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "gufi_flight_number",
+    "gufi_flight_major_carrier",
+    "gufi_flight_destination_airport",
+    "gufi_flight_FAA_system",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    "isdeparture"
+    ]
 
 def add_traffic(
     now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
@@ -77,18 +93,17 @@ def count_planes_taxiing(mfs, runways, standtimes, flights: str) -> int:
     mfs = mfs.loc[mfs["isdeparture"] == (flights == "departures")]
 
     if flights == "departures":
-        taxi = pd.merge(mfs, standtimes, on="gufi")  # inner join will only result in flights with departure stand times
-        taxi = pd.merge(taxi, runways, how="left", on="gufi")  # left join leaves blanks for taxiing flights
-        taxi = taxi.loc[pd.isna(taxi["departure_runway_actual_time"])]  # select the taxiing flights
+        taxi = pd.merge(mfs, standtimes, on="gufi") # inner join will only result in flights with departure stand times
+        taxi = pd.merge(taxi, runways, how="left", on="gufi") # left join leaves blanks for taxiing flights
+        taxi = taxi.loc[pd.isna(taxi["departure_runway_actual_time"])] # select the taxiing flights
     elif flights == "arrivals":
-        taxi = runways.loc[pd.notna(runways["arrival_runway_actual_time"])]  # arrivals are rows with valid time
-        taxi = pd.merge(taxi, standtimes, how="left", on="gufi")  # left merge with standtime
-        taxi = taxi.loc[pd.isna(taxi["arrival_stand_actual_time"])]  # empty standtimes mean still taxiing
+        taxi = runways.loc[pd.notna(runways["arrival_runway_actual_time"])] # arrivals are rows with valid time
+        taxi = pd.merge(taxi, standtimes, how="left", on="gufi") # left merge with standtime
+        taxi = taxi.loc[pd.isna(taxi["arrival_stand_actual_time"])] # empty standtimes mean still taxiing
     else:
         raise RuntimeError("Invalid argument, must specify departures or arrivals")
 
     return taxi.shape[0]
-
 
 def count_expected_departures(gufi: str, etd: pd.DataFrame, window: int) -> int:
     time = etd.loc[etd["gufi"] == gufi]["departure_runway_estimated_time"].iloc[0]
@@ -103,97 +118,14 @@ def count_expected_departures(gufi: str, etd: pd.DataFrame, window: int) -> int:
 
     return etd_window.shape[0]
 
-
 def load_model(solution_directory: Path) -> Any:
     """Load any model assets from disk."""
     with (solution_directory / "models.pickle").open("rb") as fp:
         model = pickle.load(fp)
+    with (solution_directory / "encoders.pickle").open("rb") as fp:
+        encoders = pickle.load(fp)
 
-    return model
-
-
-# add global lamp forecast weather information with 6 hour moving window of
-# av, max, and min, based on the historic trends
-def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame) -> pd.DataFrame:
-    """
-    Extracts features of weather forecasts for each airport and appends it to the
-    existing master table
-    :param pd.Dataframe _df: Existing feature set at a timestamp-airport level
-    :return pd.Dataframe _df: Master table enlarged with additional features
-    """
-
-    weather = pd.DataFrame()
-
-    current["lightning_prob"] = current["lightning_prob"].map({"L": 0, "M": 1, "N": 2, "H": 3})
-
-    current["cloud"] = current["cloud"].map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2}).fillna(3)
-
-    current["precip"] = current["precip"].astype(float)
-
-    current["time_ahead_prediction"] = (current["forecast_timestamp"] - current["timestamp"]).dt.total_seconds() / 3600
-    current.sort_values(["timestamp", "time_ahead_prediction"], inplace=True)
-
-    past_temperatures = (
-        current.groupby("timestamp").first().drop(columns=["forecast_timestamp", "time_ahead_prediction"])
-    )
-
-    past_temperatures = past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
-
-    past_temperatures.columns = [
-        "feats_lamp_" + c[0] + "_" + c[1] + "_last6h" if c[0] != "timestamp" else "timestamp"
-        for c in past_temperatures.columns
-    ]
-    past_temperatures = past_temperatures.set_index("timestamp").resample("15min").ffill().reset_index()
-
-    current_feats = past_temperatures.copy()
-
-    for p in range(1, 7):
-        next_temp = (
-            current[(current.time_ahead_prediction <= p) & (current.time_ahead_prediction > p - 1)]
-            .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
-            .groupby("timestamp")
-            .mean()
-            .reset_index()
-        )
-        next_temp.columns = [
-            "feat_lamp_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp" for c in next_temp.columns
-        ]
-        next_temp = next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
-        current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
-
-    weather = pd.concat([weather, current_feats])
-
-    _df = _df.merge(weather, how="left", on=["timestamp"])
-
-    # Add global weather features
-    weather_feats = [c for c in weather.columns if "feat_lamp" in c]
-    # Create an empty DataFrame to hold the aggregated weather features
-    weather_agg = pd.DataFrame()
-
-    # Iterate over the weather features
-    for feat in weather_feats:
-        # Group weather by timestamp and calculate the desired aggregation functions
-        feat_min = weather.groupby("timestamp")[feat].min()
-        feat_mean = weather.groupby("timestamp")[feat].mean()
-        feat_max = weather.groupby("timestamp")[feat].max()
-
-        # Concatenate the aggregated features to weather_agg DataFrame
-        feat_agg = pd.concat([feat_min, feat_mean, feat_max], axis=1)
-
-        # Rename the columns in feat_agg DataFrame
-        feat_agg.columns = [feat + "_global_min", feat + "_global_mean", feat + "_global_max"]
-
-        # Merge feat_agg to weather_agg DataFrame on "timestamp" column
-        weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
-
-    # Reset the index of weather_agg DataFrame
-    weather_agg.reset_index(inplace=True)
-
-    # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
-    _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
-
-    return _df
-
+    return [model, encoders]
 
 def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
     from pandarallel import pandarallel
@@ -201,6 +133,7 @@ def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
     pandarallel.initialize()
 
     _df["year"] = _df.parallel_apply(lambda x: x.timestamp.year, axis=1)
+    _df["quarter"] = _df.parallel_apply(lambda x: x.timestamp.quarter, axis=1)
     _df["month"] = _df.parallel_apply(lambda x: x.timestamp.month, axis=1)
     _df["day"] = _df.parallel_apply(lambda x: x.timestamp.day, axis=1)
     _df["hour"] = _df.parallel_apply(lambda x: x.timestamp.hour, axis=1)
@@ -257,10 +190,9 @@ def extract_and_add_gufi_features(_df: pd.DataFrame) -> pd.DataFrame:
 
     return _df
 
+def average_departure_delay(etd_filtered: pd.DataFrame, runways_filtered: pd.DataFrame,
+                            column_name: str = "departure_runway_actual_time") -> float:
 
-def average_departure_delay(
-    etd_filtered: pd.DataFrame, runways_filtered: pd.DataFrame, column_name: str = "departure_runway_actual_time"
-) -> float:
     merged_df = pd.merge(etd_filtered, runways_filtered, on="gufi")
 
     merged_df["departure_delay"] = (
@@ -273,8 +205,49 @@ def average_departure_delay(
 
     return round(avg_delay, 2)
 
+def average_arrival_delay(tfm_filtered: pd.DataFrame, runways_filtered: pd.DataFrame,
+                            column_name: str = "arrival_runway_actual_time") -> float:
+    """
+    Difference between the time that the airplane was scheduled to arrive and the time it is
+    truly arriving
+    """
+    merged_df = pd.merge(tfm_filtered, runways_filtered, on="gufi")
+
+    merged_df["arrival_delay"] = (
+        merged_df[column_name] - merged_df["arrival_runway_estimated_time"]
+    ).dt.total_seconds() / 60
+
+    avg_delay: float = merged_df["arrival_delay"].mean()
+    if math.isnan(avg_delay):
+        avg_delay = 0
+
+    return round(avg_delay, 2)
+
+def average_arrival_delay_on_prediction(tfm_filtered: pd.DataFrame, tbfm_filtered: pd.DataFrame,
+                            column_name: str = "arrival_runway_estimated_time") -> float:
+    """
+    Difference between the time that the airplane was scheduled to arrive and the time it is currently 
+    estimated to arrive
+    """
+
+    print("HELLOO!!!!!!!!")
+
+    merged_df = pd.merge(tfm_filtered, tbfm_filtered, on="gufi")
+
+    print("###", merged_df.columns)
+
+    merged_df["arrival_delay"] = (
+        merged_df[column_name] - merged_df["scheduled_runway_estimated_time"]
+    ).dt.total_seconds() / 60
+
+    avg_delay: float = merged_df["arrival_delay"].mean()
+    if math.isnan(avg_delay):
+        avg_delay = 0
+
+    return round(avg_delay, 2)
 
 def average_stand_time(origin_filtered: pd.DataFrame, standtimes_filtered: pd.DataFrame) -> float:
+
     merged_df = pd.merge(origin_filtered, standtimes_filtered, on="gufi")
 
     merged_df["avg_stand_time"] = (
@@ -288,9 +261,9 @@ def average_stand_time(origin_filtered: pd.DataFrame, standtimes_filtered: pd.Da
     return round(avg_stand_time, 2)
 
 
-def average_taxi_time(
-    mfs: pd.DataFrame, standtimes: pd.DataFrame, runways_filtered: pd.DataFrame, departures: bool = True
-) -> float:
+def average_taxi_time(mfs: pd.DataFrame, standtimes: pd.DataFrame, runways_filtered: pd.DataFrame,
+                      departures: bool = True) -> float:
+
     mfs = mfs.loc[mfs["isdeparture"] == departures]
 
     merged_df = pd.merge(runways_filtered, mfs, on="gufi")
@@ -311,12 +284,45 @@ def average_taxi_time(
 
     return round(avg_taxi_time, 2)
 
+def average_true_flight_time(standtimes: pd.DataFrame) -> float:
+    """
+    The true time it takes for the flight to happen, avereged over n filtered hours
+    Not available for the predicted flight
+    """
+    df = standtimes.copy()
+
+    df["flight_time"] = (
+        df["arrival_stand_actual_time"] - df["departure_stand_actual_time"]
+    ).dt.total_seconds() / 60
+
+    avg_flight_time: float = df["flight_time"].mean()
+    if math.isnan(avg_flight_time):
+        avg_flight_time = 0
+
+    return round(avg_flight_time, 2)
+
+
+def average_flight_delay(standtimes: pd.DataFrame) -> float:
+    """
+    Delta between the true time it took to fly to the airport
+    and estimated time was supposed to take for the flight to happen
+    """
+    df = standtimes.copy()
+
+    df["flight_time"] = (
+        df["arrival_stand_actual_time"] - df["departure_stand_actual_time"]
+    ).dt.total_seconds() / 60
+
+    avg_flight_time: float = df["flight_time"].mean()
+    if math.isnan(avg_flight_time):
+        avg_flight_time = 0
+
+    return round(avg_flight_time, 2)
 
 # returns a version of the passed in dataframe that only contains entries
 # between the time 'now' and n hours prior
 def filter_by_timestamp(df: pd.DataFrame, now: pd.Timestamp, hours: int) -> pd.DataFrame:
     return df.loc[(df.timestamp > now - timedelta(hours=hours)) & (df.timestamp <= now)]
-
 
 def add_averages(
     now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
@@ -325,13 +331,29 @@ def add_averages(
 
     latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
 
+    latest_tfm: pd.DataFrame = data_tables["tfm"].groupby("gufi").last()
+
+    latest_tbfm: pd.DataFrame = data_tables["tbfm"].groupby("gufi").last()
+
     runways: pd.DataFrame = data_tables["runways"]
     standtimes: pd.DataFrame = data_tables["standtimes"]
     origin: pd.DataFrame = data_tables["first_position"].rename(columns={"timestamp": "origin_time"})
 
-    # 30 hour features, no need to filter
     delay_30hr = average_departure_delay(latest_etd, runways)
     flights_selected["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
+    delay_3hr = average_departure_delay(latest_etd, runways)
+    flights_selected["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
+
+    # 30 hour features, no need to filter
+    #delay_30hr_dep = average_departure_delay(latest_etd, runways)
+    #flights_selected["delay_30hr_dep"] = pd.Series([delay_30hr_dep] * len(flights_selected), index=flights_selected.index)
+
+    # 30 hour features, no need to filter
+    #delay_30hr_arr = average_arrival_delay(latest_tfm, runways)
+    #flights_selected["delay_30hr_arr"] = pd.Series([delay_30hr_arr] * len(flights_selected), index=flights_selected.index)
+
+    #delay_30hr_arr_prediction = average_arrival_delay_on_prediction(latest_tbfm, runways)
+    #flights_selected["delay_30hr_arr_pred"] = pd.Series([delay_30hr_arr_prediction] * len(flights_selected), index=flights_selected.index)
 
     standtime_30hr = average_stand_time(origin, standtimes)
     flights_selected["standtime_30hr"] = pd.Series(
@@ -339,114 +361,48 @@ def add_averages(
     )
 
     dep_taxi_30hr = average_taxi_time(mfs, standtimes, runways)
-    flights_selected["dep_taxi_30hr"] = pd.Series([dep_taxi_30hr] * len(flights_selected), index=flights_selected.index)
+    flights_selected['dep_taxi_30hr'] = pd.Series([dep_taxi_30hr] * len(flights_selected), index=flights_selected.index)
 
     arr_taxi_30hr = average_taxi_time(mfs, standtimes, runways, departures=False)
-    flights_selected["arr_taxi_30hr"] = pd.Series([arr_taxi_30hr] * len(flights_selected), index=flights_selected.index)
+    flights_selected['arr_taxi_30hr'] = pd.Series([arr_taxi_30hr] * len(flights_selected), index=flights_selected.index)
+
+    #av_flight_time30hr = average_true_flight_time(standtimes)
+    #flights_selected['flight_time_30hr'] = pd.Series([av_flight_time30hr] * len(flights_selected), index=flights_selected.index)
 
     # 3 hour features
     latest_etd = filter_by_timestamp(latest_etd, now, 3)
+    latest_tfm = filter_by_timestamp(latest_tfm, now, 3)
+    latest_tbfm = filter_by_timestamp(latest_tfm, now, 3)
     runways = filter_by_timestamp(runways, now, 3)
     standtimes = filter_by_timestamp(standtimes, now, 3)
     origin = origin.loc[(origin.origin_time > now - timedelta(hours=3)) & (origin.origin_time <= now)]
 
-    delay_3hr = average_departure_delay(latest_etd, runways)
-    flights_selected["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
+
+    #delay_3hr_dep = average_departure_delay(latest_etd, runways)
+    #flights_selected["delay_3hr_dep"] = pd.Series([delay_3hr_dep] * len(flights_selected), index=flights_selected.index)
+
+    # 30 hour features, no need to filter
+    #delay_3hr_arr = average_arrival_delay(latest_tfm, runways)
+    #flights_selected["delay_3hr_arr"] = pd.Series([delay_3hr_arr] * len(flights_selected), index=flights_selected.index)
+   
+    #delay_3hr_arr_prediction = average_arrival_delay_on_prediction(latest_tbfm, runways)
+    #flights_selected["delay_3hr_arr_pred"] = pd.Series([delay_3hr_arr_prediction] * len(flights_selected), index=flights_selected.index)
 
     standtime_3hr = average_stand_time(origin, standtimes)
     flights_selected["standtime_3hr"] = pd.Series([standtime_3hr] * len(flights_selected), index=flights_selected.index)
 
     dep_taxi_3hr = average_taxi_time(mfs, standtimes, runways)
-    flights_selected["dep_taxi_3hr"] = pd.Series([dep_taxi_3hr] * len(flights_selected), index=flights_selected.index)
+    flights_selected['dep_taxi_3hr'] = pd.Series([dep_taxi_3hr] * len(flights_selected), index=flights_selected.index)
 
     arr_taxi_3hr = average_taxi_time(mfs, standtimes, runways, departures=False)
-    flights_selected["arr_taxi_3hr"] = pd.Series([arr_taxi_3hr] * len(flights_selected), index=flights_selected.index)
+    flights_selected['arr_taxi_3hr'] = pd.Series([arr_taxi_3hr] * len(flights_selected), index=flights_selected.index)
+
+    #av_flight_time3hr = average_true_flight_time(standtimes)
+    #flights_selected['flight_time_3hr'] = pd.Series([av_flight_time3hr] * len(flights_selected), index=flights_selected.index)
 
     return flights_selected
 
-
-def add_global_lamp(_df: pd.DataFrame, current: pd.DataFrame) -> pd.DataFrame:
-    """
-    Extracts features of weather forecasts for each airport and appends it to the
-    existing master table
-    :param pd.Dataframe _df: Existing feature set at a timestamp-airport level
-    :return pd.Dataframe _df: Master table enlarged with additional features
-    """
-
-    weather = pd.DataFrame()
-
-    current["lightning_prob"] = current["lightning_prob"].map({"L": 0, "M": 1, "N": 2, "H": 3})
-
-    current["cloud"] = current["cloud"].map({"OV": 4, "BK": 3, "CL": 0, "FW": 1, "SC": 2}).fillna(3)
-
-    current["precip"] = current["precip"].astype(float)
-
-    current["time_ahead_prediction"] = (current["forecast_timestamp"] - current["timestamp"]).dt.total_seconds() / 3600
-    current.sort_values(["timestamp", "time_ahead_prediction"], inplace=True)
-
-    past_temperatures = (
-        current.groupby("timestamp").first().drop(columns=["forecast_timestamp", "time_ahead_prediction"])
-    )
-
-    past_temperatures = past_temperatures.rolling("6h").agg({"mean", "min", "max"}).reset_index()
-
-    past_temperatures.columns = [
-        "feats_lamp_" + c[0] + "_" + c[1] + "_last6h" if c[0] != "timestamp" else "timestamp"
-        for c in past_temperatures.columns
-    ]
-    past_temperatures = past_temperatures.set_index("timestamp").resample("15min").ffill().reset_index()
-
-    current_feats = past_temperatures.copy()
-
-    for p in 1, 6, 24:
-        next_temp = (
-            current[(current.time_ahead_prediction <= p) & (current.time_ahead_prediction > p - 1)]
-            .drop(columns=["forecast_timestamp", "time_ahead_prediction"])
-            .groupby("timestamp")
-            .mean()
-            .reset_index()
-        )
-        next_temp.columns = [
-            "feat_lamp_" + c + "_next_" + str(p) if c != "timestamp" else "timestamp" for c in next_temp.columns
-        ]
-        next_temp = next_temp.set_index("timestamp").resample("15min").ffill().reset_index()
-        current_feats = current_feats.merge(next_temp, how="left", on="timestamp")
-
-    weather = pd.concat([weather, current_feats])
-
-    _df = _df.merge(weather, how="left", on=["timestamp"])
-
-    # Add global weather features
-    weather_feats = [c for c in weather.columns if "feat_lamp" in c]
-    # Create an empty DataFrame to hold the aggregated weather features
-    weather_agg = pd.DataFrame()
-
-    # Iterate over the weather features
-    for feat in weather_feats:
-        # Group weather by timestamp and calculate the desired aggregation functions
-        feat_min = weather.groupby("timestamp")[feat].min()
-        feat_mean = weather.groupby("timestamp")[feat].mean()
-        feat_max = weather.groupby("timestamp")[feat].max()
-
-        # Concatenate the aggregated features to weather_agg DataFrame
-        feat_agg = pd.concat([feat_min, feat_mean, feat_max], axis=1)
-
-        # Rename the columns in feat_agg DataFrame
-        feat_agg.columns = [feat + "_global_min", feat + "_global_mean", feat + "_global_max"]
-
-        # Merge feat_agg to weather_agg DataFrame on "timestamp" column
-        weather_agg = pd.concat([weather_agg, feat_agg], axis=1)
-
-    # Reset the index of weather_agg DataFrame
-    weather_agg.fillna(0).astype(float)
-
-    # Merge weather_agg DataFrame to _df DataFrame on "timestamp" column
-    _df = pd.merge(_df, weather_agg, how="left", on="timestamp")
-
-    return _df
-
-
-def add_etd_features(_df: pd.DataFrame, raw_data: pd.DataFrame) -> pd.DataFrame:
+def add_etd_features(_df: pd.DataFrame,raw_data:pd.DataFrame) -> pd.DataFrame:
     """
     Extracts estimated time of departure features and appends it to the existing dataframe
     :param pd.DataFrame _df: Existing feature set at a timestamp-airport level
@@ -456,16 +412,20 @@ def add_etd_features(_df: pd.DataFrame, raw_data: pd.DataFrame) -> pd.DataFrame:
     etd_features = pd.DataFrame()
 
     etd = raw_data.copy()
-
+    
     etd["timestamp"] = etd.timestamp.dt.ceil("15min")
-    etd["departure_runway_estimated_time"] = pd.to_datetime(etd["departure_runway_estimated_time"])
+    etd["departure_runway_estimated_time"] = pd.to_datetime(
+        etd["departure_runway_estimated_time"]
+    )
     etd = etd[etd["timestamp"] < etd["departure_runway_estimated_time"]]
 
     complete_etd = etd.copy()
     for i in range(1, 4 * 25):
         current = etd.copy()
         current["timestamp"] = current["timestamp"] + pd.Timedelta(f"{i * 15}min")
-        current = current[current["timestamp"] < current["departure_runway_estimated_time"]]
+        current = current[
+            current["timestamp"] < current["departure_runway_estimated_time"]
+        ]
         complete_etd = pd.concat([complete_etd, current])
 
     complete_etd["time_ahead"] = (
@@ -473,15 +433,19 @@ def add_etd_features(_df: pd.DataFrame, raw_data: pd.DataFrame) -> pd.DataFrame:
     ).dt.total_seconds()
     complete_etd = complete_etd.groupby(["gufi", "timestamp"]).first().reset_index()
 
-    for i in [30, 60, 180, 720, 1400]:
-        complete_etd[f"estdep_next_{i}min"] = (complete_etd["time_ahead"] < i * 60).astype(int)
+    for i in [30, 60, 180, 1400]:
+        complete_etd[f"estdep_next_{i}min"] = (
+            complete_etd["time_ahead"] < i * 60
+        ).astype(int)
     complete_etd.sort_values("time_ahead", inplace=True)
 
-    for i in [30, 60, 180, 720, 1400]:
-        complete_etd[f"estdep_num_next_{i}min"] = (complete_etd["time_ahead"] < i * 60).astype(int)
+    for i in [30, 60, 180, 1400]:
+        complete_etd[f"estdep_num_next_{i}min"] = (
+            complete_etd["time_ahead"] < i * 60
+        ).astype(int)
     complete_etd.sort_values("time_ahead", inplace=True)
 
-    # number of flights departing from the airport
+    # number of flights departing from the airport 
     etd_aggregation = (
         complete_etd.groupby("timestamp")
         .agg(
@@ -489,30 +453,24 @@ def add_etd_features(_df: pd.DataFrame, raw_data: pd.DataFrame) -> pd.DataFrame:
                 "gufi": "count",
                 "estdep_next_30min": "sum",
                 "estdep_next_60min": "sum",
-                # "estdep_next_90min": "sum",
-                # "estdep_next_120min": "sum",
-                # "estdep_next_150min": "sum",
                 "estdep_next_180min": "sum",
-                # "estdep_next_210min": "sum",
-                # "estdep_next_240min": "sum",
-                # "estdep_next_270min": "sum",
-                # "estdep_next_300min": "sum",
-                # "estdep_next_330min": "sum",
-                # "estdep_next_360min": "sum",
                 "estdep_next_1400min": "sum",
             }
         )
         .reset_index()
     )
 
-    etd_aggregation.columns = ["feat_5_" + c if c != "timestamp" else c for c in etd_aggregation.columns]
+    etd_aggregation.columns = [
+        "feat_5_" + c if c != "timestamp" else c for c in etd_aggregation.columns
+    ]
 
     etd_features = pd.concat([etd_features, etd_aggregation])
 
-    _df = _df.merge(etd_features, how="left", on=["timestamp"])
+    _df = _df.merge(
+        etd_features, how="left", on=["timestamp"]
+    )
 
     return _df
-
 
 def add_etd(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     final_table = flights_selected
@@ -534,10 +492,11 @@ def add_etd(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 
     return final_table
 
-
-def add_delta(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def add_delta(
+    now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
     latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
-
+    
     standtimes: pd.DataFrame = data_tables["standtimes"]
 
     # How long, on average, passes between the time that departure is estimated to happen
@@ -548,7 +507,6 @@ def add_delta(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: di
     flights_selected["1h_ETDP"] = pd.Series([PDd_1hr] * len(flights_selected), index=flights_selected.index)
 
     return flights_selected
-
 
 def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # filter features to 30 hours before prediction time to prediction time and save as a copy
@@ -570,34 +528,36 @@ def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFra
         [arrival_runways] * len(flights_selected), index=flights_selected.index
     )
 
-    # flights_selected = add_ratios(config, flights_selected)
+    flights_selected = add_ratios(flights_selected, "departure_runways")
+    flights_selected = add_ratios(flights_selected, "arrival_runways")
 
     return flights_selected
 
+def add_ratios(flights_selected: pd.DataFrame, column_name:str):
+   
+    new_column_name = column_name + '_ratio'
 
-def add_ratios(config: pd.DataFrame, flights_selected: pd.DataFrame):
-    # Find the maximum count across all columns
-    max_count_dep = (flights_selected["departure_runways"].astype(str).str.count(",").max()) + 1
+    flights_selected[column_name] = flights_selected[column_name].astype(str)
 
-    # Find the maximum count across all columns
-    max_count_arr = (flights_selected["arrival_runways"].astype(str).str.count(",").max()) + 1
+    # Compute the mean number of commas in the given column
+    mean_num_commas = flights_selected[column_name].str.count(',').mean() + 1
 
-    # Get the ratio of how much of the departure runways are used
-    flights_selected["dep_ratio"] = (
-        flights_selected["departure_runways"].astype(str).str.count(",") + 1
-    ) / max_count_dep
+    # Compute the max number of commas in the given column
+    max_num_commas = flights_selected[column_name].str.count(',').max() + 1
 
-    # Replace NaN values in dep_ratio column with closest previous available value
-    flights_selected["dep_ratio"].fillna(method="ffill", inplace=True)
+    # Loop through each row in the DataFrame
+    for index, row in flights_selected.iterrows():
+        num_commas = row[column_name].count(',')
+        if num_commas == 0:
+            # If row doesn't contain any commas, fill with mean number of commas divided by maximum number of columns
+            flights_selected.at[index, new_column_name] = mean_num_commas / max_num_commas
+        else:
+            flights_selected.at[index, new_column_name] = num_commas/ max_num_commas
 
-    # Get the ratio of how much of the arrival runways are used
-    flights_selected["arr_ratio"] = (flights_selected["arrival_runways"].astype(str).str.count(",") + 1) / max_count_arr
-
-    # Replace NaN values in arr_ratio column with closest previous available value
-    flights_selected["arr_ratio"].fillna(method="ffill", inplace=True)
+    flights_selected[new_column_name] = flights_selected[new_column_name].fillna(0).astype(float)
+    flights_selected[new_column_name] = flights_selected[new_column_name].round(1)
 
     return flights_selected
-
 
 def add_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # forecasts that can be used for prediction
@@ -648,13 +608,12 @@ def add_lamp(now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dic
         flights_selected[key] = "UNK"
     return flights_selected
 
-
 def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
     filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
     # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
-    # data_tables = filter_tables(now, data_tables)
+    #data_tables = filter_tables(now, data_tables)
     filtered_table = add_etd(filtered_table, data_tables)
     filtered_table = add_traffic(now, filtered_table, data_tables)
     filtered_table = add_averages(now, filtered_table, data_tables)
@@ -663,7 +622,6 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
     return filtered_table
-
 
 def predict(
     config: pd.DataFrame,
@@ -687,40 +645,41 @@ def predict(
     if len(partial_submission_format) == 0:
         return partial_submission_format
 
-    _df: pd.DataFrame = partial_submission_format.copy()
+    model, encoders = model[0], model[1]
+
+    _df: pd.DataFrame =  partial_submission_format.copy()
 
     feature_tables: dict[str, pd.DataFrame] = {
         "etd": etd.sort_values("timestamp"),
+        "tfm": tfm.sort_values("timestamp"),
+        "tbfm": tbfm.sort_values("timestamp"),
         "config": config.sort_values("timestamp", ascending=False),
         "first_position": first_position,
-        "lamp": lamp.set_index("timestamp", drop=False).sort_index(),
+        "lamp": lamp
+        .set_index("timestamp", drop=False)
+        .sort_index(),
         "runways": runways,
         "standtimes": standtimes,
         "mfs": mfs,
     }
+
+    #print(tfm.columns)
+    #print(tbfm.columns)
 
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:
         fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
         unique_timestamp = _df.timestamp.unique()
         inputs = zip(pd.to_datetime(unique_timestamp))
-        timestamp_tables: list[pd.DataFrame] = executor.starmap(
-            fn, tqdm(inputs, total=len(unique_timestamp), disable=True)
-        )
+        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp), disable=True))
 
     _df = pd.concat(timestamp_tables, ignore_index=True)
     _df = extract_and_add_gufi_features(_df)
     _df = add_date_features(_df)
-    # _df = add_global_lamp(_df, lamp.reset_index(drop=True))
+    #_df = add_global_lamp(_df, lamp.reset_index(drop=True))
     _df = add_etd_features(_df, etd)
 
-    _df = _df.merge(
-        mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi", "isdeparture"]].fillna(
-            "UNK"
-        ),
-        how="left",
-        on="gufi",
-    )
+    _df = _df.merge(mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi", "isdeparture"]].fillna("UNK"), how="left", on="gufi")
 
     # for col in ["temperature","wind_direction","wind_speed","wind_gust","cloud_ceiling","visibility"]:
     #     _df[col] = _df["timestamp"].apply(lambda now: lamp.sort_values("timestamp").iloc[-1][col]).fillna(0)
@@ -732,46 +691,42 @@ def predict(
     # minutes_until_etd = partial_submission_format.merge(
     #     latest_etd, how="left", on="gufi"
     # ).departure_runway_estimated_time
-
+    
     # minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds()/60
 
     # _df["minutes_until_etd"] = minutes_until_etd
 
-    encoded_columns: list[str] = [
-        "cloud",
-        "lightning_prob",
-        "precip",
-        "aircraft_engine_class",
-        "aircraft_type",
-        "major_carrier",
-        "flight_type",
-        "departure_runways",
-        "arrival_runways",
-        "gufi_flight_destination_airport",
-        "gufi_flight_FAA_system",
-        "gufi_flight_major_carrier",
-    ]
+    # for c in tqdm(_df.columns):
+    #     col_type = _df[c].dtype
+    #     if col_type == 'object' or col_type == 'string' or "cat" in c:
+    #         _df[c] = _df[c].astype('category')
+
+
+
+    _df["precip"] = _df["precip"].astype(str)
+    _df["isdeparture"] = _df["isdeparture"].astype(str)
+
+    for col in encoded_columns:
+        _df[[col]] = encoders[col].transform(_df[[col]].values)
 
     offset = 2
-    features_all = (_df.columns.values.tolist())[offset : (len(_df.columns.values))]
-    features_remove = ("gufi_flight_date", "minutes_until_pushback")
-    features = [
-        x
-        for x in features_all
-        if x not in features_remove and not str(x).startswith("feat_lamp_") and not str(x).startswith("feats_lamp_")
-    ]
+    features_all = (_df.columns.values.tolist())[offset:(len(_df.columns.values))]
+    features_remove = ("gufi_flight_date","minutes_until_pushback", "dep_ratio", "arr_ratio", "departure_runways_ratio", "arrival_runways_ratio")
+    features = [x for x in features_all if x not in features_remove and not str(x).startswith("feat_lamp_") and not str(x).startswith("feats_lamp_")]
 
-    for i in range(len(encoded_columns) - 1, -1, -1):
-        if encoded_columns[i] not in features:
-            encoded_columns.pop(i)
-
-    for _col in encoded_columns:
-        encoder: OrdinalEncoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
-        _df[[_col]] = encoder.fit_transform(_df[[_col]])
+    # A = set(features)
+    # B = set(model[airport].feature_name())
+    # #print("DF Features: ", A)
+    # #print()
+    # #print("Model Features:" , B)
+    # #print()
+    # print("In Features, but not Model Features: ", A-B)
+    # print()
+    # print("In Model Features, but not Features: ",B-A)
 
     prediction = partial_submission_format.copy()
-
-    prediction["minutes_until_pushback"] = model[airport].predict(_df[features], categorical_features=encoded_columns)
+    
+    prediction["minutes_until_pushback"] = model[airport].predict(_df[features], categorical_features="auto")
 
     prediction["minutes_until_pushback"] = prediction.minutes_until_pushback.clip(lower=0).fillna(0)
 
