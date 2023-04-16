@@ -122,7 +122,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # TODO: determine what dataset is being used for the arrival and departure features
     # Add global lamp features, based on the overall trends
-    _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
+    # _df = add_global_lamp(_df, feature_tables["lamp"].reset_index(drop=True), airport=_airport)
 
     # Add additional etd features
     _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
