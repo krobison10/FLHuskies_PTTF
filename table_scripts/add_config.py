@@ -41,10 +41,10 @@ def add_ratios(flights_selected: pd.DataFrame, column_name:str):
     new_column_name = column_name + '_ratio'
 
     # Compute the mean number of commas in the given column
-    mean_num_commas = flights_selected[column_name].str.count(',').mean() + 1
+    mean_num_commas = flights_selected[column_name].astype(str).str.count(',').mean() + 1
 
     # Compute the max number of commas in the given column
-    max_num_commas = flights_selected[column_name].str.count(',').max() + 1
+    max_num_commas = flights_selected[column_name].astype(str).str.count(',').max() + 1
 
     # Loop through each row in the DataFrame
     for index, row in flights_selected.iterrows():
