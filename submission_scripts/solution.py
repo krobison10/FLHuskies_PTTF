@@ -588,7 +588,7 @@ def predict(
     features_remove = ("gufi_flight_date", "minutes_until_pushback", "departure_runways_ratio",
                        "arrival_runways_ratio", "precip", "isdeparture", "gufi_flight_FAA_system",
                        "aircraft_engine_class", "quarter", "flight_type")
-    features = [x for x in features_all if x not in features_remove and not str(x).startswith("feat_lamp_") and not str(x).startswith("feats_lamp_")]
+    features = [x for x in features_all if x not in features_remove]
 
     # A = set(features)
     # B = set(model[airport].feature_name())
