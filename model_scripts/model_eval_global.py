@@ -9,6 +9,7 @@ import pandas as pd
 import lightgbm as lgb
 import pickle
 import argparse
+from sklearn.preprocessing import LabelEncoder
 
 DATA_DIRECTORY_TRAIN = Path("./train_tables")
 DATA_DIRECTORY_VAL = Path("./validation_tables")
@@ -54,15 +55,12 @@ val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi
 
 # train.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
 
+cat_feats = []
 for c in train.columns:
     col_type = train[c].dtype
     if col_type != 'float' or col_type == 'string' in c:
         train[c] = train[c].astype('category')
-
-for c in val.columns:
-    col_type = val[c].dtype
-    if col_type == 'object' or col_type == 'string' in c:
-        val[c] = val[c].astype('category')
+        cat_feats.append(c)
 
 #remove test for training the models
 # test[cat_feature] = test[cat_feature].astype(str)
@@ -74,12 +72,19 @@ offset = 2
 features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
 features_all_val = (val.columns.values.tolist())[offset:(len(val.columns.values))]
 
-print("Difference, in train but not val: ",[x for x in features_all if x not in features_all_val])
-print("Difference, in val but not train: ",[x for x in features_all_val if x not in features_all])
-
 features_remove = ("gufi_flight_date","minutes_until_pushback")
 features = [x for x in features_all if x not in features_remove]
 features_val = ["minutes_until_pushback","airport"]
+
+labelencoder = LabelEncoder()
+
+for col in cat_feats:
+    train[col] = labelencoder.fit_transform(train[col])
+    val[col] = labelencoder.transform(val[col])
+
+for col in cat_feats:
+    train[col] = train[col].astype('int')
+    val[col] = val[col].astype('int')
 
 X_train = train[features]
 y_train = train[features_val]
@@ -87,13 +92,11 @@ y_train = train[features_val]
 X_val = val[features]
 y_val = val[features_val]
 
-print("Train:",X_train.shape)
-print("Val:",X_val.shape)
 
-label = y_train["minutes_until_pushback"]
-
-train_data = lgb.Dataset(X_train, label=label)
-
+train_data = lgb.Dataset(X_train, 
+                         label=y_train["minutes_until_pushback"], 
+                         categorical_feature=cat_feats, 
+                         free_raw_data=False)
 fit_params = { 
     'boosting_type': 'rf', # Type of boosting algorithm
     'objective': 'regression_l1', # Type of task (regression)
@@ -106,7 +109,7 @@ fit_params = {
 
 regressor = LGBMRegressor(**fit_params)
 
-regressor.fit(X_train, label)
+regressor.fit(X_train, y_train["minutes_until_pushback"])
 
 y_pred = regressor.predict(X_val,num_iteration=regressor.best_iteration_)
 

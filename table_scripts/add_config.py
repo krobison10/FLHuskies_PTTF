@@ -29,8 +29,8 @@ def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFra
         [arrival_runways] * len(flights_selected), index=flights_selected.index
     )
 
-    # flights_selected = add_ratios(flights_selected, "departure_runways")
-    # flights_selected = add_ratios(flights_selected, "arrival_runways")
+    flights_selected = add_ratios(flights_selected, "departure_runways")
+    flights_selected = add_ratios(flights_selected, "arrival_runways")
 
     return flights_selected
 
@@ -40,11 +40,13 @@ def add_ratios(flights_selected: pd.DataFrame, column_name:str):
    
     new_column_name = column_name + '_ratio'
 
+    flights_selected[column_name] = flights_selected[column_name].astype(str)
+
     # Compute the mean number of commas in the given column
-    mean_num_commas = flights_selected[column_name].astype(str).str.count(',').mean() + 1
+    mean_num_commas = flights_selected[column_name].str.count(',').mean() + 1
 
     # Compute the max number of commas in the given column
-    max_num_commas = flights_selected[column_name].astype(str).str.count(',').max() + 1
+    max_num_commas = flights_selected[column_name].str.count(',').max() + 1
 
     # Loop through each row in the DataFrame
     for index, row in flights_selected.iterrows():
@@ -54,5 +56,7 @@ def add_ratios(flights_selected: pd.DataFrame, column_name:str):
             flights_selected.at[index, new_column_name] = mean_num_commas / max_num_commas
         else:
             flights_selected.at[index, new_column_name] = num_commas/ max_num_commas
+
+    flights_selected[new_column_name] = flights_selected[new_column_name].fillna(0).astype(float)
 
     return flights_selected
