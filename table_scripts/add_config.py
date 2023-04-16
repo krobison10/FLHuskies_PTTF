@@ -29,29 +29,30 @@ def add_config(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFra
         [arrival_runways] * len(flights_selected), index=flights_selected.index
     )
 
-    flights_selected = add_ratios(config, flights_selected)
+    flights_selected = add_ratios(flights_selected, "departure_runways")
+    flights_selected = add_ratios(flights_selected, "arrival_runways")
 
     return flights_selected
 
 
 
-def add_ratios(config: pd.DataFrame, flights_selected: pd.DataFrame):
-    # Find the maximum count across all columns
-    max_count_dep = (flights_selected["departure_runways"].astype(str).str.count(',').max()) + 1
+def add_ratios(flights_selected: pd.DataFrame, column_name:str):
+   
+    new_column_name = column_name + '_ratio'
 
-    # Find the maximum count across all columns
-    max_count_arr = (flights_selected["arrival_runways"].astype(str).str.count(',').max()) + 1
+    # Compute the mean number of commas in the given column
+    mean_num_commas = flights_selected[column_name].str.count(',').mean() + 1
 
-    # Get the ratio of how much of the departure runways are used
-    flights_selected['dep_ratio'] = ((flights_selected["departure_runways"].astype(str).str.count(',') + 1) / max_count_dep)
+    # Compute the max number of commas in the given column
+    max_num_commas = flights_selected[column_name].str.count(',').max() + 1
 
-    # Replace NaN values in dep_ratio column with closest previous available value
-    flights_selected['dep_ratio'].fillna(method='ffill', inplace=True)
-
-    # Get the ratio of how much of the arrival runways are used
-    flights_selected['arr_ratio'] = ((flights_selected["arrival_runways"].astype(str).str.count(',') + 1) / max_count_arr)
-
-    # Replace NaN values in arr_ratio column with closest previous available value
-    flights_selected['arr_ratio'].fillna(method='ffill', inplace=True)
+    # Loop through each row in the DataFrame
+    for index, row in flights_selected.iterrows():
+        num_commas = row[column_name].count(',')
+        if num_commas == 0:
+            # If row doesn't contain any commas, fill with mean number of commas divided by maximum number of columns
+            flights_selected.at[index, new_column_name] = mean_num_commas / max_num_commas
+        else:
+            flights_selected.at[index, new_column_name] = num_commas/ max_num_commas
 
     return flights_selected
