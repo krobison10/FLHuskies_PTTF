@@ -198,7 +198,7 @@ encoded_columns = [
     "arr_ratio"
 ]
 
-input_features = apr_14_features
+input_features = features_all
 
 # whether to display train set MAE or not for each airport
 TRAIN_MAE = True
