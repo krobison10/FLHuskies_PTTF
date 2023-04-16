@@ -21,6 +21,7 @@ def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[
         latest_tfm["arrival_runway_estimated_time"] - latest_etd["departure_runway_estimated_time"]
     ).dt.total_seconds() / 60
 
-    flights_selected = flights_selected["flight_time"].fillna(0)
+    flights_selected["flight_time"] = flights_selected["flight_time"].fillna(0)
+    flights_selected["flight_time"] = flights_selected["flight_time"].round(2)
 
     return flights_selected

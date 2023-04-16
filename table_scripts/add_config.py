@@ -58,5 +58,6 @@ def add_ratios(flights_selected: pd.DataFrame, column_name:str):
             flights_selected.at[index, new_column_name] = num_commas/ max_num_commas
 
     flights_selected[new_column_name] = flights_selected[new_column_name].fillna(0).astype(float)
+    flights_selected[new_column_name] = flights_selected[new_column_name].round(1)
 
     return flights_selected
