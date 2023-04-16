@@ -49,8 +49,8 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
             "precip": str,
             "gufi_flight_major_carrier": str,
             "arrival_runways": str,
-            "dep_ratio": str,
-            "arr_ratio": str,
+            "departure_runways_ratio": float,
+            "arrival_runways_ratio": float,
         },
     ).sort_values(["gufi", "timestamp"])
     if remove_duplicate_gufi is True:
@@ -152,3 +152,68 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
                 msg = f"find useful global lamp feature {key} has a score of {feature_importance_table[key]}"
                 print(msg)
                 f.write(msg + "\n")
+
+
+ALL_ENCODED_STR_COLUMNS: list[str] = [
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    "departure_runways",
+    "arrival_runways",
+    "gufi_flight_destination_airport",
+    "gufi_flight_FAA_system",
+    "gufi_flight_major_carrier",
+]
+
+CATEGORICAL_INT_COLUMNS: list[str] = [
+    "cloud_ceiling",
+    "visibility",
+    "year",
+    "quarter",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "weekday",
+]
+
+DEFAULT_IGNORE_FEATURES: list[str] = [
+    "gufi",
+    "timestamp",
+    "gufi_flight_date",
+    "gufi_flight_number",
+    "isdeparture",
+    "airport",
+]
+
+CUSTOM_IGNORES: list[str] = [
+    "gufi_flight_FAA_system",
+    "aircraft_engine_class",
+    "departure_runways_ratio",
+    "arrival_runways_ratio",
+    "quarter",
+    "visibility",
+]
+
+
+def get_categorical_columns() -> list[str]:
+    return ALL_ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
+
+
+def get_ignored_features() -> list[str]:
+    return CUSTOM_IGNORES + DEFAULT_IGNORE_FEATURES
+
+
+def ignore_categorical_features(_ignore: list[str]) -> None:
+    for _ignore in _ignore:
+        if _ignore in ALL_ENCODED_STR_COLUMNS:
+            ALL_ENCODED_STR_COLUMNS.remove(_ignore)
+        if _ignore in CATEGORICAL_INT_COLUMNS:
+            CATEGORICAL_INT_COLUMNS.remove(_ignore)
+
+
+ignore_categorical_features(CUSTOM_IGNORES)
