@@ -16,7 +16,9 @@ def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[
 
     latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
 
-    merged_df = pd.merge(latest_tfm, latest_etd, on="gufi")
+    merged_df = pd.merge(flights_selected, latest_tfm, on="gufi")
+
+    merged_df = pd.merge(merged_df, latest_etd, on="gufi")
 
     # Estimated flight duration for all of the flights within last 30 hours
     merged_df["flight_time"] = (
