@@ -13,11 +13,7 @@ from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 
-def _train(
-    trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to
-):
-    dtrain = lgb.Dataset(X_train, label=y_train, categorical_feature=mytools.get_categorical_columns())
-
+def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to):
     params: dict = {
         "boosting_type": "gbdt",
         "objective": "regression_l1",
@@ -27,14 +23,17 @@ def _train(
         "n_estimators": trial.suggest_int("n_estimators", 64, 64 * 3),
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0),
         "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0),
-        "subsample_for_bin": trial.suggest_int("max_depth", 200000, 400000),
+        "subsample_for_bin": trial.suggest_int("subsample_for_bin", 200000, 400000),
         "feature_fraction": trial.suggest_float("feature_fraction", 0.4, 1.0),
         "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
         "bagging_freq": trial.suggest_int("bagging_freq", 1, 7),
         "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
+        "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.06),
     }
 
-    model = lgb.train(params, dtrain)
+    model = lgb.train(
+        params, lgb.Dataset(X_train, label=y_train, categorical_feature=mytools.get_categorical_columns())
+    )
 
     y_pred = model.predict(X_train)
     train_mae: float = round(mean_absolute_error(y_train, y_pred), 4)
