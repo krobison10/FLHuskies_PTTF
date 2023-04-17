@@ -19,7 +19,7 @@ from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 import re
 
-encoded_columns = [
+encoded_columns: tuple[str] = (
     #"airport",
     "departure_runways",
     "arrival_runways",
@@ -35,9 +35,9 @@ encoded_columns = [
     "major_carrier",
     "flight_type",
     # "isdeparture"
-    ]
+    )
 
-features = [
+features: tuple[str] = (
             	"minutes_until_etd",
             	"deps_3hr",
             	"deps_30hr",
@@ -83,7 +83,7 @@ features = [
             	"major_carrier",
                 "visibility",
                 "flight_type",
-        	]
+        	)
 
 def add_traffic(
     now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
@@ -177,7 +177,7 @@ def load_model(solution_directory: Path) -> Any:
 def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
     from pandarallel import pandarallel
 
-    pandarallel.initialize()
+    pandarallel.initialize(verbose=1)
 
     _df["year"] = _df.parallel_apply(lambda x: x.timestamp.year, axis=1)
     _df["month"] = _df.parallel_apply(lambda x: x.timestamp.month, axis=1)
@@ -196,7 +196,7 @@ def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
 def extract_and_add_gufi_features(_df: pd.DataFrame) -> pd.DataFrame:
     from pandarallel import pandarallel
 
-    pandarallel.initialize()
+    pandarallel.initialize(verbose=1)
 
     def _split_gufi(x: pd.DataFrame) -> pd.Series:
         import re
