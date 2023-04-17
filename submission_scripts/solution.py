@@ -1,6 +1,6 @@
 """
 Trevor Tomlin
-04-13-2023
+04-17-2023
 """
 from functools import partial
 import math
@@ -559,35 +559,26 @@ def predict(
 
     _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi"]].fillna("UNK"), how="left", on="gufi")
 
-    # for col in ["temperature","wind_direction","wind_speed","wind_gust","cloud_ceiling","visibility"]:
-    #     _df[col] = _df["timestamp"].apply(lambda now: lamp.sort_values("timestamp").iloc[-1][col]).fillna(0)
-    # for col in ["cloud","lightning_prob","precip"]:
-    #     _df[col] = _df["timestamp"].apply(lambda now: lamp.sort_values("timestamp").iloc[-1][col]).fillna("UNK").astype(str)
-
-    # latest_etd = etd.sort_values("timestamp").groupby("gufi").last().departure_runway_estimated_time
-
-    # minutes_until_etd = partial_submission_format.merge(
-    #     latest_etd, how="left", on="gufi"
-    # ).departure_runway_estimated_time
-    
-    # minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds()/60
-
-    # _df["minutes_until_etd"] = minutes_until_etd
-
-    # for c in tqdm(_df.columns):
-    #     col_type = _df[c].dtype
-    #     if col_type == 'object' or col_type == 'string' or "cat" in c:
-    #         _df[c] = _df[c].astype('category')
-
-
     for col in encoded_columns:
         _df[[col]] = encoders[col].transform(_df[[col]].values)
 
     offset = 2
     features_all = (_df.columns.values.tolist())[offset:(len(_df.columns.values))]
-    features_remove = ("gufi_flight_date", "minutes_until_pushback", "departure_runways_ratio",
-                       "arrival_runways_ratio", "precip", "isdeparture", "gufi_flight_FAA_system",
-                       "aircraft_engine_class", "quarter", "flight_type")
+    features_remove = ("gufi_flight_date",
+                       "minutes_until_pushback", 
+                       "dep_ratio", 
+                       "arr_ratio", 
+                       "departure_runways_ratio", 
+                       "arrival_runways_ratio", 
+                       "airport", 
+                       "visibility", 
+                       "precip", 
+                       "isdeparture", 
+                       "gufi_flight_FAA_system", 
+                       "aircraft_engine_class", 
+                       "quarter", 
+                       "flight_type")
+    
     features = [x for x in features_all if x not in features_remove]
 
     # A = set(features)

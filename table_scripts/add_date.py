@@ -13,7 +13,7 @@ def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
     pandarallel.initialize()
 
     _df["year"] = _df.parallel_apply(lambda x: x.timestamp.year, axis=1)
-    _df["quarter"] = _df.parallel_apply(lambda x: x.timestamp.quarter, axis=1)
+    # _df["quarter"] = _df.parallel_apply(lambda x: x.timestamp.quarter, axis=1)
     _df["month"] = _df.parallel_apply(lambda x: x.timestamp.month, axis=1)
     _df["day"] = _df.parallel_apply(lambda x: x.timestamp.day, axis=1)
     _df["hour"] = _df.parallel_apply(lambda x: x.timestamp.hour, axis=1)
