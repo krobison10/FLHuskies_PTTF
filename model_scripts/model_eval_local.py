@@ -65,8 +65,9 @@ for airport in airports:
     #Doing Ordinal Encoding for specified features
     ENCODER: dict[str, OrdinalEncoder] = get_encoder(airport, train_df, val_df)
     for col in ENCODED_STR_COLUMNS:
-        train_df[[col]] = ENCODER[col].transform(train_df[[col]])
-        val_df[[col]] = ENCODER[col].transform(val_df[[col]])
+        if(col != "year"):
+            train_df[[col]] = ENCODER[col].transform(train_df[[col]])
+            val_df[[col]] = ENCODER[col].transform(val_df[[col]])
 
     cat_features = get_clean_categorical_columns()
     for c in train_df.columns:
