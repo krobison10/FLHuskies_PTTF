@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from typing import Any
 
 import lightgbm as lgb  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
@@ -13,7 +12,7 @@ from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 
-def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to):
+def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to) -> float:
     params: dict = {
         "boosting_type": "gbdt",
         "objective": "regression_l1",
@@ -28,7 +27,7 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
         # "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
         "bagging_freq": trial.suggest_int("bagging_freq", 1, 7),
         "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
-        "learning_rate": trial.suggest_float("learning_rate", 0.03, 0.06),
+        "learning_rate": trial.suggest_float("learning_rate", 0.04, 0.06),
     }
 
     model = lgb.train(
@@ -79,35 +78,18 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
 if __name__ == "__main__":
     TARGET_LABEL: str = "minutes_until_pushback"
 
-    ALL_AIRPORTS: tuple[str, ...] = (
-        "KATL",
-        "KCLT",
-        "KDEN",
-        "KDFW",
-        "KJFK",
-        "KMEM",
-        "KMIA",
-        "KORD",
-        "KPHX",
-        "KSEA",
-        # "ALL",
-    )
-
-    for airport in ALL_AIRPORTS:
+    for airport in mytools.ALL_AIRPORTS:
         train_df: pd.DataFrame = mytools.get_train_tables(airport, remove_duplicate_gufi=False)
-        train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
-
         val_df: pd.DataFrame = mytools.get_validation_tables(airport, remove_duplicate_gufi=False)
-        val_df.drop(columns=mytools.get_ignored_features(), inplace=True)
 
+        # need to make provisions for handling unknown values
+        ENCODER: dict[str, OrdinalEncoder] = mytools.get_encoder(airport, train_df, val_df)
         for col in mytools.ENCODED_STR_COLUMNS:
-            encoder: OrdinalEncoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+            train_df[[col]] = ENCODER[col].transform(train_df[[col]])
+            val_df[[col]] = ENCODER[col].transform(val_df[[col]])
 
-            encoded_col = encoder.fit_transform(train_df[[col]])
-            train_df[[col]] = encoded_col
-
-            encoded_col = encoder.transform(val_df[[col]])
-            val_df[[col]] = encoded_col
+        train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
+        val_df.drop(columns=mytools.get_ignored_features(), inplace=True)
 
         model_records_path: str = mytools.get_model_path(f"model_records.json")
         model_records: dict[str, dict] = {}
@@ -118,8 +100,8 @@ if __name__ == "__main__":
         if airport not in model_records:
             model_records[airport] = {}
 
-        def _objective(trial):
-            _train(
+        def _objective(trial) -> float:
+            return _train(
                 trial,
                 airport,
                 train_df.drop(columns=[TARGET_LABEL]),

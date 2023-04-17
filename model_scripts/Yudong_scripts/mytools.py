@@ -54,6 +54,7 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
             "arrival_runways": str,
             "departure_runways_ratio": float,
             "arrival_runways_ratio": float,
+            "year": str,
         },
     ).sort_values(["gufi", "timestamp"])
     if remove_duplicate_gufi is True:
@@ -185,6 +186,7 @@ _ALL_ENCODED_STR_COLUMNS: list[str] = [
     "gufi_flight_FAA_system",
     "gufi_flight_major_carrier",
     "gufi_flight_number",
+    "year",
 ]
 
 ENCODED_STR_COLUMNS: list[str] = deepcopy(_ALL_ENCODED_STR_COLUMNS)
@@ -192,7 +194,6 @@ ENCODED_STR_COLUMNS: list[str] = deepcopy(_ALL_ENCODED_STR_COLUMNS)
 CATEGORICAL_INT_COLUMNS: list[str] = [
     "cloud_ceiling",
     "visibility",
-    "year",
     "quarter",
     "month",
     "day",
@@ -217,18 +218,20 @@ CUSTOM_IGNORES: list[str] = [
     "arrival_runways_ratio",
     "quarter",
     "precip",
-    "visibility",
-    "flight_type",
+    # "visibility",
+    # "flight_type",
 ]
 
 
 def get_categorical_columns() -> list[str]:
     return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
 
+
 def get_clean_categorical_columns() -> list[str]:
     ignore_categorical_features(DEFAULT_IGNORE_FEATURES)
     ignore_categorical_features(CUSTOM_IGNORES)
     return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
+
 
 def get_ignored_features() -> list[str]:
     return CUSTOM_IGNORES + DEFAULT_IGNORE_FEATURES
