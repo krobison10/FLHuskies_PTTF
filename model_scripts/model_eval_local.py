@@ -56,6 +56,8 @@ for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
     df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
     # df.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
+    
+    df.drop('precip', axis=1)
 
     train_df, val_df = split(table=df, airport=airport, save=False)
     
