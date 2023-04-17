@@ -13,7 +13,6 @@ import pandas as pd  # type: ignore
 import feature_engineering
 
 from add_averages import add_averages
-from add_delta import add_delta
 from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
@@ -35,7 +34,6 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
     filtered_table = add_etd(filtered_table, data_tables)
     filtered_table = add_traffic(now, filtered_table, data_tables)
     filtered_table = add_averages(now, filtered_table, data_tables)
-    filtered_table = add_delta(now, filtered_table, data_tables)
     filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
@@ -79,14 +77,6 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
             get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"),
             parse_dates=["departure_runway_estimated_time", "timestamp"],
         ).sort_values("timestamp"),
-        "tfm": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_tfm.csv"),
-            parse_dates=["arrival_runway_estimated_time", "timestamp"],
-        ).sort_values("timestamp"),
-        "tbfm": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_tbfm.csv"),
-            parse_dates=["scheduled_runway_estimated_time", "timestamp"],
-        ).sort_values("timestamp"),
         "config": pd.read_csv(
             get_csv_path(data_dir, _airport, f"{_airport}_config.csv"), parse_dates=["timestamp"]
         ).sort_values("timestamp", ascending=False),
@@ -128,8 +118,6 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # # extract holiday features
     # _df = add_date_features(_df)
 
-    # Add estimated flight length for each of the flights
-    _df = add_estimated_flight_time(_df, feature_tables)
     # Add additional etd features
     _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
 
