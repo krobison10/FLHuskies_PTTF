@@ -33,7 +33,7 @@ encoded_columns = [
     # "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
-    # "flight_type",
+    "flight_type",
     # "isdeparture"
     ]
 
@@ -557,8 +557,7 @@ def predict(
     _df = add_date_features(_df)
     _df = add_etd_features(_df, etd)
 
-    _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi"]].fillna("UNK"), how="left", on="gufi")
-
+    _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi", "flight_type"]].fillna("UNK"), how="left", on="gufi")
 
     cat_features = [
     "cloud_ceiling",
