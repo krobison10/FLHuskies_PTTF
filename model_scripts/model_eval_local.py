@@ -56,8 +56,8 @@ for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
     df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
     # df.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
-
-
+    val_df = pd.DataFrame()
+    
     train_df = df
     df['precip'] = df['precip'].astype(str)
 
@@ -99,13 +99,6 @@ for airport in airports:
         pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
         print("Saved the model for the airport: ", airport)
 
-    plotImp(regressor,X_test,airport=airport)
-
-
-for c in val_df.columns:
-    col_type = val_df[c].dtype
-    if col_type == 'category':
-        print(c)
 
 print(features)
 # y_tests = np.hstack(y_tests)
