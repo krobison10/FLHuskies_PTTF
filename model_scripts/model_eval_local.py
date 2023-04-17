@@ -70,7 +70,7 @@ for airport in airports:
     offset = 2
     features_all = (train_df.columns.values.tolist())[offset:(len(train_df.columns.values))]
     features_remove = ("gufi_flight_date","minutes_until_pushback")
-    features = [x for x in features_all if x not in features_remove and not ("lamp" in x and "next" in x)]
+    features = [x for x in features_all if x not in features_remove and not ("precip" in x or "lamp" in x or "engine" in x or "faa" in x or "ratio" in x)]
 
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
