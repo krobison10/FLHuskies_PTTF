@@ -560,10 +560,17 @@ def predict(
     _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi"]].fillna("UNK"), how="left", on="gufi")
 
 
-    cat_features = ["airport","departure_runways", "arrival_runways", "cloud", "lightning_prob", 
-                    "gufi_flight_number", "gufi_flight_major_carrier",
-                    "gufi_flight_destination_airport", "gufi_flight_FAA_system", "aircraft_type", 
-                    "major_carrier", "flight_type"]
+    cat_features = [
+    "cloud_ceiling",
+    "visibility",
+    "year",
+    "quarter",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "weekday",
+]
     
     for col in cat_features:
         _df[col] = _df[col].astype('category')

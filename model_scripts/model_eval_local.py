@@ -3,6 +3,7 @@
 # Running the model emsemble with Kyler's Train Split for Trevor
 # to attain accuracy values for individual airports and overall
 
+from Yudong_scripts.mytools import *
 import matplotlib.pyplot as plt
 from train_test_split import *
 import pandas as pd
@@ -58,19 +59,63 @@ for airport in airports:
 
     train_df, val_df = split(table=df, airport=airport, save=False)
     
+    cat_features = get_clean_categorical_columns()
     for c in train_df.columns:
-        col_type = train_df[c].dtype
-        if col_type == 'object' or col_type == 'string' or "cat" in c:
+        if any(c in x for x in cat_features):
             train_df[c] = train_df[c].astype('category')
+
     for c in val_df.columns:
-        col_type = val_df[c].dtype
-        if col_type == 'object' or col_type == 'string' or "cat" in c:
+        if any(c in x for x in cat_features):
             val_df[c] = val_df[c].astype('category')
 
     offset = 2
     features_all = (train_df.columns.values.tolist())[offset:(len(train_df.columns.values))]
     features_remove = ("gufi_flight_date","minutes_until_pushback")
-    features = [x for x in features_all if x not in features_remove and not ("precip" in x or "lamp" in x or "engine" in x or "faa" in x or "ratio" in x)]
+    features = [            	
+                "minutes_until_etd",
+            	"deps_3hr",
+            	"deps_30hr",
+            	"arrs_3hr",
+            	"arrs_30hr",
+            	"deps_taxiing",
+            	"arrs_taxiing",
+            	"exp_deps_15min",
+            	"exp_deps_30min",
+            	"delay_30hr",
+            	"standtime_30hr",
+            	"dep_taxi_30hr",
+            	"arr_taxi_30hr",
+            	"delay_3hr",
+            	"standtime_3hr",
+            	"dep_taxi_3hr",
+            	"arr_taxi_3hr",
+            	"1h_ETDP",
+            	"departure_runways",
+            	"arrival_runways",
+            	"temperature",
+            	"wind_direction",
+            	"wind_speed",
+            	"wind_gust",
+            	"cloud_ceiling",
+            	"cloud",
+            	"lightning_prob",
+            	"gufi_flight_major_carrier",
+            	"gufi_flight_destination_airport",
+            	"gufi_timestamp_until_etd",
+            	"year",
+            	"month",
+            	"day",
+            	"hour",
+            	"minute",
+            	"weekday",
+            	"feat_5_gufi",
+            	"feat_5_estdep_next_30min",
+            	"feat_5_estdep_next_60min",
+            	"feat_5_estdep_next_180min",
+            	"feat_5_estdep_next_1400min",
+            	"aircraft_type",
+            	"major_carrier"
+]
 
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
@@ -115,7 +160,7 @@ for airport in airports:
     # # SAVING THE MODEL
     save_table_as: str = "save" if args.s is None else str(args.s)
     if save_table_as == "save":
-        filename = f'model_{airport}.sav'
+        filename = f'model_{airport}_yudong.sav'
         pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
         print("Saved the model for the airport: ", airport)
 

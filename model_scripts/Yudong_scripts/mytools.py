@@ -225,6 +225,10 @@ CUSTOM_IGNORES: list[str] = [
 def get_categorical_columns() -> list[str]:
     return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
 
+def get_clean_categorical_columns() -> list[str]:
+    ignore_categorical_features(DEFAULT_IGNORE_FEATURES)
+    ignore_categorical_features(CUSTOM_IGNORES)
+    return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
 
 def get_ignored_features() -> list[str]:
     return CUSTOM_IGNORES + DEFAULT_IGNORE_FEATURES
