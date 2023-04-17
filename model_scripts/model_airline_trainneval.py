@@ -120,8 +120,8 @@ print("Generated a shared dataframe")
 offset = 2
 features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
 
-features_remove = ("gufi_flight_date","minutes_until_pushback")
-features = [x for x in features_all if x not in features_remove]
+features_remove = ("gufi_flight_date","minutes_until_pushback", "precip", "engine")
+features = [x for x in features_all if x not in features_remove and "lamp" not in x]
 features_val = ["minutes_until_pushback","airport"]
 
 for airline in airlines_train:    
@@ -183,6 +183,7 @@ for airline in airlines_val:
     # plotImp(regressor,X_val, airline=airline)
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))
+print(features)
 # for airport in AIRPORTS:
 #     X_val_local = X_val.loc[X_val['airport'] == airport]
 #     y_val_local = y_val.loc[y_val['airport'] == airport]

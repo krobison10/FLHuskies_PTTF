@@ -162,7 +162,7 @@ for airport in airports:
         y_val = val["minutes_until_pushback"]
 
         # open file where we stored the pickled model
-        filename = f'model_{airline}_at_{airport}_gufi.sav'
+        filename = f'model_{pickled_airline}_at_{airport}_gufi.sav'
         regressor = pickle.load(open(OUTPUT_DIRECTORY / filename, 'rb'))
 
         y_pred = regressor.predict(X_val)
@@ -173,6 +173,7 @@ for airport in airports:
         # plotImp(regressor,X_val, airline=airline)
 
 print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
+print(features)
 
 
 exit()

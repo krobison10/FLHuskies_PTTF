@@ -138,6 +138,7 @@ for airline in airlines_val:
     # plotImp(regressor,X_val, airline=airline)
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))
+print(features)
 
 # for airport in AIRPORTS:
 #     X_val_local = X_val.loc[X_val['airport'] == airport]
