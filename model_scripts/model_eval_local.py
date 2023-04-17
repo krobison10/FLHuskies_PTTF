@@ -58,68 +58,27 @@ for airport in airports:
     # df.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
 
 
-    train_df, val_df = split(table=df, airport=airport, save=False)
-    train_df['precip'] = train_df['precip'].astype(str)
-    val_df['precip'] = val_df['precip'].astype(str)
+    train_df = df
+    df['precip'] = df['precip'].astype(str)
 
     #Doing Ordinal Encoding for specified features
     ENCODER: dict[str, OrdinalEncoder] = get_encoder(airport, train_df, val_df)
     for col in ENCODED_STR_COLUMNS:
         if(col != "year"):
             train_df[[col]] = ENCODER[col].transform(train_df[[col]])
-            val_df[[col]] = ENCODER[col].transform(val_df[[col]])
 
     cat_features = get_clean_categorical_columns()
     for c in train_df.columns:
         if any(c in x for x in cat_features):
             train_df[c] = train_df[c].astype('category')
 
-    for c in val_df.columns:
-        if any(c in x for x in cat_features):
-            val_df[c] = val_df[c].astype('category')
-
-    offset = 2
-    features_all = (train_df.columns.values.tolist())[offset:(len(train_df.columns.values))]
-    features_remove = ("gufi_flight_date","minutes_until_pushback")
-    features = [            	
-                "minutes_until_etd",
-            	"deps_taxiing",
-                "deps_3hr",
-                "deps_30hr",
-                "arrs_30hr",
-                "arrs_30hr",
-            	"arrs_taxiing",
-            	"exp_deps_15min",
-            	"exp_deps_30min",
-            	"standtime_30hr",
-            	"dep_taxi_30hr",
-            	"arr_taxi_30hr",
-            	"temperature",
-            	"wind_direction",
-            	"wind_speed",
-            	"wind_gust",
-            	"cloud_ceiling",
-            	"cloud",
-            	"lightning_prob",
-            	"gufi_flight_major_carrier",
-            	"gufi_flight_destination_airport",
-            	# "gufi_timestamp_until_etd",
-            	"year",
-            	"month",
-            	"day",
-            	"hour",
-            	"minute",
-            	"weekday",
-            	"aircraft_type",
-            	"major_carrier"
-]
+    features = ['minutes_until_etd', 'deps_3hr', 'arrs_3hr', 'deps_taxiing', 'arrs_taxiing', 'exp_deps_15min', 'exp_deps_30min', 'delay_3hr', 'standtime_3hr', 'dep_taxi_3hr', 'arr_taxi_3hr', '1h_ETDP', 'departure_runways', 'arrival_runways', 'temperature', 'wind_direction', 'wind_speed', 'wind_gust', 'cloud_ceiling', 'cloud', 'lightning_prob', 'gufi_flight_major_carrier', 'gufi_flight_destination_airport', 'gufi_timestamp_until_etd', 'year', 'month', 'day', 'hour', 'minute'
+            ]
 
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
     X_train = (train_df[features])
-    X_test = (val_df[features])
     y_train = (train_df["minutes_until_pushback"])
-    y_test = (val_df["minutes_until_pushback"])
     train_data = lgb.Dataset(X_train, label=y_train)
 
     fit_params={ 
@@ -132,27 +91,6 @@ for airport in airports:
     regressor = LGBMRegressor(**fit_params)
 
     regressor.fit(X_train, y_train)
-
-    y_pred = regressor.predict(X_test,num_iteration=regressor.best_iteration_)
-
-    # params = {
-    #     'boosting_type': 'rf', # Type of boosting algorithm
-    #     'objective': 'regression_l1', # Type of task (regression)
-    #     'metric': 'mae', # Evaluation metric (mean squared error)
-    #     'learning_rate': 0.02, # Learning rate for boosting
-    #     'verbose': 0, # Verbosity level (0 for silent)
-    #     'n_estimators': 4000
-    # }
-
-    # regressor = lgb.train(params, train_data)
-
-    # y_pred = regressor.predict(X_test)
-    
-    print("Finished training")
-    print(f"MAE on {airport} test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
-    # appending the predictions and test to a single datasets to evaluate overall performance
-    y_tests = np.concatenate((y_tests, y_test))
-    y_preds = np.concatenate((y_preds, y_pred))
 
     # # SAVING THE MODEL
     save_table_as: str = "save" if args.s is None else str(args.s)
