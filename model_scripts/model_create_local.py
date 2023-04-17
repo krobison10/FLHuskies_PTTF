@@ -2,7 +2,7 @@
 #
 # Running the model emsemble with Kyler's Train Split for Trevor
 # to attain accuracy values for individual airports and overall
-
+from Yudong_scripts.mytools import *
 import matplotlib.pyplot as plt
 from train_test_split import *
 import pandas as pd
@@ -46,9 +46,10 @@ for airport in airports:
             df[c] = df[c].astype('category')
 
     offset = 2
-    features_all = (df.columns.values.tolist())[offset:(len(df.columns.values))]
+    features_all = ['minutes_until_etd', 'deps_3hr', 'arrs_3hr', 'deps_taxiing', 'arrs_taxiing', 'exp_deps_15min', 'exp_deps_30min', 'delay_3hr', 'standtime_3hr', 'dep_taxi_3hr', 'arr_taxi_3hr', '1h_ETDP', 'departure_runways', 'arrival_runways', 'temperature', 'wind_direction', 'wind_speed', 'wind_gust', 'cloud_ceiling', 'cloud', 'lightning_prob', 'gufi_flight_major_carrier', 'gufi_flight_destination_airport', 'gufi_timestamp_until_etd', 'year', 'month', 'day', 'hour', 'minute']
     features_remove = ("gufi_flight_date","minutes_until_pushback")
     features = [x for x in features_all if x not in features_remove and not ("precip" in x or "lamp" in x or "engine" in x or "faa" in x or "ratio" in x)]
+    cat_features = get_clean_categorical_columns()
 
     # evaluating individual airport accuracy
     print(f"Training LIGHTGBM model for {airport}\n")
