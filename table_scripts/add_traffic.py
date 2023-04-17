@@ -18,18 +18,17 @@ def add_traffic(
     standtimes = data_tables["standtimes"]
 
     runways_filtered_3hr = feature_engineering.filter_by_timestamp(runways, now, 3)
-    runways_filtered_30hr = feature_engineering.filter_by_timestamp(runways, now, 30)
 
     deps_3hr = count_actual_flights(runways_filtered_3hr, departures=True)
     flights_selected["deps_3hr"] = pd.Series([deps_3hr] * len(flights_selected), index=flights_selected.index)
 
-    deps_30hr = count_actual_flights(runways_filtered_30hr, departures=True)
+    deps_30hr = count_actual_flights(runways, departures=True)
     flights_selected["deps_30hr"] = pd.Series([deps_30hr] * len(flights_selected), index=flights_selected.index)
 
     arrs_3hr = count_actual_flights(runways_filtered_3hr, departures=False)
     flights_selected["arrs_3hr"] = pd.Series([arrs_3hr] * len(flights_selected), index=flights_selected.index)
 
-    arrs_30hr = count_actual_flights(runways_filtered_30hr, departures=False)
+    arrs_30hr = count_actual_flights(runways, departures=False)
     flights_selected["arrs_30hr"] = pd.Series([arrs_30hr] * len(flights_selected), index=flights_selected.index)
 
     # technically is the # of planes whom have arrived at destination airport gate and also departed their origin
