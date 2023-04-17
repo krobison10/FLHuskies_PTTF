@@ -59,15 +59,19 @@ for airport in airports:
 
     train_df, val_df = split(table=df, airport=airport, save=False)
     
+    #Doing Ordinal Encoding for specified features
+    ENCODER: dict[str, OrdinalEncoder] = get_encoder(airport, train_df, val_df)
+    for col in ENCODED_STR_COLUMNS:
+        train_df[[col]] = ENCODER[col].transform(train_df[[col]])
+        val_df[[col]] = ENCODER[col].transform(val_df[[col]])
+
     cat_features = get_clean_categorical_columns()
     for c in train_df.columns:
         if any(c in x for x in cat_features):
-            get_encoder(airport,train_df=train_df,val_df=val_df)
             train_df[c] = train_df[c].astype('category')
 
     for c in val_df.columns:
         if any(c in x for x in cat_features):
-            get_encoder(airport,train_df=train_df,val_df=val_df)
             val_df[c] = val_df[c].astype('category')
 
     offset = 2
