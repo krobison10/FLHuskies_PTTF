@@ -182,6 +182,11 @@ for airline in airlines_val:
     print(f"Regression tree train error for {airline}:", mean_absolute_error(y_pred,y_val["minutes_until_pushback"]))
     # plotImp(regressor,X_val, airline=airline)
 
+for c in val.columns:
+    col_type = val[c].dtype
+    if col_type == 'category':
+        print(c)
+
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))
 print(features)
 # for airport in AIRPORTS:

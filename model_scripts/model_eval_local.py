@@ -121,6 +121,12 @@ for airport in airports:
 
     plotImp(regressor,X_test,airport=airport)
 
+
+for c in val_df.columns:
+    col_type = val_df[c].dtype
+    if col_type == 'category':
+        print(c)
+
 print(features)
 # y_tests = np.hstack(y_tests)
 # y_pred = np.hstack(y_preds)
