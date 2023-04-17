@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from typing import Any
 
 import lightgbm as lgb  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
@@ -13,7 +12,7 @@ from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 
-def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to):
+def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to) -> float:
     params: dict = {
         "boosting_type": "gbdt",
         "objective": "regression_l1",
@@ -24,11 +23,11 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0),
         "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0),
         "subsample_for_bin": trial.suggest_int("subsample_for_bin", 200000, 400000),
-        "feature_fraction": trial.suggest_float("feature_fraction", 0.4, 1.0),
-        "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
+        "feature_fraction": trial.suggest_float("feature_fraction", 0.5, 1.0),
+        # "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
         "bagging_freq": trial.suggest_int("bagging_freq", 1, 7),
         "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
-        "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.06),
+        "learning_rate": trial.suggest_float("learning_rate", 0.04, 0.06),
     }
 
     model = lgb.train(
@@ -44,27 +43,27 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
 
     # record model information
     model_name: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    _model_records_ref[_airport][model_name] = {
+    _model_records = {
         "train_mae": train_mae,
         "val_mae": test_mae,
         "features": X_train.columns.values.tolist(),
     }
-    _model_records_ref[_airport][model_name].update(params)
+    _model_records.update(params)
 
     # plot the graph that shows importance
-    lgb.plot_importance(model, ignore_zero=False)
-    plt.savefig(mytools.get_model_path(f"lgbm_{_airport}_{model_name}_importance.png"), bbox_inches="tight")
+    # lgb.plot_importance(model, ignore_zero=False)
+    # plt.savefig(mytools.get_model_path(f"lgbm_{_airport}_{model_name}_importance.png"), bbox_inches="tight")
 
     # if the model is the best, the save it
     if (
         "best" not in _model_records_ref[_airport]
-        or _model_records_ref[_airport]["best"]["val_mae"] > _model_records_ref[_airport][model_name]["val_mae"]
+        or _model_records_ref[_airport]["best"]["val_mae"] > _model_records["val_mae"]
     ):
         if "best" in _model_records_ref[_airport]:
             print(
                 f'The best val result so far (previous best: {_model_records_ref[_airport]["best"]["val_mae"]}), saved!'
             )
-        _model_records_ref[_airport]["best"] = _model_records_ref[_airport][model_name]
+        _model_records_ref[_airport]["best"] = _model_records
         _model_records_ref[_airport]["best"]["achieve_at"] = model_name
         dump(model, mytools.get_model_path(f"lgbm_{_airport}_model.joblib"))
     else:
@@ -79,35 +78,18 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
 if __name__ == "__main__":
     TARGET_LABEL: str = "minutes_until_pushback"
 
-    ALL_AIRPORTS: tuple[str, ...] = (
-        "KATL",
-        "KCLT",
-        "KDEN",
-        "KDFW",
-        "KJFK",
-        "KMEM",
-        "KMIA",
-        "KORD",
-        "KPHX",
-        "KSEA",
-        # "ALL",
-    )
-
-    for airport in ALL_AIRPORTS:
+    for airport in mytools.ALL_AIRPORTS:
         train_df: pd.DataFrame = mytools.get_train_tables(airport, remove_duplicate_gufi=False)
-        train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
-
         val_df: pd.DataFrame = mytools.get_validation_tables(airport, remove_duplicate_gufi=False)
+
+        # need to make provisions for handling unknown values
+        ENCODER: dict[str, OrdinalEncoder] = mytools.get_encoder(airport, train_df, val_df)
+        for col in mytools.ENCODED_STR_COLUMNS:
+            train_df[[col]] = ENCODER[col].transform(train_df[[col]])
+            val_df[[col]] = ENCODER[col].transform(val_df[[col]])
+
+        train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
         val_df.drop(columns=mytools.get_ignored_features(), inplace=True)
-
-        for col in mytools.ALL_ENCODED_STR_COLUMNS:
-            encoder: OrdinalEncoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
-
-            encoded_col = encoder.fit_transform(train_df[[col]])
-            train_df[[col]] = encoded_col
-
-            encoded_col = encoder.transform(val_df[[col]])
-            val_df[[col]] = encoded_col
 
         model_records_path: str = mytools.get_model_path(f"model_records.json")
         model_records: dict[str, dict] = {}
@@ -118,8 +100,8 @@ if __name__ == "__main__":
         if airport not in model_records:
             model_records[airport] = {}
 
-        def _objective(trial):
-            _train(
+        def _objective(trial) -> float:
+            return _train(
                 trial,
                 airport,
                 train_df.drop(columns=[TARGET_LABEL]),

@@ -31,21 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", help="override")
     args: argparse.Namespace = parser.parse_args()
 
-    ALL_AIRPORTS: tuple[str, ...] = (
-        "KATL",
-        "KCLT",
-        "KDEN",
-        "KDFW",
-        "KJFK",
-        "KMEM",
-        "KMIA",
-        "KORD",
-        "KPHX",
-        "KSEA",
-        # "ALL",
-    )
-
-    airports: tuple[str, ...] = ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
+    airports: tuple[str, ...] = mytools.ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
 
     model_records_path: str = mytools.get_model_path(f"model_records.json")
     model_records: dict[str, dict] = {}
@@ -74,20 +60,19 @@ if __name__ == "__main__":
                 print(f"Same setup found for airport {airport} found with mae {same_setup_mae}, skip!")
                 continue
 
+        # load data
         train_df: pd.DataFrame = mytools.get_train_tables(airport, remove_duplicate_gufi=False)
-        train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
         val_df: pd.DataFrame = mytools.get_validation_tables(airport, remove_duplicate_gufi=False)
-        val_df.drop(columns=mytools.get_ignored_features(), inplace=True)
 
         # need to make provisions for handling unknown values
-        for col in mytools.ALL_ENCODED_STR_COLUMNS:
-            encoder: OrdinalEncoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+        ENCODER: dict[str, OrdinalEncoder] = mytools.get_encoder(airport, train_df, val_df)
+        for col in mytools.ENCODED_STR_COLUMNS:
+            train_df[[col]] = ENCODER[col].transform(train_df[[col]])
+            val_df[[col]] = ENCODER[col].transform(val_df[[col]])
 
-            encoded_col = encoder.fit_transform(train_df[[col]])
-            train_df[[col]] = encoded_col
-
-            encoded_col = encoder.transform(val_df[[col]])
-            val_df[[col]] = encoded_col
+        # drop useless columns
+        train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
+        val_df.drop(columns=mytools.get_ignored_features(), inplace=True)
 
         X_train = train_df.drop(columns=[TARGET_LABEL])
         X_test = val_df.drop(columns=[TARGET_LABEL])
@@ -112,7 +97,11 @@ if __name__ == "__main__":
 
         # record model information
         model_name: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        model_records[airport][model_name] = {"mae": mae, "ignore_features": mytools.get_ignored_features()}
+        model_records[airport][model_name] = {
+            "mae": mae,
+            "ignore_features": mytools.get_ignored_features(),
+            "features": X_train.columns.tolist(),
+        }
         model_records[airport][model_name].update(hyperparameter)
 
         # plot the graph that shows importance
@@ -128,7 +117,7 @@ if __name__ == "__main__":
                 print(f'The best result so far (previous best: {model_records[airport]["best"]["mae"]}), saved!')
             model_records[airport]["best"] = model_records[airport][model_name]
             model_records[airport]["best"]["achieve_at"] = model_name
-            pickle.dump(model, open(mytools.get_model_path(f"lgbm_{airport}_model.pickle"), "wb"))
+            mytools.save_model(airport, model)
         else:
             print(f'Worse than previous best: {model_records[airport]["best"]["mae"]})')
 
@@ -136,7 +125,7 @@ if __name__ == "__main__":
             json.dump(model_records, f, indent=4, ensure_ascii=False, sort_keys=True)
 
         if airport == "ALL":
-            for theAirport in ALL_AIRPORTS[: len(ALL_AIRPORTS) - 1]:
+            for theAirport in mytools.ALL_AIRPORTS[:10]:
                 val_airport_df: pd.DataFrame = val_df.loc[val_df.airport == theAirport]
                 X_test = val_airport_df.drop(columns=[TARGET_LABEL])
                 y_test = val_airport_df[TARGET_LABEL]

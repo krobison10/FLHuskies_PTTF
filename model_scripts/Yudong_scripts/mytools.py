@@ -4,11 +4,14 @@
 # A set of useful tools
 #
 
+from copy import deepcopy
 import os
+import pickle
 
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd  # type: ignore
+from lightgbm import Booster  # type: ignore
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
 
@@ -51,6 +54,7 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
             "arrival_runways": str,
             "departure_runways_ratio": float,
             "arrival_runways_ratio": float,
+            "year": str,
         },
     ).sort_values(["gufi", "timestamp"])
     if remove_duplicate_gufi is True:
@@ -136,7 +140,7 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
         f.write(_div + "\n")
         feature_importance_table = dict(zip(model.feature_name(), model.feature_importance("split").tolist()))
         f.write("feature importance table (split):\n")
-        _keys: list[str] = sorted(feature_importance_table, key=lambda k: feature_importance_table[k])
+        _keys = sorted(feature_importance_table, key=lambda k: feature_importance_table[k])
         for key in _keys:
             f.write(f" - {key}: {feature_importance_table[key]}\n")
         f.write(_div + "\n")
@@ -154,7 +158,21 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
                 f.write(msg + "\n")
 
 
-ALL_ENCODED_STR_COLUMNS: list[str] = [
+ALL_AIRPORTS: tuple[str, ...] = (
+    "KATL",
+    "KCLT",
+    "KDEN",
+    "KDFW",
+    "KJFK",
+    "KMEM",
+    "KMIA",
+    "KORD",
+    "KPHX",
+    "KSEA",
+    # "ALL",
+)
+
+_ALL_ENCODED_STR_COLUMNS: list[str] = [
     "cloud",
     "lightning_prob",
     "precip",
@@ -167,12 +185,15 @@ ALL_ENCODED_STR_COLUMNS: list[str] = [
     "gufi_flight_destination_airport",
     "gufi_flight_FAA_system",
     "gufi_flight_major_carrier",
+    "gufi_flight_number",
+    "year",
 ]
+
+ENCODED_STR_COLUMNS: list[str] = deepcopy(_ALL_ENCODED_STR_COLUMNS)
 
 CATEGORICAL_INT_COLUMNS: list[str] = [
     "cloud_ceiling",
     "visibility",
-    "year",
     "quarter",
     "month",
     "day",
@@ -196,24 +217,66 @@ CUSTOM_IGNORES: list[str] = [
     "departure_runways_ratio",
     "arrival_runways_ratio",
     "quarter",
-    "visibility",
+    "precip",
+    # "visibility",
+    # "flight_type",
 ]
 
 
 def get_categorical_columns() -> list[str]:
-    return ALL_ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
+    return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
+
+
+def get_clean_categorical_columns() -> list[str]:
+    ignore_categorical_features(DEFAULT_IGNORE_FEATURES)
+    ignore_categorical_features(CUSTOM_IGNORES)
+    return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
 
 
 def get_ignored_features() -> list[str]:
     return CUSTOM_IGNORES + DEFAULT_IGNORE_FEATURES
 
 
-def ignore_categorical_features(_ignore: list[str]) -> None:
-    for _ignore in _ignore:
-        if _ignore in ALL_ENCODED_STR_COLUMNS:
-            ALL_ENCODED_STR_COLUMNS.remove(_ignore)
+def ignore_categorical_features(features_ignore: list[str]) -> None:
+    for _ignore in features_ignore:
+        if _ignore in ENCODED_STR_COLUMNS:
+            ENCODED_STR_COLUMNS.remove(_ignore)
         if _ignore in CATEGORICAL_INT_COLUMNS:
             CATEGORICAL_INT_COLUMNS.remove(_ignore)
 
 
+ignore_categorical_features(DEFAULT_IGNORE_FEATURES)
 ignore_categorical_features(CUSTOM_IGNORES)
+
+
+def get_encoder(_airport: str, train_df: pd.DataFrame, val_df: pd.DataFrame) -> dict[str, OrdinalEncoder]:
+    _encoders: dict[str, dict[str, OrdinalEncoder]] = {}
+    # generate encoders if not exists
+    if os.path.exists(get_model_path("encoders.pickle")):
+        with open(get_model_path("encoders.pickle"), "rb") as handle:
+            _encoders = pickle.load(handle)
+    if _airport not in _encoders:
+        _encoder: dict[str, OrdinalEncoder] = {}
+        print(f"No encoders found for {_airport} found, will generate one right now.")
+        _df: pd.DataFrame = pd.concat([train_df, val_df], ignore_index=True)
+        # need to make provisions for handling unknown values
+        for _col in _ALL_ENCODED_STR_COLUMNS:
+            _encoder[_col] = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1).fit(_df[[_col]])
+        _encoders[_airport] = _encoder
+        # save the encoder
+        with open(get_model_path("encoders.pickle"), "wb") as handle:
+            pickle.dump(_encoders, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        print(f"The encoders for {_airport} are found and will be loaded.")
+    return _encoders[_airport]
+
+
+def save_model(_airport: str, _model: Booster) -> None:
+    _models: dict[str, Booster] = {}
+    if os.path.exists(get_model_path("models.pickle")):
+        with open(get_model_path("models.pickle"), "rb") as handle:
+            _models = pickle.load(handle)
+    _models[_airport] = _model
+    # save the encoder
+    with open(get_model_path("models.pickle"), "wb") as handle:
+        pickle.dump(_models, handle, protocol=pickle.HIGHEST_PROTOCOL)
