@@ -62,10 +62,12 @@ for airport in airports:
     cat_features = get_clean_categorical_columns()
     for c in train_df.columns:
         if any(c in x for x in cat_features):
+            get_encoder(airport,train_df=train_df,val_df=val_df)
             train_df[c] = train_df[c].astype('category')
 
     for c in val_df.columns:
         if any(c in x for x in cat_features):
+            get_encoder(airport,train_df=train_df,val_df=val_df)
             val_df[c] = val_df[c].astype('category')
 
     offset = 2
