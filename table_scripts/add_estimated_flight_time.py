@@ -6,8 +6,8 @@
 
 import pandas as pd  # type: ignore
 
-def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
-) -> pd.DataFrame:
+
+def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     The estimated time it takes for the flight to happen
     Available for the predicted flight
@@ -24,10 +24,10 @@ def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[
     merged_df["flight_time"] = (
         merged_df["arrival_runway_estimated_time"] - merged_df["departure_runway_estimated_time"]
     ).dt.total_seconds() / 60
-    
+
     merged_df["flight_time"] = merged_df["flight_time"].fillna(0)
     merged_df["flight_time"] = merged_df["flight_time"].round()
 
-    flights_selected = pd.merge(flights_selected, merged_df[["flight_time"]], on="gufi", how = "left")
+    flights_selected = pd.merge(flights_selected, merged_df[["flight_time"]], on="gufi", how="left")
 
     return flights_selected

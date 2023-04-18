@@ -2,37 +2,35 @@ import json
 import os
 from datetime import datetime
 
+import joblib  # type: ignore
 import lightgbm as lgb  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import optuna
 import pandas as pd  # type: ignore
-from joblib import dump  # type: ignore
 from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 
 def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref, model_records_save_to) -> float:
-    params: dict = {
+    params: dict[str, str | int | float] = {
         "boosting_type": "gbdt",
         "objective": "regression_l1",
         "device_type": "gpu",
         "verbosity": -1,
-        "num_leaves": trial.suggest_int("num_leaves", 1024 * 2, 1024 * 10),
+        "num_leaves": trial.suggest_int("num_leaves", 128, 1024 * 10),
         "n_estimators": trial.suggest_int("n_estimators", 64, 64 * 3),
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0),
         "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0),
         "subsample_for_bin": trial.suggest_int("subsample_for_bin", 200000, 400000),
         "feature_fraction": trial.suggest_float("feature_fraction", 0.5, 1.0),
-        # "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
+        "bagging_fraction": trial.suggest_float("bagging_fraction", 0.4, 1.0),
         "bagging_freq": trial.suggest_int("bagging_freq", 1, 7),
         "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
-        "learning_rate": trial.suggest_float("learning_rate", 0.04, 0.06),
+        "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.06),
     }
 
-    model = lgb.train(
-        params, lgb.Dataset(X_train, label=y_train, categorical_feature=mytools.get_categorical_columns())
-    )
+    model = lgb.train(params, lgb.Dataset(X_train, label=y_train))
 
     y_pred = model.predict(X_train)
     train_mae: float = round(mean_absolute_error(y_train, y_pred), 4)
@@ -65,7 +63,7 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
             )
         _model_records_ref[_airport]["best"] = _model_records
         _model_records_ref[_airport]["best"]["achieve_at"] = model_name
-        dump(model, mytools.get_model_path(f"lgbm_{_airport}_model.joblib"))
+        joblib.dump(model, mytools.get_model_path(f"lgbm_{_airport}_model.joblib"))
     else:
         print(f'Worse than previous best: {_model_records_ref[_airport]["best"]["val_mae"]})')
 
@@ -78,6 +76,20 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
 if __name__ == "__main__":
     TARGET_LABEL: str = "minutes_until_pushback"
 
+    # create or load studies
+    studies: dict[str, optuna.Study] = {}
+    studies_file_path: str = mytools.get_model_path("studies.pkl")
+    # if studies file already exists, then load it
+    if os.path.exists(studies_file_path):
+        studies = joblib.load(studies_file_path)
+
+    # create or load model records
+    model_records: dict[str, dict] = {}
+    model_records_path: str = mytools.get_model_path(f"model_records.json")
+    if os.path.exists(model_records_path):
+        with open(model_records_path, "r", encoding="utf-8") as f:
+            model_records = dict(json.load(f))
+
     for airport in mytools.ALL_AIRPORTS:
         train_df: pd.DataFrame = mytools.get_train_tables(airport, remove_duplicate_gufi=False)
         val_df: pd.DataFrame = mytools.get_validation_tables(airport, remove_duplicate_gufi=False)
@@ -87,15 +99,12 @@ if __name__ == "__main__":
         for col in mytools.ENCODED_STR_COLUMNS:
             train_df[[col]] = ENCODER[col].transform(train_df[[col]])
             val_df[[col]] = ENCODER[col].transform(val_df[[col]])
+        for col in mytools.get_categorical_columns():
+            train_df[col] = train_df[col].astype("category")
+            val_df[col] = val_df[col].astype("category")
 
         train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
         val_df.drop(columns=mytools.get_ignored_features(), inplace=True)
-
-        model_records_path: str = mytools.get_model_path(f"model_records.json")
-        model_records: dict[str, dict] = {}
-        if os.path.exists(model_records_path):
-            with open(model_records_path, "r", encoding="utf-8") as f:
-                model_records = dict(json.load(f))
 
         if airport not in model_records:
             model_records[airport] = {}
@@ -112,8 +121,14 @@ if __name__ == "__main__":
                 model_records_path,
             )
 
-        study = optuna.create_study(direction="minimize")
-        study.optimize(_objective, n_trials=100)
+        study: optuna.Study = studies.get(
+            airport, optuna.create_study(direction="minimize", study_name=f"{airport}_tuner")
+        )
+        study.optimize(_objective, n_trials=10)
+
+        # save checkpoint
+        studies[airport] = study
+        joblib.dump(studies, studies_file_path)
 
         print("Number of finished trials: {}".format(len(study.trials)))
 

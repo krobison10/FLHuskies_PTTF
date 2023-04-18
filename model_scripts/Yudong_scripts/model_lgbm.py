@@ -13,10 +13,8 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import pandas as pd  # type: ignore
-import pickle
 from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
-
 
 if __name__ == "__main__":
     hyperparameter: dict = {

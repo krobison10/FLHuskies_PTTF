@@ -10,7 +10,7 @@ import pandas as pd  # type: ignore
 def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
     from pandarallel import pandarallel
 
-    pandarallel.initialize()
+    pandarallel.initialize(verbose=1)
 
     _df["year"] = _df.parallel_apply(lambda x: x.timestamp.year, axis=1)
     # _df["quarter"] = _df.parallel_apply(lambda x: x.timestamp.quarter, axis=1)
