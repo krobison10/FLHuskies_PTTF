@@ -124,7 +124,7 @@ if __name__ == "__main__":
         study: optuna.Study = studies.get(
             airport, optuna.create_study(direction="minimize", study_name=f"{airport}_tuner")
         )
-        study.optimize(_objective, n_trials=10)
+        study.optimize(_objective, n_trials=100)
 
         # save checkpoint
         studies[airport] = study

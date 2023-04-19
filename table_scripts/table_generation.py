@@ -109,17 +109,17 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # concatenate individual prediction times to a single dataframe
     _df = pd.concat(timestamp_tables, ignore_index=True)
 
-    # # Add runway information
+    # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
     # extract and add mfs information
     _df = extract_and_add_gufi_features(_df)
 
-    # # extract holiday features
-    # _df = add_date_features(_df)
+    # extract holiday features
+    _df = add_date_features(_df)
 
     # Add additional etd features
-    _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
+    _df = add_etd_features(_df, feature_tables["etd"])
 
     # Add mfs information
     _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
