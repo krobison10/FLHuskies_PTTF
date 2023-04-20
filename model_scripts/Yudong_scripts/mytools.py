@@ -52,8 +52,6 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
             "precip": str,
             "gufi_flight_major_carrier": str,
             "arrival_runways": str,
-            "departure_runways_ratio": float,
-            "arrival_runways_ratio": float,
             "year": str,
         },
     ).sort_values(["gufi", "timestamp"])
@@ -172,7 +170,7 @@ ALL_AIRPORTS: tuple[str, ...] = (
     # "ALL",
 )
 
-_ALL_ENCODED_STR_COLUMNS: list[str] = [
+_CATEGORICAL_STR_COLUMNS: list[str] = [
     "cloud",
     "lightning_prob",
     "precip",
@@ -183,18 +181,15 @@ _ALL_ENCODED_STR_COLUMNS: list[str] = [
     "departure_runways",
     "arrival_runways",
     "gufi_flight_destination_airport",
-    "gufi_flight_FAA_system",
     "gufi_flight_major_carrier",
-    "gufi_flight_number",
     "year",
 ]
 
-ENCODED_STR_COLUMNS: list[str] = deepcopy(_ALL_ENCODED_STR_COLUMNS)
+ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
 
 CATEGORICAL_INT_COLUMNS: list[str] = [
     "cloud_ceiling",
     "visibility",
-    "quarter",
     "month",
     "day",
     "hour",
@@ -202,21 +197,12 @@ CATEGORICAL_INT_COLUMNS: list[str] = [
     "weekday",
 ]
 
-DEFAULT_IGNORE_FEATURES: list[str] = [
+_FEATURES_IGNORE: list[str] = [
     "gufi",
     "timestamp",
-    "gufi_flight_date",
-    "gufi_flight_number",
-    "isdeparture",
     "airport",
-]
-
-CUSTOM_IGNORES: list[str] = [
-    "gufi_flight_FAA_system",
+    "isdeparture",
     "aircraft_engine_class",
-    "departure_runways_ratio",
-    "arrival_runways_ratio",
-    "quarter",
     "precip",
     # "visibility",
     # "flight_type",
@@ -228,13 +214,12 @@ def get_categorical_columns() -> list[str]:
 
 
 def get_clean_categorical_columns() -> list[str]:
-    ignore_categorical_features(DEFAULT_IGNORE_FEATURES)
-    ignore_categorical_features(CUSTOM_IGNORES)
+    ignore_categorical_features(_FEATURES_IGNORE)
     return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
 
 
 def get_ignored_features() -> list[str]:
-    return CUSTOM_IGNORES + DEFAULT_IGNORE_FEATURES
+    return _FEATURES_IGNORE
 
 
 def ignore_categorical_features(features_ignore: list[str]) -> None:
@@ -245,8 +230,7 @@ def ignore_categorical_features(features_ignore: list[str]) -> None:
             CATEGORICAL_INT_COLUMNS.remove(_ignore)
 
 
-ignore_categorical_features(DEFAULT_IGNORE_FEATURES)
-ignore_categorical_features(CUSTOM_IGNORES)
+ignore_categorical_features(_FEATURES_IGNORE)
 
 
 def get_encoder(_airport: str, train_df: pd.DataFrame, val_df: pd.DataFrame) -> dict[str, OrdinalEncoder]:
@@ -260,8 +244,19 @@ def get_encoder(_airport: str, train_df: pd.DataFrame, val_df: pd.DataFrame) -> 
         print(f"No encoders found for {_airport} found, will generate one right now.")
         _df: pd.DataFrame = pd.concat([train_df, val_df], ignore_index=True)
         # need to make provisions for handling unknown values
-        for _col in _ALL_ENCODED_STR_COLUMNS:
-            _encoder[_col] = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1).fit(_df[[_col]])
+        for _col in _CATEGORICAL_STR_COLUMNS:
+            if _col == "cloud":
+                _encoder[_col] = OrdinalEncoder(
+                    categories=[["BK", "CL", "FEW", "OV", "SC"]],
+                    handle_unknown="use_encoded_value",
+                    unknown_value=-1,
+                ).fit(_df[[_col]])
+            elif _col == "lightning_prob":
+                _encoder[_col] = OrdinalEncoder(
+                    categories=[["N", "L", "M", "H"]], handle_unknown="use_encoded_value", unknown_value=-1
+                ).fit(_df[[_col]])
+            else:
+                _encoder[_col] = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1).fit(_df[[_col]])
         _encoders[_airport] = _encoder
         # save the encoder
         with open(get_model_path("encoders.pickle"), "wb") as handle:

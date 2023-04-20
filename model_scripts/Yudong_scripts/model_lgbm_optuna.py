@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from datetime import datetime
@@ -18,7 +19,7 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test, _model_records_ref
         "objective": "regression_l1",
         "device_type": "gpu",
         "verbosity": -1,
-        "num_leaves": trial.suggest_int("num_leaves", 128, 1024 * 10),
+        "num_leaves": trial.suggest_int("num_leaves", 100, 1024 * 8),
         "n_estimators": trial.suggest_int("n_estimators", 64, 64 * 3),
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0),
         "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0),
@@ -121,10 +122,15 @@ if __name__ == "__main__":
                 model_records_path,
             )
 
+        # using argparse to parse the argument from command line
+        parser: argparse.ArgumentParser = argparse.ArgumentParser()
+        parser.add_argument("-n", help="number of training")
+        args: argparse.Namespace = parser.parse_args()
+
         study: optuna.Study = studies.get(
             airport, optuna.create_study(direction="minimize", study_name=f"{airport}_tuner")
         )
-        study.optimize(_objective, n_trials=100)
+        study.optimize(_objective, n_trials=int(args.n) if args.n is not None else 10)
 
         # save checkpoint
         studies[airport] = study

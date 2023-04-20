@@ -67,6 +67,9 @@ if __name__ == "__main__":
         for col in mytools.ENCODED_STR_COLUMNS:
             train_df[[col]] = ENCODER[col].transform(train_df[[col]])
             val_df[[col]] = ENCODER[col].transform(val_df[[col]])
+        for col in mytools.get_categorical_columns():
+            train_df[col] = train_df[col].astype("category")
+            val_df[col] = val_df[col].astype("category")
 
         # drop useless columns
         train_df.drop(columns=mytools.get_ignored_features(), inplace=True)
@@ -79,12 +82,10 @@ if __name__ == "__main__":
         y_test = val_df[TARGET_LABEL]
 
         # train model
-        params = {"objective": "regression_l1", "verbosity": -1, "learning_rate": 0.05}
+        params = {"objective": "regression_l1", "device_type": "gpu", "learning_rate": 0.05}
         params.update(hyperparameter)
 
-        dtrain = lightgbm.Dataset(X_train, label=y_train, categorical_feature=mytools.get_categorical_columns())
-
-        model = lightgbm.train(params, dtrain)
+        model = lightgbm.train(params, lightgbm.Dataset(X_train, label=y_train))
 
         y_pred = model.predict(X_train)
         mae: float = round(mean_absolute_error(y_train, y_pred), 4)
@@ -103,8 +104,10 @@ if __name__ == "__main__":
         model_records[airport][model_name].update(hyperparameter)
 
         # plot the graph that shows importance
-        lightgbm.plot_importance(model, ignore_zero=False)
-        plt.savefig(mytools.get_model_path(f"lgbm_{airport}_{model_name}_importance.png"), bbox_inches="tight")
+        lightgbm.plot_importance(model, ignore_zero=False, importance_type="gain")
+        plt.savefig(mytools.get_model_path(f"lgbm_{airport}_{model_name}_gain_importance.png"), bbox_inches="tight")
+        lightgbm.plot_importance(model, ignore_zero=False, importance_type="split")
+        plt.savefig(mytools.get_model_path(f"lgbm_{airport}_{model_name}_split_importance.png"), bbox_inches="tight")
 
         # if the model is the best, the save it
         if (
