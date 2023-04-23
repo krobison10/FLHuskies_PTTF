@@ -10,6 +10,7 @@ import joblib  # type: ignore
 import lightgbm as lgb  # type: ignore
 import mytools
 import optuna
+from constants import ALL_AIRPORTS, TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
 
 
@@ -63,8 +64,6 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test) -> float:
 
 
 if __name__ == "__main__":
-    TARGET_LABEL: str = "minutes_until_pushback"
-
     # create or load studies
     studies: dict[str, optuna.Study] = {}
     studies_file_path: str = mytools.get_model_path("studies.pkl")
@@ -72,7 +71,7 @@ if __name__ == "__main__":
     if os.path.exists(studies_file_path):
         studies = joblib.load(studies_file_path)
 
-    for airport in mytools.ALL_AIRPORTS:
+    for airport in ALL_AIRPORTS:
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(airport)
 

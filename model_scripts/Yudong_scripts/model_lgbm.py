@@ -10,6 +10,7 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import pandas as pd  # type: ignore
+from constants import ALL_AIRPORTS, TARGET_LABEL  # type: ignore
 from sklearn.metrics import mean_absolute_error  # type: ignore
 
 if __name__ == "__main__":
@@ -25,10 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", help="override")
     args: argparse.Namespace = parser.parse_args()
 
-    airports: tuple[str, ...] = mytools.ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
-
-    # the column used for target
-    TARGET_LABEL: str = "minutes_until_pushback"
+    airports: tuple[str, ...] = ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
 
     for airport in airports:
         # check if the same hyperparameter has been used before
@@ -107,7 +105,7 @@ if __name__ == "__main__":
         mytools.ModelRecords.save()
 
         if airport == "ALL":
-            for theAirport in mytools.ALL_AIRPORTS[:10]:
+            for theAirport in ALL_AIRPORTS[:10]:
                 val_airport_df: pd.DataFrame = val_df.loc[val_df.airport == theAirport]
                 X_test = val_airport_df.drop(columns=[TARGET_LABEL])
                 y_test = val_airport_df[TARGET_LABEL]

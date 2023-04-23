@@ -167,20 +167,6 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
                 f.write(msg + "\n")
 
 
-ALL_AIRPORTS: tuple[str, ...] = (
-    "KATL",
-    "KCLT",
-    "KDEN",
-    "KDFW",
-    "KJFK",
-    "KMEM",
-    "KMIA",
-    "KORD",
-    "KPHX",
-    "KSEA",
-    # "ALL",
-)
-
 _CATEGORICAL_STR_COLUMNS: list[str] = [
     "cloud",
     "lightning_prob",
@@ -215,6 +201,8 @@ _FEATURES_IGNORE: list[str] = [
     "isdeparture",
     "aircraft_engine_class",
     "precip",
+    "departure_runways",
+    "arrival_runways",
     # "visibility",
     # "flight_type",
 ]
@@ -279,19 +267,28 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
         return _encoder
 
 
+def get_model(_airport: str) -> lightgbm.Booster:
+    if not os.path.exists(get_model_path("models.pickle")):
+        raise FileNotFoundError("The model does not exist!")
+    _models: dict[str, lightgbm.Booster] = {}
+    with open(get_model_path("models.pickle"), "rb") as handle:
+        _models = pickle.load(handle)
+    return _models[_airport]
+
+
 def save_model(_airport: str, _model: lightgbm.Booster) -> None:
     _models: dict[str, lightgbm.Booster] = {}
     if os.path.exists(get_model_path("models.pickle")):
         with open(get_model_path("models.pickle"), "rb") as handle:
             _models = pickle.load(handle)
     _models[_airport] = _model
-    # save the encoder
+    # save the model
     with open(get_model_path("models.pickle"), "wb") as handle:
         pickle.dump(_models, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 # get the train and test dataset
-def get_train_and_test_ds(_airport: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(_airport: str, category_features_support: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
     train_df: pd.DataFrame = get_train_tables(_airport, remove_duplicate_gufi=False)
     val_df: pd.DataFrame = get_validation_tables(_airport, remove_duplicate_gufi=False)
@@ -302,10 +299,13 @@ def get_train_and_test_ds(_airport: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     # need to make provisions for handling unknown values
     for col in ENCODED_STR_COLUMNS:
         train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
+        train_df[col] = train_df[col].astype(int)
         val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
-    for col in get_categorical_columns():
-        train_df[col] = train_df[col].astype("category")
-        val_df[col] = val_df[col].astype("category")
+        val_df[col] = val_df[col].astype(int)
+    if category_features_support is True:
+        for col in get_categorical_columns():
+            train_df[col] = train_df[col].astype("category")
+            val_df[col] = val_df[col].astype("category")
 
     # drop useless columns
     train_df.drop(columns=get_ignored_features(), inplace=True)

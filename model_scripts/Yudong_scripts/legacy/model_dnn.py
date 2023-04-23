@@ -6,7 +6,6 @@
 
 import mytools
 import numpy as np
-import pandas as pd  # type: ignore
 import tensorflow as tf  # type: ignore
 from tensorflow.keras import layers  # type: ignore
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint  # type: ignore
@@ -15,8 +14,15 @@ from tensorflow.keras.models import Sequential  # type: ignore
 print(tf.__version__)
 
 
-def train_dnn(_data_train: pd.DataFrame, _data_test: pd.DataFrame) -> None:
-    features: tuple[str, ...] = ("minutes_until_etd",)
+def train_dnn(_airport: str) -> None:
+    _data_train, _data_test = mytools.get_train_and_test_ds(_airport)
+
+    model = mytools.get_model(_airport)
+
+    _data_train["lgbm_prediction"] = model.predict(_data_train.drop(columns=["minutes_until_pushback"]))
+    _data_test["lgbm_prediction"] = model.predict(_data_test.drop(columns=["minutes_until_pushback"]))
+
+    features: tuple[str, ...] = ("lgbm_prediction",)
 
     X_train: np.ndarray = np.asarray([_data_train[_col] for _col in features], dtype="float32")
     X_test: np.ndarray = np.asarray([_data_test[_col] for _col in features], dtype="float32")
@@ -71,4 +77,4 @@ def train_dnn(_data_train: pd.DataFrame, _data_test: pd.DataFrame) -> None:
 
 
 if __name__ == "__main__":
-    train_dnn(mytools.get_train_tables(), mytools.get_validation_tables())
+    train_dnn("KSEA")
