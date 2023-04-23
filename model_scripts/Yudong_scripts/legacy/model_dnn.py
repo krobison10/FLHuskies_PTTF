@@ -8,7 +8,7 @@ import mytools
 import numpy as np
 import pandas as pd  # type: ignore
 import tensorflow as tf  # type: ignore
-from tensorflow.keras import layers, regularizers  # type: ignore
+from tensorflow.keras import layers  # type: ignore
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint  # type: ignore
 from tensorflow.keras.models import Sequential  # type: ignore
 
