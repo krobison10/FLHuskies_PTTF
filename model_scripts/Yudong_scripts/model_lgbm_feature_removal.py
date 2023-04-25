@@ -1,13 +1,11 @@
 from typing import Any
 
 import lightgbm as lgb  # type: ignore
-import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import pandas as pd  # type: ignore
+from constants import TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
-
-TARGET_LABEL: str = "minutes_until_pushback"
 
 ignore_features = [
     "gufi",

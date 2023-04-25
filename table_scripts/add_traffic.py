@@ -10,10 +10,9 @@ import pandas as pd  # type: ignore
 
 # calculate various traffic measures for airport
 def add_traffic(
-    now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
+    now: pd.Timestamp, flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
     mfs = data_tables["mfs"]
-    latest_etd = data_tables["etd"].groupby("gufi", as_index=False).last()
     runways = data_tables["runways"]
     standtimes = data_tables["standtimes"]
 
@@ -64,13 +63,13 @@ def count_planes_taxiing(mfs, runways, standtimes, flights: str) -> int:
     mfs = mfs.loc[mfs["isdeparture"] == (flights == "departures")]
 
     if flights == "departures":
-        taxi = pd.merge(mfs, standtimes, on="gufi") # inner join will only result in flights with departure stand times
-        taxi = pd.merge(taxi, runways, how="left", on="gufi") # left join leaves blanks for taxiing flights
-        taxi = taxi.loc[pd.isna(taxi["departure_runway_actual_time"])] # select the taxiing flights
+        taxi = pd.merge(mfs, standtimes, on="gufi")  # inner join will only result in flights with departure stand times
+        taxi = pd.merge(taxi, runways, how="left", on="gufi")  # left join leaves blanks for taxiing flights
+        taxi = taxi.loc[pd.isna(taxi["departure_runway_actual_time"])]  # select the taxiing flights
     elif flights == "arrivals":
-        taxi = runways.loc[pd.notna(runways["arrival_runway_actual_time"])] # arrivals are rows with valid time
-        taxi = pd.merge(taxi, standtimes, how="left", on="gufi") # left merge with standtime
-        taxi = taxi.loc[pd.isna(taxi["arrival_stand_actual_time"])] # empty standtimes mean still taxiing
+        taxi = runways.loc[pd.notna(runways["arrival_runway_actual_time"])]  # arrivals are rows with valid time
+        taxi = pd.merge(taxi, standtimes, how="left", on="gufi")  # left merge with standtime
+        taxi = taxi.loc[pd.isna(taxi["arrival_stand_actual_time"])]  # empty standtimes mean still taxiing
     else:
         raise RuntimeError("Invalid argument, must specify departures or arrivals")
 

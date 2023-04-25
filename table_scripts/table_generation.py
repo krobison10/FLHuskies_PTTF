@@ -17,7 +17,6 @@ from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
 from add_traffic import add_traffic
-from add_estimated_flight_time import add_estimated_flight_time
 from add_etd_features import add_etd_features
 from add_lamp import add_lamp
 from extract_gufi_features import extract_and_add_gufi_features
@@ -31,9 +30,14 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
 
     # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
     data_tables = filter_tables(now, data_tables)
-    filtered_table = add_etd(filtered_table, data_tables)
-    filtered_table = add_traffic(now, filtered_table, data_tables)
-    filtered_table = add_averages(now, filtered_table, data_tables)
+
+    # get the latest ETD for each flight
+    latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
+
+    # add features
+    filtered_table = add_etd(filtered_table, latest_etd)
+    filtered_table = add_traffic(now, filtered_table, latest_etd, data_tables)
+    filtered_table = add_averages(now, filtered_table, latest_etd, data_tables)
     filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 
@@ -109,17 +113,17 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     # concatenate individual prediction times to a single dataframe
     _df = pd.concat(timestamp_tables, ignore_index=True)
 
-    # # Add runway information
+    # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
     # extract and add mfs information
     _df = extract_and_add_gufi_features(_df)
 
-    # # extract holiday features
-    # _df = add_date_features(_df)
+    # extract holiday features
+    _df = add_date_features(_df)
 
     # Add additional etd features
-    _df = add_etd_features(_df, feature_tables["etd"], airport=_airport)
+    _df = add_etd_features(_df, feature_tables["etd"])
 
     # Add mfs information
     _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
