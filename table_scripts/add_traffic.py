@@ -10,10 +10,9 @@ import pandas as pd  # type: ignore
 
 # calculate various traffic measures for airport
 def add_traffic(
-    now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
+    now: pd.Timestamp, flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
     mfs = data_tables["mfs"]
-    latest_etd = data_tables["etd"].groupby("gufi", as_index=False).last()
     runways = data_tables["runways"]
     standtimes = data_tables["standtimes"]
 

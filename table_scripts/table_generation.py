@@ -17,7 +17,6 @@ from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
 from add_traffic import add_traffic
-from add_estimated_flight_time import add_estimated_flight_time
 from add_etd_features import add_etd_features
 from add_lamp import add_lamp
 from extract_gufi_features import extract_and_add_gufi_features
@@ -31,9 +30,14 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
 
     # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
     data_tables = filter_tables(now, data_tables)
-    filtered_table = add_etd(filtered_table, data_tables)
-    filtered_table = add_traffic(now, filtered_table, data_tables)
-    filtered_table = add_averages(now, filtered_table, data_tables)
+
+    # get the latest ETD for each flight
+    latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
+
+    # add features
+    filtered_table = add_etd(filtered_table, latest_etd)
+    filtered_table = add_traffic(now, filtered_table, latest_etd, data_tables)
+    filtered_table = add_averages(now, filtered_table, latest_etd, data_tables)
     filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
 

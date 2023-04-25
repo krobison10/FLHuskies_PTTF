@@ -7,14 +7,14 @@
 import pandas as pd  # type: ignore
 
 
-def add_estimated_flight_time(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def add_estimated_flight_time(
+    flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
     """
     The estimated time it takes for the flight to happen
     Available for the predicted flight
     """
     latest_tfm: pd.DataFrame = data_tables["tfm"].groupby("gufi").last()
-
-    latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
 
     merged_df = pd.merge(flights_selected, latest_tfm, on="gufi")
 

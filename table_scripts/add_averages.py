@@ -11,11 +11,9 @@ from datetime import timedelta
 
 # calculate various traffic measures for airport
 def add_averages(
-    now: pd.Timestamp, flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
+    now: pd.Timestamp, flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
     mfs: pd.DataFrame = data_tables["mfs"]
-
-    latest_etd: pd.DataFrame = data_tables["etd"].groupby("gufi").last()
 
     runways: pd.DataFrame = data_tables["runways"]
     standtimes: pd.DataFrame = data_tables["standtimes"]
