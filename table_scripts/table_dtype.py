@@ -43,6 +43,7 @@ class TableDtype:
         )
 
         for _col in columns_need_normalize:
-            _df[_col] = _df[_col].fillna(0)
+            if _col in _df.columns:
+                _df[_col] = _df[_col].fillna(0)
 
         return _df

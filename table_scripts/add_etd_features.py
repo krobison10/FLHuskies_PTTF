@@ -18,20 +18,29 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
     etd["departure_runway_estimated_time"] = pd.to_datetime(etd["departure_runway_estimated_time"])
     etd = etd[etd["timestamp"] < etd["departure_runway_estimated_time"]]
 
-    complete_etd = etd.copy()
-    for i in range(1, 4 * 25):
-        current = etd.copy()
-        current["timestamp"] = current["timestamp"] + pd.Timedelta(f"{i * 15}min")
-        current = current[current["timestamp"] < current["departure_runway_estimated_time"]]
-        complete_etd = pd.concat([complete_etd, current])
+    time_intervals: tuple[int, ...] = tuple(sorted([30, 60, 180, 1400]))
+    increment_in_minutes: int = 15
+
+    complete_etd = pd.DataFrame()
+    complete_etd[["gufi", "timestamp", "departure_runway_estimated_time"]] = etd[
+        ["gufi", "timestamp", "departure_runway_estimated_time"]
+    ]
+
+    for i in range(1, time_intervals[len(time_intervals) - 1] // increment_in_minutes + 2):
+        _current = pd.DataFrame()
+        _current["timestamp"] = etd["timestamp"] + pd.Timedelta(minutes=i * increment_in_minutes)
+        _current[["gufi", "departure_runway_estimated_time"]] = etd[["gufi", "departure_runway_estimated_time"]]
+        complete_etd = pd.concat(
+            [complete_etd, _current[_current["timestamp"] < _current["departure_runway_estimated_time"]]]
+        )
 
     complete_etd["time_ahead"] = (
         complete_etd["departure_runway_estimated_time"] - complete_etd["timestamp"]
     ).dt.total_seconds()
     complete_etd = complete_etd.groupby(["gufi", "timestamp"]).first().reset_index()
 
-    for i in [30, 60, 180, 1400]:
-        complete_etd[f"estdep_next_{i}min"] = (complete_etd["time_ahead"] < i * 60).astype(int)
+    for _interval in time_intervals:
+        complete_etd[f"estdep_next_{_interval}min"] = (complete_etd["time_ahead"] < _interval * 60).astype(int)
     complete_etd.sort_values("time_ahead", inplace=True)
 
     # for i in [30, 60, 180, 1400]:
