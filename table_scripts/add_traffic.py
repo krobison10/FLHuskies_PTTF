@@ -77,7 +77,7 @@ def count_planes_taxiing(mfs, runways, standtimes, flights: str) -> int:
 
 
 def count_expected_departures(gufi: str, etd: pd.DataFrame, window: int) -> int:
-    time = etd.loc[etd["gufi"] == gufi]["departure_runway_estimated_time"].iloc[0]
+    time = etd.loc[etd.index == gufi]["departure_runway_estimated_time"].iloc[0]
 
     lower_bound = time - pd.Timedelta(minutes=window)
     upper_bound = time + pd.Timedelta(minutes=window)
