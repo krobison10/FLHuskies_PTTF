@@ -33,44 +33,35 @@ airports = [
     "KPHX",
     "KSEA",
 ]
+parser: argparse.ArgumentParser = argparse.ArgumentParser()
+parser.add_argument("-c", help="which column to look up unique values for")
+args: argparse.Namespace = parser.parse_args()
 
-total_airlines_gufi = {}
+column_name: str = "gufi_flight_major_carrier" if args.c is None else str(args.c)
+
+
+total_airlines = set([])
 
 for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
-    df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
+    df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["timestamp"])
 
     # get the unique values in the column
-    unique_values_mc = df['major_carrier'].unique()
+    unique_values = df[column_name].unique()
 
     # count the number of occurrences of each unique value
-    value_counts_mc = df['major_carrier'].value_counts()
+    value_counts = df[column_name].value_counts()
     
-    # get the unique values in the column
-    unique_values = df['gufi_flight_major_carrier'].unique()
-
-    # count the number of occurrences of each unique value
-    value_counts = df['gufi_flight_major_carrier'].value_counts()
-
     print(f"Listing Airlines for {airport}\n")
 
     # print the results
-    print(f"For airlines based on gufi: {len(unique_values)}\n")
+    print(f"Number of unique airlines based on major carrier: {len(unique_values)}\n")
     for value in unique_values:
         count = value_counts.get(value)
-    print(f"{value}: {count} rows")
-
-    total_airlines_gufi.update(value_counts)
-
-
-    # print the results
-    print(f"For airlines based on major carrier: {len(value_counts_mc)}\n")
-    for value in unique_values_mc:
-        count = value_counts_mc.get(value)
-    print(f"{value}: {count} rows")
-    
-
+        print(f"{value}: {count} rows")
+        total_airlines.add(value)
 
     
-print(f"Total number of unique airline: {len(total_airlines_gufi)}")
+print(f"Total number of unique values in {column_name}: {len(total_airlines)}")
+
 exit()
