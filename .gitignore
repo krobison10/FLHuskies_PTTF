@@ -1,7 +1,8 @@
 # .gitignore
 
 # Ignore _data directory
-_data/
+data/*.csv
+data/*.csv.bz2
 
 # Ignore _data directory
 catboost_info/
