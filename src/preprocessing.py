@@ -1,9 +1,3 @@
-#
-# Authors:
-# - Kyler Robison
-# - Yudong Lin
-# - Trevor Tomlin
-#
 # This script pre-processing data and build a table of training data for a single airport that is hard coded.
 #
 # It can easily be changed.
@@ -18,12 +12,39 @@ if __name__ == "__main__":
 
     import pandas as pd
 
-    from .table_scripts.table_dtype import TableDtype
-    from .table_scripts.table_generation import generate_table
-    from .table_scripts.utils import train_test_split
+    from table_scripts.table_generation import generate_table
+
+    # specify an airport to split for only one, otherwise a split for all airports will be executed
+    def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None) -> None:
+        valdata = pd.read_csv(os.path.join(ROOT, "..", "data", "submission_format.csv"))
+
+        # If there is a specific airport then we are only interested in those rows
+        ext: str = "ALL"
+        if airport is not None:
+            ext = f"{airport}"
+            valdata = valdata[valdata.airport == airport]
+
+        mygufis = valdata.gufi.unique()
+        testdata = table[table.gufi.isin(mygufis)]
+        traindata = table[~table.gufi.isin(mygufis)]
+
+        # replace these paths with any desired ones if necessary
+        traindata.sort_values(["gufi", "timestamp"]).to_csv(
+            os.path.join(ROOT, "train_tables", f"{ext}_train.csv"), index=False
+        )
+        testdata.sort_values(["gufi", "timestamp"]).to_csv(
+            os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"), index=False
+        )
 
     # the path for root folder
-    _ROOT: str = os.path.join(os.path.dirname(__file__), "..")
+    _ROOT: str = os.path.join(os.path.dirname(__file__))
+
+    # folders for storing output files
+    _OUTPUT_FOLDERS: tuple[str, ...] = ("train_tables", "validation_tables", "full_tables")
+    for tables_dir in _OUTPUT_FOLDERS:
+        _path: str = os.path.join(_ROOT, tables_dir)
+        if not os.path.exists(_path):
+            os.mkdir(_path)
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -48,16 +69,13 @@ if __name__ == "__main__":
             raise NameError(f"Unknown airport name {airports}!")
 
     # the path to the directory where data files are stored
-    DATA_DIR: str = os.path.join(_ROOT, "_data")
+    DATA_DIR: str = os.path.join(_ROOT, "..", "data")
 
     for airport in airports:
         print("Processing", airport)
 
         # extract features for give airport
         table = generate_table(airport, DATA_DIR, -1 if args.m is None else int(args.m))
-
-        # some int features may be missing due to a lack of information
-        table = TableDtype.fix_potential_missing_int_features(table)
 
         # fill the result missing spot with UNK
         table = table.fillna("UNK")
@@ -99,7 +117,7 @@ if __name__ == "__main__":
         if os.path.exists(zip_file_path):
             os.remove(zip_file_path)
         zip_file: zipfile.ZipFile = zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6)
-        for tables_dir in ("train_tables", "validation_tables", "full_tables"):
+        for tables_dir in _OUTPUT_FOLDERS:
             for csv_file in glob(os.path.join(_ROOT, tables_dir, "*.csv")):
                 zip_file.write(csv_file, os.path.join(tables_dir, os.path.basename(csv_file)))
         zip_file.close()

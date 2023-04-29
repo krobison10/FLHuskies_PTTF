@@ -4,9 +4,7 @@
 # calculate and add airport runway configurations to the data frame
 #
 
-import feature_engineering
 import pandas as pd
-import numpy as np
 
 
 # find and add current runway configuration

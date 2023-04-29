@@ -1,12 +1,5 @@
 # .gitignore
 
-# Ignore _data directory
-data/*.csv
-data/*.csv.bz2
-
-# Ignore _data directory
-catboost_info/
-
 # Ignore all CSV files
 *.csv
 
@@ -170,6 +163,3 @@ dmypy.json
 .pyre/
 
 .DS_Store
-
-model_scripts/catboost_info/catboost_training.json
-models/yudong_models/

@@ -4,7 +4,7 @@
 # calculate and add traffic information to data table
 #
 
-import feature_engineering
+from .feature_engineering import filter_by_timestamp
 import pandas as pd
 
 
@@ -16,7 +16,7 @@ def add_traffic(
     runways = data_tables["runways"]
     standtimes = data_tables["standtimes"]
 
-    runways_filtered_3hr = feature_engineering.filter_by_timestamp(runways, now, 3)
+    runways_filtered_3hr = filter_by_timestamp(runways, now, 3)
 
     deps_3hr = count_actual_flights(runways_filtered_3hr, departures=True)
     flights_selected["deps_3hr"] = pd.Series([deps_3hr] * len(flights_selected), index=flights_selected.index)

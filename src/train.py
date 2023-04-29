@@ -7,9 +7,6 @@ import lightgbm as lgb  # type: ignore
 import pandas as pd
 
 # ---------------------------------------- MAIN ----------------------------------------
-DATA_DIRECTORY = Path("data_apr16/tables/full_tables/")
-ROOT1 = Path("/home/ydlin/FLHuskies_PTTF/")
-ROOT = Path("/home/ttomlin/FLHuskies_PTTF")
 
 airports = [
     "KATL",
@@ -80,7 +77,9 @@ models: dict[str, lgb.LGBMRegressor] = {}
 
 for airport in airports:
     print(f"Processing Airport {airport}")
-    df = pd.read_csv(os.path.join(ROOT, DATA_DIRECTORY, f"{airport}_full.csv"), parse_dates=["timestamp"])
+    df = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), "full_tables", f"{airport}_full.csv"), parse_dates=["timestamp"]
+    )
 
     df["precip"] = df["precip"].astype(str)
     df["isdeparture"] = df["isdeparture"].astype(str)

@@ -1,10 +1,4 @@
-"""
-Author: Trevor Tomlin
-This script reads in the airport data and 
-encodes the specified them using the OrdinalEncoder.
-It then saves the OrdinalEncoders to a pickle file in the form of a dictionary.
-"""
-
+import os
 import pickle
 from collections import defaultdict
 from functools import partial
@@ -13,9 +7,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore
-
-DATA_DIRECTORY = Path("full_tables/")
-ROOT = Path("/home/ydlin/FLHuskies_PTTF/")
 
 
 def main() -> None:
@@ -57,7 +48,9 @@ def main() -> None:
 
     for airport in airports:
         print(f"Processing Airport {airport}")
-        data = pd.read_csv(f"data_apr16/tables/full_tables/{airport}_full.csv").sort_values("timestamp")
+        data = pd.read_csv(os.path.join(os.path.dirname(__file__), "full_tables" f"{airport}_full.csv")).sort_values(
+            "timestamp"
+        )
         data["precip"] = data["precip"].astype(str)
         data["isdeparture"] = data["isdeparture"].astype(str)
 

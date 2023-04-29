@@ -5,23 +5,33 @@
 # - Daniil Filienko
 # generate the full table for a specific airport
 #
-
 import multiprocessing
+import os
 from functools import partial
 
 import pandas as pd
-import feature_engineering
-
-from add_averages import add_averages
-from add_config import add_config
-from add_date import add_date_features
-from add_etd import add_etd
-from add_traffic import add_traffic
-from add_etd_features import add_etd_features
-from add_lamp import add_lamp
-from extract_gufi_features import extract_and_add_gufi_features
 from tqdm import tqdm
-from utils import get_csv_path
+
+from .add_averages import add_averages
+from .add_config import add_config
+from .add_date import add_date_features
+from .add_etd import add_etd
+from .add_etd_features import add_etd_features
+from .add_lamp import add_lamp
+from .add_traffic import add_traffic
+from .extract_gufi_features import extract_and_add_gufi_features
+from .feature_engineering import filter_by_timestamp
+from .table_dtype import TableDtype
+
+
+# get a valid path for a csv file
+# try to return the path for uncompressed csv file first
+# if the uncompressed csv does not exists, then return the path for compressed csv file
+def get_csv_path(*argv: str) -> str:
+    etd_csv_path: str = os.path.join(*argv)
+    if not os.path.exists(etd_csv_path):
+        etd_csv_path += ".bz2"
+    return etd_csv_path
 
 
 def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -49,7 +59,7 @@ def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> di
 
     for key in data_tables:
         if key != "mfs":
-            new_dict[key] = feature_engineering.filter_by_timestamp(data_tables[key], now, 30)
+            new_dict[key] = filter_by_timestamp(data_tables[key], now, 30)
 
     new_dict["mfs"] = filter_mfs(data_tables["mfs"], new_dict["standtimes"])
 
@@ -127,5 +137,8 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # Add mfs information
     _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
+
+    # some int features may be missing due to a lack of information
+    _df = TableDtype.fix_potential_missing_int_features(_df)
 
     return _df

@@ -7,7 +7,7 @@ import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 
-from .table_scripts.table_generation import (
+from table_scripts.table_generation import (
     add_date_features,
     add_etd_features,
     extract_and_add_gufi_features,
