@@ -113,12 +113,18 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
         "mfs": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"), dtype={"major_carrier": str}),
     }
 
+    return add_all_features(_df, feature_tables)
+
+
+def add_all_features(_df: pd.DataFrame, feature_tables: dict[str, pd.DataFrame], silent: bool = False):
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:
         fn = partial(process_timestamp, flights=_df, data_tables=feature_tables)
         unique_timestamp = _df.timestamp.unique()
         inputs = zip(pd.to_datetime(unique_timestamp))
-        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
+        timestamp_tables: list[pd.DataFrame] = executor.starmap(
+            fn, tqdm(inputs, total=len(unique_timestamp), disable=silent)
+        )
 
     # concatenate individual prediction times to a single dataframe
     _df = pd.concat(timestamp_tables, ignore_index=True)
@@ -136,7 +142,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     _df = add_etd_features(_df, feature_tables["etd"])
 
     # Add mfs information
-    _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
+    _df = _df.merge(feature_tables["mfs"].fillna("UNK"), how="left", on="gufi")
 
     # some int features may be missing due to a lack of information
     _df = TableDtype.fix_potential_missing_int_features(_df)

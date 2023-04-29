@@ -29,7 +29,7 @@ encoded_columns: tuple[str, ...] = (
     "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
-    "flight_type"
+    "flight_type",
 )
 
 
@@ -67,7 +67,7 @@ features: list[str] = [
     "visibility",
     "cloud",
     "lightning_prob",
-    "precip"
+    "precip",
 ]
 
 
@@ -78,7 +78,7 @@ def load_model(solution_directory: Path) -> Any:
     with (solution_directory / "encoders.pickle").open("rb") as fp:
         encoders = pickle.load(fp)
 
-    return [model, encoders]
+    return model, encoders
 
 
 def predict(
@@ -117,21 +117,7 @@ def predict(
         "mfs": mfs,
     }
 
-    # process all prediction times in parallel
-    with multiprocessing.Pool() as executor:
-        fn = partial(table_generation.process_timestamp, flights=_df, data_tables=feature_tables)
-        unique_timestamp = _df.timestamp.unique()
-        inputs = zip(pd.to_datetime(unique_timestamp))
-        timestamp_tables: list[pd.DataFrame] = executor.starmap(
-            fn, tqdm(inputs, total=len(unique_timestamp), disable=True)
-        )
-
-    _df = pd.concat(timestamp_tables, ignore_index=True)
-    _df = table_generation.extract_and_add_gufi_features(_df)
-    _df = table_generation.add_date_features(_df)
-    _df = table_generation.add_etd_features(_df, etd)
-
-    _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi", "flight_type", "aircraft_engine_class"]].fillna("UNK"), how="left", on="gufi")
+    _df = table_generation.add_all_features(_df, feature_tables, True)
 
     _df["precip"] = _df["precip"].astype(str)
 
