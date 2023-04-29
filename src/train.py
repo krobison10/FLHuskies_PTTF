@@ -1,7 +1,6 @@
 # from utils import *
 import os
 import pickle
-from pathlib import Path
 
 import lightgbm as lgb  # type: ignore
 import pandas as pd
@@ -84,7 +83,7 @@ for airport in airports:
     df["precip"] = df["precip"].astype(str)
     df["isdeparture"] = df["isdeparture"].astype(str)
 
-    with (Path("encoders.pickle")).open("rb") as fp:
+    with (os.path.join(os.path.dirname(__file__), "encoders.pickle")).open("rb") as fp:
         encoders = pickle.load(fp)
 
     for col in encoded_columns:
@@ -107,7 +106,7 @@ for airport in airports:
 
     models[airport] = gbm
 
-with open("models.pickle", "wb") as f:
+with open(os.path.join(os.path.dirname(__file__), "models.pickle"), "wb") as f:
     pickle.dump(models, f)
 
 exit()

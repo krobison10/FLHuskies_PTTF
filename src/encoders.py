@@ -59,7 +59,7 @@ def main() -> None:
     for column in encoded_columns:
         encoders[column].fit(np.array(list(unique[column])).reshape(-1, 1))
 
-    with open("encoders.pickle", "wb") as f:
+    with open(os.path.join(os.path.dirname(__file__), "encoders.pickle"), "wb") as f:
         pickle.dump(encoders, f)
 
 
