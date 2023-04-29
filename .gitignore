@@ -12,6 +12,8 @@
 # But allow CSV files with bz2 extension
 !*.csv.bz2
 
+_data/
+
 # PyCharm
 .idea/
 

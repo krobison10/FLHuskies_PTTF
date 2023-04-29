@@ -1,90 +1,33 @@
-# FLHuskies_PTTF
+# FLHuskies2 Solution
 
-Repository to share scripts and data for the Pushback to the Future competition.
+Created by the team FLHuskies2 out of the University of Washington Tacoma.
 
-Used by the team FLHuskies out of the University of Washington Tacoma.
+## Execution Steps
 
-## Members
-
-Faculty:
-  - Dr. Martine De Cock
-  - Dr. Anderson Nascimento
-
-
-PhD Students:
-  - Steven Golob
-  - Sikha Pentyala
-
-
-Undergraduates:
-  - Kyler Robison
-  - Yudong Lin
-  - David Huynh
-  - Jeff Maloney
-  - Daniil Filienko
-  - Anthony Nguyen
-  - Trevor Tomlin
-
-## Data Directory
-This repository does not contain the data as it is too large.
-
-Scripts operate under the assumption that there is a directory named "_data" in the 
-root of the repository.
-
-It has an underscore so that it stays out of the way up at the very top.
-
-Furthermore, they assume that the directory has a structure as follows:
-
-```
-_data
-├── <airport>
-│   ├── <airport>_config.csv
-│   ├── <airport>_etd.csv
-│   ├── <airport>_first_position.csv
-│   ├── <airport>_lamp.csv
-│   ├── <airport>_mfs.csv
-│   ├── <airport>_runways.csv
-│   ├── <airport>_standtimes.csv
-│   ├── <airport>_tbfm.csv
-│   └── <airport>_tfm.csv
-├── ...
-├── train_labels_open
-│   ├── train_labels_<airport>.csv
-│   └── ...
-├── train_labels_prescreened
-│   ├── prescreened_train_labels_<airport>.csv
-│   └── ...
-└── submission_format.csv
-
-```
-
-If it is desired to work with compressed tables to save storage space, the directory should appear as follows:
-
-```
-_data
-├── <airport>
-│   ├── <airport>_config.csv.bz2
-│   ├── <airport>_etd.csv.bz2
-│   ├── <airport>_first_position.csv.bz2
-│   ├── <airport>_lamp.csv.bz2
-│   ├── <airport>_mfs.csv.bz2
-│   ├── <airport>_runways.csv.bz2
-│   ├── <airport>_standtimes.csv.bz2
-│   └── <airport>_tbfm.csv.bz2
-├── ...
-├── train_labels_open
-│   ├── train_labels_<airport>.csv.bz2
-│   └── ...
-├── train_labels_prescreened
-│   ├── prescreened_train_labels_<airport>.csv.bz2
-│   └── ...
-└── submission_format.csv
-```
-
-Scripts that can read and use these compressed tables should be supplied a single command line argument "compressed".
-Some scripts are built to automatically use the compressed files if no uncompressed versions are found.
+1. This solution with the following steps is guaranteed to run on x86-64 Ubuntu Server 20.04. Although it is very likely to run on other operating systems.
+2. Install Python 3.10.8
+3. Install the following packages with pip:
+    
+   - `pandas==1.5.3`
+   - `lightgbm==3.3.5`
+   - `numpy==1.24.2`
+   - `pandarallel==1.6.4`
+   - `tqdm==4.65.0`
+   - `scikit-learn==1.2.2`
+4. Ensure that the "data" directory is located and formatted as specified in data/README.md
+5. Run the script `main.py`, it will likely take many hours to complete, but will execute the entire pipeline, from raw data to the models.
 
 
-## CSV Files
+## Using The Model
+1. Run the solution script to generate a table of processed features for input to the model.
+2. The model requires two files, `encoders.pickle` and `models.pickle`.
+3. `encoders.pickle` is a python dictionary with keys as the encoded columns and OrdinalEncoders as the values. 
+Load this pickle file.
+4. To prep processed data for prediction, loop through the keys (column names) of the encoders dictionary, 
+replace the columns of the input data with the columns that are returned when the `fit()` function of the encoder is called with the
+old column as the argument.
+5. Now load the `models.pickle` file, it is also a python dictionary, but the keys are the airport names and the values
+are the models. The data is ready to be passed into an airport model's `predict()` function.
 
-All raw .csv files in the entire project are excluded by .gitignore, except for compressed (.csv.bz2) files.
+
+

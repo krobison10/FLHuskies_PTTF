@@ -1,15 +1,13 @@
 ## Data Directory
 This repository does not contain the data as it is too large.
 
-Scripts operate under the assumption that there is a directory named "_data" in the 
-root of the repository.
+Scripts operate under the assumption that there is a directory named "data" in the 
+root of the project.
 
-It has an underscore so that it stays out of the way up at the very top.
-
-Furthermore, they assume that the directory has a structure as follows:
+Furthermore, they assume that the data directory has a structure as follows:
 
 ```
-_data
+data
 ├── <airport>
 │   ├── <airport>_config.csv
 │   ├── <airport>_etd.csv
@@ -24,17 +22,15 @@ _data
 ├── train_labels_open
 │   ├── train_labels_<airport>.csv
 │   └── ...
-├── train_labels_prescreened
-│   ├── prescreened_train_labels_<airport>.csv
-│   └── ...
-└── submission_format.csv
-
+└──train_labels_prescreened
+    ├── prescreened_train_labels_<airport>.csv
+    └── ...
 ```
 
 If it is desired to work with compressed tables to save storage space, the directory should appear as follows:
 
 ```
-_data
+data
 ├── <airport>
 │   ├── <airport>_config.csv.bz2
 │   ├── <airport>_etd.csv.bz2
@@ -48,16 +44,10 @@ _data
 ├── train_labels_open
 │   ├── train_labels_<airport>.csv.bz2
 │   └── ...
-├── train_labels_prescreened
-│   ├── prescreened_train_labels_<airport>.csv.bz2
-│   └── ...
-└── submission_format.csv
+└──train_labels_prescreened
+    ├── prescreened_train_labels_<airport>.csv.bz2
+    └── ...
 ```
 
-Scripts that can read and use these compressed tables should be supplied a single command line argument "compressed".
-Some scripts are built to automatically use the compressed files if no uncompressed versions are found.
-
-
-## CSV Files
-
-All raw .csv files in the entire project are excluded by .gitignore, except for compressed (.csv.bz2) files.
+The scripts will automatically work with compressed or uncompressed .csv files, including any 
+combination of compressed and uncompressed files.
