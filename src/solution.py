@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from loguru import logger
 
 # ensure import from correct path
 sys.path.append(os.path.dirname(__file__))
@@ -74,7 +73,6 @@ def load_model(solution_directory: Path) -> Any:
         model = pickle.load(fp)
     with (solution_directory / "encoders.pickle").open("rb") as fp:
         encoders = pickle.load(fp)
-
     return model, encoders
 
 
@@ -95,7 +93,6 @@ def predict(
     solution_directory: Path,
 ) -> pd.DataFrame:
     """Make predictions for the a set of flights at a single airport and prediction time."""
-    logger.debug("Computing prediction based on local models (LGBM) trained on all airports")
 
     if len(partial_submission_format) == 0:
         return partial_submission_format
@@ -120,18 +117,6 @@ def predict(
 
     for col in encoded_columns:
         _df[[col]] = encoders[col].transform(_df[[col]].values)
-
-    # print(_df[features].info())
-
-    # A = set(_df.columns.values.tolist())
-    # B = set(model[airport].feature_name())
-    # # #print("DF Features: ", A)
-    # # #print()
-    # # #print("Model Features:" , B)
-    # # #print()
-    # print("In Features, but not Model Features: ", A-B)
-    # print()
-    # print("In Model Features, but not Features: ",B-A)
 
     prediction = partial_submission_format.copy()
 

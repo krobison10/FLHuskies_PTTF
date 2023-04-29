@@ -108,5 +108,3 @@ for airport in airports:
 
 with open(os.path.join(os.path.dirname(__file__), "models.pickle"), "wb") as f:
     pickle.dump(models, f)
-
-exit()
