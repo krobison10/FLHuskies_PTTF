@@ -1,4 +1,7 @@
 import multiprocessing
+import os
+import pickle
+import sys
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -7,12 +10,12 @@ import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 
-from table_scripts.table_generation import (
-    add_date_features,
-    add_etd_features,
-    extract_and_add_gufi_features,
-    process_timestamp,
-)
+# ensure import from correct path
+sys.path.append(os.path.dirname(__file__))
+from table_scripts import table_generation
+
+sys.path.pop()
+
 
 encoded_columns: tuple[str, ...] = (
     # "airport",
@@ -81,6 +84,16 @@ features: tuple[str, ...] = (
 )
 
 
+def load_model(solution_directory: Path) -> Any:
+    """Load any model assets from disk."""
+    with (solution_directory / "models.pickle").open("rb") as fp:
+        model = pickle.load(fp)
+    with (solution_directory / "encoders.pickle").open("rb") as fp:
+        encoders = pickle.load(fp)
+
+    return [model, encoders]
+
+
 def predict(
     config: pd.DataFrame,
     etd: pd.DataFrame,
@@ -119,7 +132,7 @@ def predict(
 
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:
-        fn = partial(process_timestamp, flights=_df, data_tables=feature_tables)
+        fn = partial(table_generation.process_timestamp, flights=_df, data_tables=feature_tables)
         unique_timestamp = _df.timestamp.unique()
         inputs = zip(pd.to_datetime(unique_timestamp))
         timestamp_tables: list[pd.DataFrame] = executor.starmap(
@@ -127,9 +140,9 @@ def predict(
         )
 
     _df = pd.concat(timestamp_tables, ignore_index=True)
-    _df = extract_and_add_gufi_features(_df)
-    _df = add_date_features(_df)
-    _df = add_etd_features(_df, etd)
+    _df = table_generation.extract_and_add_gufi_features(_df)
+    _df = table_generation.add_date_features(_df)
+    _df = table_generation.add_etd_features(_df, etd)
 
     _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi", "flight_type"]].fillna("UNK"), how="left", on="gufi")
 

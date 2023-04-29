@@ -12,7 +12,13 @@ if __name__ == "__main__":
 
     import pandas as pd
 
+    import sys
+
+    # ensure import from correct path
+    sys.path.append(os.path.dirname(__file__))
     from table_scripts.table_generation import generate_table
+
+    sys.path.pop()
 
     # specify an airport to split for only one, otherwise a split for all airports will be executed
     def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None) -> None:

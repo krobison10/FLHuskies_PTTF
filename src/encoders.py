@@ -2,7 +2,6 @@ import os
 import pickle
 from collections import defaultdict
 from functools import partial
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
