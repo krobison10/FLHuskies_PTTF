@@ -18,25 +18,23 @@ sys.path.pop()
 
 
 encoded_columns: tuple[str, ...] = (
-    # "airport",
+    "airport",
     "departure_runways",
     "arrival_runways",
     "cloud",
     "lightning_prob",
-    # "precip",
-    # "gufi_flight_number",
+    "precip",
     "gufi_flight_major_carrier",
     "gufi_flight_destination_airport",
-    # "gufi_flight_FAA_system",
-    # "aircraft_engine_class",
+    "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
-    "flight_type",
-    # "isdeparture"
+    "flight_type"
 )
 
-features: tuple[str, ...] = (
-    "minutes_until_etd",
+
+features: list[str] = [
+    "gufi_flight_major_carrier",
     "deps_3hr",
     "deps_30hr",
     "arrs_3hr",
@@ -45,43 +43,32 @@ features: tuple[str, ...] = (
     "arrs_taxiing",
     "exp_deps_15min",
     "exp_deps_30min",
-    "delay_30hr",
     "standtime_30hr",
     "dep_taxi_30hr",
     "arr_taxi_30hr",
-    "delay_3hr",
-    "standtime_3hr",
-    "dep_taxi_3hr",
-    "arr_taxi_3hr",
-    "1h_ETDP",
-    "departure_runways",
-    "arrival_runways",
+    "minute",
+    "gufi_flight_destination_airport",
+    "month",
+    "day",
+    "hour",
+    "year",
+    "weekday",
+    "airport",
+    "minutes_until_etd",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
     "temperature",
     "wind_direction",
     "wind_speed",
     "wind_gust",
     "cloud_ceiling",
+    "visibility",
     "cloud",
     "lightning_prob",
-    "gufi_flight_major_carrier",
-    "gufi_flight_destination_airport",
-    "gufi_timestamp_until_etd",
-    "year",
-    "month",
-    "day",
-    "hour",
-    "minute",
-    "weekday",
-    "feat_5_gufi",
-    "feat_5_estdep_next_30min",
-    "feat_5_estdep_next_60min",
-    "feat_5_estdep_next_180min",
-    "feat_5_estdep_next_1400min",
-    "aircraft_type",
-    "major_carrier",
-    "visibility",
-    "flight_type",
-)
+    "precip"
+]
 
 
 def load_model(solution_directory: Path) -> Any:
@@ -144,7 +131,7 @@ def predict(
     _df = table_generation.add_date_features(_df)
     _df = table_generation.add_etd_features(_df, etd)
 
-    _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi", "flight_type"]].fillna("UNK"), how="left", on="gufi")
+    _df = _df.merge(mfs[["aircraft_type", "major_carrier", "gufi", "flight_type", "aircraft_engine_class"]].fillna("UNK"), how="left", on="gufi")
 
     _df["precip"] = _df["precip"].astype(str)
 

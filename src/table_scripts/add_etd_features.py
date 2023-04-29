@@ -14,6 +14,8 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
     :return pd.Dataframe _df: Master table enlarged with additional features
     """
 
+    # TODO: Find a way to get rid of this copy
+    etd = etd.copy()
     etd["timestamp"] = etd.timestamp.dt.ceil("15min")
     etd["departure_runway_estimated_time"] = pd.to_datetime(etd["departure_runway_estimated_time"])
     etd = etd[etd["timestamp"] < etd["departure_runway_estimated_time"]]
