@@ -4,11 +4,11 @@
 # extract date based features from the timestamp
 #
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
-    from pandarallel import pandarallel
+    from pandarallel import pandarallel  # type: ignore
 
     pandarallel.initialize(verbose=1)
 

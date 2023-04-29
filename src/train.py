@@ -1,22 +1,10 @@
-
-#from utils import *
+# from utils import *
 import os
-import pandas as pd
 import pickle
-import numpy as np
 from pathlib import Path
-from lightgbm import LGBMRegressor, Dataset
-import lightgbm as lgb
-from sklearn.preprocessing import OrdinalEncoder
-from sklearn.metrics import mean_absolute_error
-import matplotlib.pyplot as plt
-#import seaborn as sns
-from datetime import timedelta
-from pandarallel import pandarallel
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
-import multiprocessing as mp
-from collections import defaultdict
+
+import lightgbm as lgb  # type: ignore
+import pandas as pd
 
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY = Path("data_apr16/tables/full_tables/")
@@ -49,7 +37,7 @@ encoded_columns = [
     "aircraft_type",
     "major_carrier",
     "flight_type",
-    ]
+]
 
 features = [
     "gufi_flight_major_carrier",
@@ -88,7 +76,7 @@ features = [
     "precip",
 ]
 
-models = defaultdict(LGBMRegressor)
+models: dict[str, lgb.LGBMRegressor] = {}
 
 for airport in airports:
     print(f"Processing Airport {airport}")
@@ -103,24 +91,24 @@ for airport in airports:
     for col in encoded_columns:
         df[[col]] = encoders[col].transform(df[[col]].values)
 
-    X_train = (df[features])
-    y_train = (df["minutes_until_pushback"])
+    X_train = df[features]
+    y_train = df["minutes_until_pushback"]
 
     train_data = lgb.Dataset(X_train, label=y_train)
 
     params = {
-            'objective': 'regression_l1',
-            'metric': 'mae',
-            "num_leaves":4096,
-            "n_estimators":128,
-            #"learning_rate":0.05,
-            }
+        "objective": "regression_l1",
+        "metric": "mae",
+        "num_leaves": 4096,
+        "n_estimators": 128,
+        # "learning_rate":0.05,
+    }
 
     gbm = lgb.train(params, train_data)
 
     models[airport] = gbm
 
 with open("models.pickle", "wb") as f:
-        pickle.dump(models, f)
+    pickle.dump(models, f)
 
 exit()

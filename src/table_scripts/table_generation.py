@@ -9,7 +9,7 @@
 import multiprocessing
 from functools import partial
 
-import pandas as pd  # type: ignore
+import pandas as pd
 import feature_engineering
 
 from add_averages import add_averages
@@ -24,7 +24,7 @@ from tqdm import tqdm
 from utils import get_csv_path
 
 
-def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
     filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
 
@@ -56,7 +56,7 @@ def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> di
     return new_dict
 
 
-def filter_mfs(mfs, standtimes):
+def filter_mfs(mfs: pd.DataFrame, standtimes) -> pd.DataFrame:
     gufis_wanted = standtimes["gufi"]
     mfs_filtered = mfs.loc[mfs["gufi"].isin(gufis_wanted)]
     return mfs_filtered
@@ -105,7 +105,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:
-        fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
+        fn = partial(process_timestamp, flights=_df, data_tables=feature_tables)
         unique_timestamp = _df.timestamp.unique()
         inputs = zip(pd.to_datetime(unique_timestamp))
         timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))

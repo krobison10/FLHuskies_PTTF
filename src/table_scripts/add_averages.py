@@ -4,9 +4,10 @@
 # calculate and add traffic information to data table
 #
 
-import feature_engineering
-import pandas as pd  # type: ignore
 from datetime import timedelta
+
+import feature_engineering
+import pandas as pd
 
 
 # calculate various traffic measures for airport

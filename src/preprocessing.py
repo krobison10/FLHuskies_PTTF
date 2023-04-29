@@ -4,7 +4,7 @@
 # - Yudong Lin
 # - Trevor Tomlin
 #
-# This script builds a table of training data for a single airport that is hard coded.
+# This script pre-processing data and build a table of training data for a single airport that is hard coded.
 #
 # It can easily be changed.
 #
@@ -16,10 +16,11 @@ if __name__ == "__main__":
     from datetime import datetime
     from glob import glob
 
-    import pandas as pd  # type: ignore
-    from table_dtype import TableDtype
-    from table_generation import generate_table
-    from utils import train_test_split
+    import pandas as pd
+
+    from .table_scripts.table_dtype import TableDtype
+    from .table_scripts.table_generation import generate_table
+    from .table_scripts.utils import train_test_split
 
     # the path for root folder
     _ROOT: str = os.path.join(os.path.dirname(__file__), "..")

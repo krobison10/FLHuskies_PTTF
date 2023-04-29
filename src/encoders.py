@@ -5,19 +5,21 @@ encodes the specified them using the OrdinalEncoder.
 It then saves the OrdinalEncoders to a pickle file in the form of a dictionary.
 """
 
+import pickle
 from collections import defaultdict
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import OrdinalEncoder
 from functools import partial
 from pathlib import Path
-import pickle
+
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder  # type: ignore
 
 DATA_DIRECTORY = Path("full_tables/")
 ROOT = Path("/home/ydlin/FLHuskies_PTTF/")
 
-def main():
-    #DATA_DIR = Path("/home/ydlin/FL_Huskies_PTTF/train_tables/")
+
+def main() -> None:
+    # DATA_DIR = Path("/home/ydlin/FL_Huskies_PTTF/train_tables/")
 
     airports = [
         "KATL",
@@ -47,7 +49,7 @@ def main():
         "major_carrier",
         "flight_type",
     ]
-    
+
     unique = defaultdict(set)
 
     Encoder = partial(OrdinalEncoder, handle_unknown="use_encoded_value", unknown_value=-1)
@@ -67,6 +69,7 @@ def main():
 
     with open("encoders.pickle", "wb") as f:
         pickle.dump(encoders, f)
+
 
 if __name__ == "__main__":
     main()

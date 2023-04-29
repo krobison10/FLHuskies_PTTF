@@ -4,11 +4,11 @@
 # extract potential useful features from gufi
 #
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 def extract_and_add_gufi_features(_df: pd.DataFrame) -> pd.DataFrame:
-    from pandarallel import pandarallel
+    from pandarallel import pandarallel  # type: ignore
 
     pandarallel.initialize(verbose=1)
 

@@ -4,7 +4,7 @@
 # A simple class for keep tracking of typing for output table
 #
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 class TableDtype:
@@ -32,6 +32,7 @@ class TableDtype:
     )
 
     # fill potential missing int features with 0
+    @staticmethod
     def fix_potential_missing_int_features(_df: pd.DataFrame) -> pd.DataFrame:
         columns_need_normalize: tuple[str, ...] = (
             "temperature",

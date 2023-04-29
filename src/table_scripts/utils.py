@@ -7,7 +7,7 @@
 #
 
 import os
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 # get a valid path for a csv file

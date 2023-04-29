@@ -7,7 +7,7 @@
 import math
 from datetime import timedelta
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 def average_departure_delay(
