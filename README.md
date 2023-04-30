@@ -6,7 +6,7 @@ Created by the team FLHuskies2 out of the University of Washington Tacoma.
 
 1. This solution with the following steps is guaranteed to run on x86-64 Ubuntu Server 20.04. Although it is very likely to run on other operating systems.
 2. Install Python 3.10.8
-3. Install the following packages with pip:
+3. Install the following packages manually with pip:
     
    - `pandas==1.5.3`
    - `lightgbm==3.3.5`
@@ -14,6 +14,9 @@ Created by the team FLHuskies2 out of the University of Washington Tacoma.
    - `pandarallel==1.6.4`
    - `tqdm==4.65.0`
    - `scikit-learn==1.2.2`
+
+   or use `pip install -r requirements.txt`
+
 4. Ensure that the "data" directory is located and formatted as specified in data/README.md
 5. Run the script `main.py`, it will likely take many hours to complete, but will execute the entire pipeline, from raw data to the models.
 
