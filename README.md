@@ -1,10 +1,13 @@
-# FLHuskies2 Solution
+# Solution - Pushback to the Future
+
+
 
 Created by the team FLHuskies2 out of the University of Washington Tacoma.
 
-## Execution Steps
+## Setup
 
-1. This solution with the following steps is guaranteed to run on x86-64 Ubuntu Server 20.04. Although it is very likely to run on other operating systems.
+1. This solution with the following steps is guaranteed to run on x64 Ubuntu Server 20.04. Although it is very 
+likely to run on other operating systems as well.
 2. Install Python 3.10.8
 3. Install the following packages manually with pip:
     
@@ -18,19 +21,26 @@ Created by the team FLHuskies2 out of the University of Washington Tacoma.
    or use `pip install -r requirements.txt`
 
 4. Ensure that the "data" directory is located and formatted as specified in data/README.md
-5. Run the script `main.py`, it will likely take many hours to complete, but will execute the entire pipeline, from raw data to the models.
+
+## Run Training
+1. Run the script `master.py`, it will likely take many hours to complete, 
+but will execute the entire pipeline, from raw data to the models.
+2. It will output 2 files, `models.pickle` and `encoders.pickle`. These will take about 500mb of storage.
+3. In the process, the train tables will also be generated and saved, these will take about UNKNOWN gb of storage.
 
 
-## Using The Model
-1. Run the solution script to generate a table of processed features for input to the model.
-2. The model requires two files, `encoders.pickle` and `models.pickle`.
-3. `encoders.pickle` is a python dictionary with keys as the encoded columns and OrdinalEncoders as the values. 
-Load this pickle file.
-4. To prep processed data for prediction, loop through the keys (column names) of the encoders dictionary, 
-replace the columns of the input data with the columns that are returned when the `fit()` function of the encoder is called with the
-old column as the argument.
-5. Now load the `models.pickle` file, it is also a python dictionary, but the keys are the airport names and the values
-are the models. The data is ready to be passed into an airport model's `predict()` function.
+## Run Inference
+1. Obtain a variable that contains the result of the `load_model()` function in `solution.py`, this function requires 
+a path to a folder that contains `models.pickle` and `encoders.pickle` as the argument, it will return a tuple that
+contains the loaded models and column encoders.
+2. The function to make a prediction is `predict()` in `solution.py`. It makes predictions for any number of flights,
+but for only one timestamp and airport at a time. 
+3. `predict()` is formatted just as in the prescreened arena submission. It requires, among other things:
+   - `models`: the tuple of models and encoders obtained in step 1
+   - the raw data tables filtered by timestamp between the prediction time and 30 hours prior
+   - `partial_submission_format`: a dataframe of the flights and timestamps to make predictions for
+4. Call predict with the required inputs and what will be returned is the `partial_submission_format` DataFrame
+with the predictions in the `minutes_until_pushback` column.
 
 
 
