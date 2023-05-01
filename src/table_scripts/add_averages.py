@@ -21,10 +21,6 @@ def add_averages(
     standtimes: pd.DataFrame = data_tables["standtimes"]
     origin: pd.DataFrame = data_tables["first_position"].rename(columns={"timestamp": "origin_time"})
 
-    # 30 hour features, no need to filter
-    delay_30hr = average_departure_delay(latest_etd, runways)
-    flights_selected["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
-
     standtime_30hr = average_stand_time(origin, standtimes)
     flights_selected["standtime_30hr"] = pd.Series(
         [standtime_30hr] * len(flights_selected), index=flights_selected.index
@@ -35,29 +31,5 @@ def add_averages(
 
     arr_taxi_30hr = average_taxi_time(mfs, standtimes, runways, departures=False)
     flights_selected["arr_taxi_30hr"] = pd.Series([arr_taxi_30hr] * len(flights_selected), index=flights_selected.index)
-
-    # 3 hour features
-    latest_etd = filter_by_timestamp(latest_etd, now, 3)
-    runways = filter_by_timestamp(runways, now, 3)
-    standtimes = filter_by_timestamp(standtimes, now, 3)
-    origin = origin.loc[(origin.origin_time > now - timedelta(hours=3)) & (origin.origin_time <= now)]
-
-    delay_3hr = average_departure_delay(latest_etd, runways)
-    flights_selected["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
-
-    standtime_3hr = average_stand_time(origin, standtimes)
-    flights_selected["standtime_3hr"] = pd.Series([standtime_3hr] * len(flights_selected), index=flights_selected.index)
-
-    dep_taxi_3hr = average_taxi_time(mfs, standtimes, runways)
-    flights_selected["dep_taxi_3hr"] = pd.Series([dep_taxi_3hr] * len(flights_selected), index=flights_selected.index)
-
-    arr_taxi_3hr = average_taxi_time(mfs, standtimes, runways, departures=False)
-    flights_selected["arr_taxi_3hr"] = pd.Series([arr_taxi_3hr] * len(flights_selected), index=flights_selected.index)
-
-    # 1 hour features
-    latest_etd = filter_by_timestamp(latest_etd, now, 1)
-    standtimes = filter_by_timestamp(standtimes, now, 1)
-    PDd_1hr = average_departure_delay(latest_etd, standtimes, "departure_stand_actual_time")
-    flights_selected["1h_ETDP"] = pd.Series([PDd_1hr] * len(flights_selected), index=flights_selected.index)
 
     return flights_selected

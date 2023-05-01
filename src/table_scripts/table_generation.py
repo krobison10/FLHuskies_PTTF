@@ -16,7 +16,6 @@ from .add_averages import add_averages
 from .add_config import add_config
 from .add_date import add_date_features
 from .add_etd import add_etd
-from .add_etd_features import add_etd_features
 from .add_lamp import add_lamp
 from .add_traffic import add_traffic
 from .extract_gufi_features import extract_and_add_gufi_features
@@ -137,9 +136,6 @@ def add_all_features(_df: pd.DataFrame, feature_tables: dict[str, pd.DataFrame],
 
     # extract holiday features
     _df = add_date_features(_df)
-
-    # Add additional etd features
-    _df = add_etd_features(_df, feature_tables["etd"])
 
     # Add mfs information
     _df = _df.merge(feature_tables["mfs"].fillna("UNK"), how="left", on="gufi")

@@ -83,7 +83,7 @@ for airport in airports:
     df["precip"] = df["precip"].astype(str)
     df["isdeparture"] = df["isdeparture"].astype(str)
 
-    with (os.path.join(os.path.dirname(__file__), "encoders.pickle")).open("rb") as fp:
+    with open(os.path.join(os.path.dirname(__file__), "encoders.pickle"), "rb") as fp:
         encoders = pickle.load(fp)
 
     for col in encoded_columns:
