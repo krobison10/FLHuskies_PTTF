@@ -8,7 +8,7 @@ Created by the team FLHuskies2 out of the University of Washington Tacoma.
 
 1. This solution with the following steps is guaranteed to run on x64 Ubuntu Server 20.04. Although it is very 
 likely to run on other operating systems as well.
-2. Install Python 3.10.8
+2. Install Python 3.10.9
 3. Install the following packages manually with pip:
     
    - `pandas==1.5.3`
