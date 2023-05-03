@@ -31,7 +31,6 @@ def main() -> None:
         "cloud",
         "lightning_prob",
         "precip",
-        "gufi_flight_number",
         "gufi_flight_major_carrier",
         "gufi_flight_destination_airport",
         "aircraft_engine_class",
@@ -47,7 +46,7 @@ def main() -> None:
 
     for airport in airports:
         print(f"Processing Airport {airport}")
-        data = pd.read_csv(os.path.join(os.path.dirname(__file__), "full_tables" f"{airport}_full.csv")).sort_values(
+        data = pd.read_csv(os.path.join(os.path.dirname(__file__), "full_tables", f"{airport}_full.csv")).sort_values(
             "timestamp"
         )
         data["precip"] = data["precip"].astype(str)
