@@ -26,10 +26,10 @@ likely to run on other operating systems as well.
 The pretrained models and encoders can be downloaded [here](https://www.dropbox.com/scl/fo/6nparyuy3vo10j6cpho8e/h?dl=0&rlkey=eo93lv5m16q5vyyve2pqjyukk) and should be placed in the src folder.
 
 ## Run Training
-1. Run the script `master.py`, it will likely take many hours to complete, 
+Run the script `master.py`, it will likely take many hours to complete, 
 but will execute the entire pipeline, from raw data to the models.
-2. It will output 2 files, `models.pickle` and `encoders.pickle`. These will take about 500mb of storage.
-3. In the process, the train tables will also be generated and saved, these will take about UNKNOWN gb of storage.
+
+It will output 2 files, `models.pickle` and `encoders.pickle`. These will take about 500mb of storage. In the process, the train tables will also be generated and saved, these will take about UNKNOWN gb of storage.
 
 
 ## Run Inference
