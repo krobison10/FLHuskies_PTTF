@@ -3,18 +3,13 @@
 #
 # calculate and add traffic information to data table
 #
-
-from datetime import timedelta
-
 import pandas as pd
 
-from .feature_engineering import average_departure_delay, average_stand_time, average_taxi_time, filter_by_timestamp
+from .feature_engineering import average_stand_time, average_taxi_time
 
 
 # calculate various traffic measures for airport
-def add_averages(
-    now: pd.Timestamp, flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
-) -> pd.DataFrame:
+def add_averages(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     mfs: pd.DataFrame = data_tables["mfs"]
 
     runways: pd.DataFrame = data_tables["runways"]

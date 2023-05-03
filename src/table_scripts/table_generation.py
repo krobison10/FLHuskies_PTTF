@@ -45,7 +45,7 @@ def process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dic
 
     # add features
     filtered_table = add_etd(filtered_table, latest_etd)
-    filtered_table = add_averages(now, filtered_table, latest_etd, data_tables)
+    filtered_table = add_averages(filtered_table, data_tables)
     filtered_table = add_traffic(now, filtered_table, latest_etd, data_tables)
     filtered_table = add_config(filtered_table, data_tables)
     filtered_table = add_lamp(now, filtered_table, data_tables)
