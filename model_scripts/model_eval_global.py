@@ -22,7 +22,7 @@ args: argparse.Namespace = parser.parse_args()
 def plotImp(model, X, airport = "ALL", airline = "ALL",num=20, fig_size=(40, 20)):
     feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": X.columns})
     plt.figure(figsize=fig_size)
-    sns.set(font_scale=1)
+    sns.set(font_scale=3)
     sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[0:num])
     plt.title("LightGBM Features (avg over folds)")
     plt.tight_layout()
@@ -56,10 +56,10 @@ val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi
 # train.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
 
 cat_feats = []
-for c in train.columns:
-    col_type = train[c].dtype
-    if col_type != 'float' or col_type == 'string' in c:
-        train[c] = train[c].astype('category')
+for c in val.columns:
+    col_type = val[c].dtype
+    if col_type != 'float' in c:
+        val[c] = val[c].astype('category')
         cat_feats.append(c)
 
 #remove test for training the models
@@ -98,13 +98,10 @@ train_data = lgb.Dataset(X_train,
                          categorical_feature=cat_feats, 
                          free_raw_data=False)
 fit_params = { 
-    'boosting_type': 'rf', # Type of boosting algorithm
     'objective': 'regression_l1', # Type of task (regression)
     'metric': 'mae', # Evaluation metric (mean squared error)
-    'learning_rate': 0.02, # Learning rate for boosting
-    'n_estimators': 4000, 
-    'bagging_freq': 5,  # Frequency of bagging 
-    'bagging_fraction': 0.8  # Fraction of data for bagging
+    "num_leaves": 1024 * 8,
+    "n_estimators": 128
 }
 
 regressor = LGBMRegressor(**fit_params)
@@ -132,6 +129,13 @@ for airport in AIRPORTS:
     print(len(AIRPORTS))
     X_val_local = X_val.loc[X_val['airport'] == airport]
     y_val_local = y_val.loc[y_val['airport'] == airport]
+
+    # add columns representing standard and improved baselines to validation table
+    X_val_local["baseline"] = X_val_local.apply(lambda row: max(row["minutes_until_etd"] - 15, 0), axis=1)
+
+    # print performance of baseline estimates
+    mae = mean_absolute_error(y_val_local["minutes_until_pushback"], X_val_local["baseline"])
+    print(f"\nMAE with baseline: {mae:.4f}")
 
     y_pred = regressor.predict(X_val_local)
     plotImp(regressor, X_val_local, airport=airport)
