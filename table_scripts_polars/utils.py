@@ -7,7 +7,8 @@
 #
 
 import os
-import pandas as pd  # type: ignore
+
+import polars as pl
 
 
 # get a valid path for a csv file
@@ -21,23 +22,19 @@ def get_csv_path(*argv: str) -> str:
 
 
 # specify an airport to split for only one, otherwise a split for all airports will be executed
-def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None) -> None:
-    valdata = pd.read_csv(os.path.join(ROOT, "_data", "submission_format.csv"))
+def train_test_split(table: pl.DataFrame, ROOT: str, airport: str | None = None) -> None:
+    val_data: pl.DataFrame = pl.read_csv(os.path.join(ROOT, "data", "submission_format.csv"))
 
     # If there is a specific airport then we are only interested in those rows
     ext: str = "ALL"
     if airport is not None:
         ext = f"{airport}"
-        valdata = valdata[valdata.airport == airport]
+        val_data = val_data.filter(pl.col("airport") == airport)
 
-    mygufis = valdata.gufi.unique()
-    testdata = table[table.gufi.isin(mygufis)]
-    traindata = table[~table.gufi.isin(mygufis)]
+    _gufi: pl.Series = val_data.select(pl.col("gufi")).unique().to_series()
+    test_data: pl.DataFrame = table.filter(pl.col("gufi").is_in(_gufi))
+    train_data: pl.DataFrame = table.filter(~pl.col("gufi").is_in(_gufi))
 
     # replace these paths with any desired ones if necessary
-    traindata.sort_values(["gufi", "timestamp"]).to_csv(
-        os.path.join(ROOT, "train_tables", f"{ext}_train.csv"), index=False
-    )
-    testdata.sort_values(["gufi", "timestamp"]).to_csv(
-        os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"), index=False
-    )
+    train_data.sort("gufi", "timestamp").write_csv(os.path.join(ROOT, "train_tables", f"{ext}_train.csv"))
+    test_data.sort("gufi", "timestamp").write_csv(os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"))

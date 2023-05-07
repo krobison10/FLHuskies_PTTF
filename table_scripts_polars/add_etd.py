@@ -4,19 +4,22 @@
 # calculate and add etd information to the data frame
 #
 
-import pandas as pd  # type: ignore
+import polars as pl
 
 
 # calculate etd
-def add_etd(flights_selected: pd.DataFrame, latest_etd: pd.DataFrame) -> pd.DataFrame:
+def add_etd(flights_selected: pl.DataFrame, latest_etd: pl.DataFrame) -> pl.DataFrame:
     # get a series containing latest ETDs for each flight, in the same order they appear in flights
-    departure_runway_estimated_time: pd.Series = flights_selected.merge(
-        latest_etd.departure_runway_estimated_time, how="left", on="gufi"
-    ).departure_runway_estimated_time
+    flights_selected = flights_selected.join(latest_etd.drop("timestamp"), how="left", on="gufi")
 
     # add new column to flights_selected that represents minutes until pushback
-    flights_selected["minutes_until_etd"] = (
-        (departure_runway_estimated_time - flights_selected.timestamp).dt.total_seconds() / 60
-    ).astype(int)
+    flights_selected = flights_selected.with_columns(
+        (pl.col("departure_runway_estimated_time") - pl.col("timestamp")).alias("minutes_until_etd")
+    )
+    flights_selected.drop_in_place("departure_runway_estimated_time")
+
+    flights_selected = flights_selected.with_columns(
+        pl.col("minutes_until_etd").apply(lambda x: x.total_seconds() // 60)
+    )
 
     return flights_selected

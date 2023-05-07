@@ -4,7 +4,7 @@
 # A simple class for keep tracking of typing for output table
 #
 
-import pandas as pd  # type: ignore
+import polars as pl
 
 
 class TableDtype:
@@ -32,7 +32,8 @@ class TableDtype:
     )
 
     # fill potential missing int features with 0
-    def fix_potential_missing_int_features(_df: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def fix_potential_missing_int_features(_df: pl.DataFrame) -> pl.DataFrame:
         columns_need_normalize: tuple[str, ...] = (
             "temperature",
             "wind_direction",
@@ -44,6 +45,6 @@ class TableDtype:
 
         for _col in columns_need_normalize:
             if _col in _df.columns:
-                _df[_col] = _df[_col].fillna(0)
+                _df[_col].fill_null(0)
 
         return _df

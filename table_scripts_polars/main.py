@@ -16,7 +16,7 @@ if __name__ == "__main__":
     from datetime import datetime
     from glob import glob
 
-    import pandas as pd  # type: ignore
+    import polars as pl
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split
@@ -47,7 +47,7 @@ if __name__ == "__main__":
             raise NameError(f"Unknown airport name {airports}!")
 
     # the path to the directory where data files are stored
-    DATA_DIR: str = os.path.join(_ROOT, "_data")
+    DATA_DIR: str = os.path.join(_ROOT, "data")
 
     for airport in airports:
         print("Processing", airport)
@@ -59,16 +59,15 @@ if __name__ == "__main__":
         table = TableDtype.fix_potential_missing_int_features(table)
 
         # fill the result missing spot with UNK
-        table = table.fillna("UNK")
+        table = table.fill_null("UNK")
 
         # table = normalize_str_features(table)
 
         # -- save data ---
         # full
         if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-            table.sort_values(["gufi", "timestamp"]).to_csv(
-                os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"), index=False
-            )
+            table = table.sort("gufi", "timestamp")
+            table.write_csv(os.path.join(_ROOT, "full_tables", f"{airport}_full.csv"))
         # split
         if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
             train_test_split(table, _ROOT, airport)
@@ -78,15 +77,14 @@ if __name__ == "__main__":
 
     # put together big table and save properly according to other arguments
     if args.a is None:
-        master_table: pd.DataFrame = pd.concat(
+        master_table: pl.DataFrame = pl.concat(
             [
-                pd.read_csv(individual_table)
+                pl.read_csv(individual_table)
                 for individual_table in glob(os.path.join(_ROOT, "full_tables", "*_full.csv"))
             ],
-            ignore_index=True,
-        ).sort_values(["gufi", "timestamp"])
+        ).sort("gufi", "timestamp")
         if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-            master_table.to_csv(os.path.join(_ROOT, "full_tables", "ALL_full.csv"), index=False)
+            master_table.write_csv(os.path.join(_ROOT, "full_tables", "ALL_full.csv"))
         if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
             train_test_split(master_table, _ROOT)
         del master_table

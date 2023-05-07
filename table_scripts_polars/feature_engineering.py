@@ -5,9 +5,10 @@
 #
 
 import math
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 import pandas as pd  # type: ignore
+import polars as pl
 
 
 def average_departure_delay(
@@ -138,5 +139,5 @@ def average_flight_delay(standtimes: pd.DataFrame) -> float:
 
 # returns a version of the passed in dataframe that only contains entries
 # between the time 'now' and n hours prior
-def filter_by_timestamp(df: pd.DataFrame, now: pd.Timestamp, hours: int) -> pd.DataFrame:
-    return df.loc[(df.timestamp > now - timedelta(hours=hours)) & (df.timestamp <= now)]
+def filter_by_timestamp(df: pl.DataFrame, now: datetime, hours: int) -> pl.DataFrame:
+    return df.filter((pl.col("timestamp") > now - timedelta(hours=hours)) & (pl.col("timestamp") <= now))
