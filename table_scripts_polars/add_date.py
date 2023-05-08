@@ -4,21 +4,21 @@
 # extract date based features from the timestamp
 #
 
-import pandas as pd  # type: ignore
+import polars as pl
 
 
-def add_date_features(_df: pd.DataFrame) -> pd.DataFrame:
-    from pandarallel import pandarallel
-
-    pandarallel.initialize(verbose=1)
-
-    _df["year"] = _df.parallel_apply(lambda x: x.timestamp.year, axis=1)
-    # _df["quarter"] = _df.parallel_apply(lambda x: x.timestamp.quarter, axis=1)
-    _df["month"] = _df.parallel_apply(lambda x: x.timestamp.month, axis=1)
-    _df["day"] = _df.parallel_apply(lambda x: x.timestamp.day, axis=1)
-    _df["hour"] = _df.parallel_apply(lambda x: x.timestamp.hour, axis=1)
-    _df["minute"] = _df.parallel_apply(lambda x: x.timestamp.minute, axis=1)
-    _df["weekday"] = _df.parallel_apply(lambda x: x.timestamp.weekday(), axis=1)
+def add_date_features(_df: pl.DataFrame) -> pl.DataFrame:
+    _df = _df.with_columns(
+        [
+            (pl.col("timestamp").dt.year()).alias("year"),
+            # (pl.col("timestamp").dt.quarter()).alias("quarter"),
+            (pl.col("timestamp").dt.month()).alias("month"),
+            (pl.col("timestamp").dt.day()).alias("day"),
+            (pl.col("timestamp").dt.weekday()).alias("weekday"),
+            (pl.col("timestamp").dt.hour()).alias("hour"),
+            (pl.col("timestamp").dt.minute()).alias("minute"),
+        ]
+    )
 
     # check if the timestamp given is a holiday
     # us_holidays = holidays.US()

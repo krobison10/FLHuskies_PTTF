@@ -5,57 +5,58 @@
 #
 
 import feature_engineering
-import pandas as pd  # type: ignore
-from datetime import timedelta
+import polars as pl
+from datetime import datetime, timedelta
 
 
 # calculate various traffic measures for airport
 def add_averages(
-    now: pd.Timestamp, flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
-) -> pd.DataFrame:
-    mfs: pd.DataFrame = data_tables["mfs"]
+    now: datetime, flights_selected: pl.DataFrame, latest_etd: pl.DataFrame, data_tables: dict[str, pl.DataFrame]
+) -> pl.DataFrame:
+    mfs: pl.DataFrame = data_tables["mfs"]
 
-    runways: pd.DataFrame = data_tables["runways"]
-    standtimes: pd.DataFrame = data_tables["standtimes"]
-    origin: pd.DataFrame = data_tables["first_position"].rename(columns={"timestamp": "origin_time"})
+    runways: pl.DataFrame = data_tables["runways"]
+    standtimes: pl.DataFrame = data_tables["standtimes"]
+    origin: pl.DataFrame = data_tables["first_position"].rename({"timestamp": "origin_time"})
 
     # 30 hour features, no need to filter
     delay_30hr = feature_engineering.average_departure_delay(latest_etd, runways)
-    flights_selected["delay_30hr"] = pd.Series([delay_30hr] * len(flights_selected), index=flights_selected.index)
-
-    standtime_30hr = feature_engineering.average_stand_time(origin, standtimes)
-    flights_selected["standtime_30hr"] = pd.Series(
-        [standtime_30hr] * len(flights_selected), index=flights_selected.index
-    )
-
+    stand_time_30hr = feature_engineering.average_stand_time(origin, standtimes)
     dep_taxi_30hr = feature_engineering.average_taxi_time(mfs, standtimes, runways)
-    flights_selected["dep_taxi_30hr"] = pd.Series([dep_taxi_30hr] * len(flights_selected), index=flights_selected.index)
-
     arr_taxi_30hr = feature_engineering.average_taxi_time(mfs, standtimes, runways, departures=False)
-    flights_selected["arr_taxi_30hr"] = pd.Series([arr_taxi_30hr] * len(flights_selected), index=flights_selected.index)
 
-    # 3 hour features
+    # filter out 3 hour data
     latest_etd = feature_engineering.filter_by_timestamp(latest_etd, now, 3)
     runways = feature_engineering.filter_by_timestamp(runways, now, 3)
     standtimes = feature_engineering.filter_by_timestamp(standtimes, now, 3)
-    origin = origin.loc[(origin.origin_time > now - timedelta(hours=3)) & (origin.origin_time <= now)]
+    origin = origin.filter((pl.col("origin_time") > now - timedelta(hours=3)) & (pl.col("origin_time") <= now))
 
+    # obtain 3 hour features
     delay_3hr = feature_engineering.average_departure_delay(latest_etd, runways)
-    flights_selected["delay_3hr"] = pd.Series([delay_3hr] * len(flights_selected), index=flights_selected.index)
-
-    standtime_3hr = feature_engineering.average_stand_time(origin, standtimes)
-    flights_selected["standtime_3hr"] = pd.Series([standtime_3hr] * len(flights_selected), index=flights_selected.index)
-
-    dep_taxi_3hr = feature_engineering.average_taxi_time(mfs, standtimes, runways)
-    flights_selected["dep_taxi_3hr"] = pd.Series([dep_taxi_3hr] * len(flights_selected), index=flights_selected.index)
-
     arr_taxi_3hr = feature_engineering.average_taxi_time(mfs, standtimes, runways, departures=False)
-    flights_selected["arr_taxi_3hr"] = pd.Series([arr_taxi_3hr] * len(flights_selected), index=flights_selected.index)
+    stand_time_3hr = feature_engineering.average_stand_time(origin, standtimes)
+    dep_taxi_3hr = feature_engineering.average_taxi_time(mfs, standtimes, runways)
 
-    # 1 hour features
+    # obtain 1 hour features
     latest_etd = feature_engineering.filter_by_timestamp(latest_etd, now, 1)
     standtimes = feature_engineering.filter_by_timestamp(standtimes, now, 1)
     PDd_1hr = feature_engineering.average_departure_delay(latest_etd, standtimes, "departure_stand_actual_time")
-    flights_selected["1h_ETDP"] = pd.Series([PDd_1hr] * len(flights_selected), index=flights_selected.index)
+
+    # get the number of flights flights_selected
+    flights_selected_len: int = len(flights_selected)
+
+    flights_selected = flights_selected.with_columns(
+        [
+            pl.lit(delay_30hr * flights_selected_len).alias("delay_30hr"),
+            pl.lit(stand_time_30hr * flights_selected_len).alias("standtime_30hr"),
+            pl.lit(dep_taxi_30hr * flights_selected_len).alias("dep_taxi_30hr"),
+            pl.lit(arr_taxi_30hr * flights_selected_len).alias("arr_taxi_30hr"),
+            pl.lit(delay_3hr * flights_selected_len).alias("delay_3hr"),
+            pl.lit(stand_time_3hr * flights_selected_len).alias("standtime_3hr"),
+            pl.lit(dep_taxi_3hr * flights_selected_len).alias("dep_taxi_3hr"),
+            pl.lit(arr_taxi_3hr * flights_selected_len).alias("arr_taxi_3hr"),
+            pl.lit(PDd_1hr * flights_selected_len).alias("1h_ETDP"),
+        ]
+    )
 
     return flights_selected

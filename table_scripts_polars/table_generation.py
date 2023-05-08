@@ -7,7 +7,6 @@
 #
 
 import multiprocessing
-from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from functools import partial
 
@@ -37,7 +36,7 @@ def _process_timestamp(now: datetime, flights: pl.DataFrame, data_tables: dict[s
 
     # add features
     filtered_table = add_etd(filtered_table, latest_etd)
-    # filtered_table = add_averages(now, filtered_table, latest_etd, data_tables)
+    filtered_table = add_averages(now, filtered_table, latest_etd, data_tables)
     # filtered_table = add_traffic(now, filtered_table, latest_etd, data_tables)
     # filtered_table = add_config(filtered_table, data_tables)
     # filtered_table = add_lamp(now, filtered_table, data_tables)
@@ -73,9 +72,9 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pl.DataF
 
     # define list of data tables to load and use for each airport
     feature_tables: dict[str, pl.DataFrame] = {
-        "etd": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"), try_parse_dates=True).sort(
-            "timestamp"
-        ),
+        "etd": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"), try_parse_dates=True)
+        .sort("timestamp")
+        .with_columns(pl.col("departure_runway_estimated_time").cast(pl.Datetime)),
         "config": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_config.csv"), try_parse_dates=True).sort(
             "timestamp"
         ),
@@ -85,7 +84,9 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pl.DataF
         "lamp": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), try_parse_dates=True).sort(
             "timestamp"
         ),
-        "runways": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), try_parse_dates=True),
+        "runways": pl.read_csv(
+            get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"), try_parse_dates=True
+        ).with_columns(pl.col("departure_runway_actual_time").str.to_datetime("%Y-%m-%d %H:%M:%S")),
         "standtimes": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"), try_parse_dates=True),
         "mfs": pl.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv")),
     }
@@ -101,18 +102,18 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pl.DataF
     _df = pl.concat(timestamp_tables)
 
     # Add runway information
-    # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
+    _df = _df.join(feature_tables["runways"].select(["gufi", "departure_runway_actual"]), how="left", on="gufi")
 
     # extract and add mfs information
     # _df = extract_and_add_gufi_features(_df)
 
     # extract holiday features
-    # _df = add_date_features(_df)
+    _df = add_date_features(_df)
 
     # Add additional etd features
     # _df = add_etd_features(_df, feature_tables["etd"])
 
     # Add mfs information
-    # _df = _df.merge(feature_tables["mfs"], how="left", on="gufi")
+    _df = _df.join(feature_tables["mfs"], how="left", on="gufi")
 
     return _df

@@ -38,3 +38,19 @@ def train_test_split(table: pl.DataFrame, ROOT: str, airport: str | None = None)
     # replace these paths with any desired ones if necessary
     train_data.sort("gufi", "timestamp").write_csv(os.path.join(ROOT, "train_tables", f"{ext}_train.csv"))
     test_data.sort("gufi", "timestamp").write_csv(os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"))
+
+
+def add_difference_in_minutes(df: pl.DataFrame, col1: str, col2: str, alias_col_name: str) -> pl.DataFrame:
+    df = df.with_columns((pl.col(col1) - pl.col(col2)).alias(alias_col_name))
+    return df.with_columns(pl.col(alias_col_name).apply(lambda x: x.total_seconds() // 60))
+
+
+def get_mean_of_col(df: pl.DataFrame, _col: str, round_to: int = 2) -> float:
+    avg_delay: int | float | None = df.select(pl.col(_col)).to_series().mean()
+    return round(avg_delay if avg_delay is not None else 0, round_to)
+
+
+def get_average_difference_in_minutes(df1: pl.DataFrame, df2: pl.DataFrame, col1: str, col2: str) -> float:
+    return get_mean_of_col(
+        add_difference_in_minutes(df1.join(df2, on="gufi"), col1, col2, "difference_temp_data"), "difference_temp_data"
+    )
