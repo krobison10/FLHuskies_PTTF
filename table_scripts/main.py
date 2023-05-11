@@ -16,7 +16,7 @@ if __name__ == "__main__":
     from datetime import datetime
     from glob import glob
 
-    import pandas as pd  # type: ignore
+    import pandas as pd
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split

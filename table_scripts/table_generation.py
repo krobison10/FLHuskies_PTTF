@@ -9,16 +9,15 @@
 import multiprocessing
 from functools import partial
 
-import pandas as pd  # type: ignore
 import feature_engineering
-
+import pandas as pd
 from add_averages import add_averages
 from add_config import add_config
 from add_date import add_date_features
 from add_etd import add_etd
-from add_traffic import add_traffic
 from add_etd_features import add_etd_features
 from add_lamp import add_lamp
+from add_traffic import add_traffic
 from extract_gufi_features import extract_and_add_gufi_features
 from tqdm import tqdm
 from utils import get_csv_path
@@ -45,7 +44,7 @@ def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: di
 
 
 def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    new_dict = {}
+    new_dict: dict[str, pd.DataFrame] = {}
 
     for key in data_tables:
         if key != "mfs":
@@ -56,10 +55,8 @@ def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> di
     return new_dict
 
 
-def filter_mfs(mfs, standtimes):
-    gufis_wanted = standtimes["gufi"]
-    mfs_filtered = mfs.loc[mfs["gufi"].isin(gufis_wanted)]
-    return mfs_filtered
+def filter_mfs(mfs: pd.DataFrame, standtimes: pd.DataFrame) -> pd.DataFrame:
+    return mfs.loc[mfs["gufi"].isin(standtimes["gufi"])]
 
 
 def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataFrame:

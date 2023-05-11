@@ -4,7 +4,7 @@
 # calculate and add flight duration information to the general data frame
 #
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 def add_estimated_flight_time(

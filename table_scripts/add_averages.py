@@ -5,7 +5,7 @@
 #
 
 import feature_engineering
-import pandas as pd  # type: ignore
+import pandas as pd
 from datetime import timedelta
 
 

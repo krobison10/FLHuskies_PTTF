@@ -4,7 +4,7 @@
 # obtain the latest forecasts information and add it to the data frame
 #
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 # add lamp forecast weather information

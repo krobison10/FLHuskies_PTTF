@@ -4,7 +4,7 @@
 # calculate and add etd information to the data frame
 #
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 
 # calculate etd

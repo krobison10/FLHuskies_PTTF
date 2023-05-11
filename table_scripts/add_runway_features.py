@@ -7,7 +7,7 @@
 from datetime import datetime
 import numpy as np
 
-import pandas as pd  # type: ignore
+import pandas as pd
 
 airports = ["KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA"]
 

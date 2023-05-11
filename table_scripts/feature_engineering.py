@@ -1,5 +1,7 @@
 #
-# Author: Kyler Robison
+# Authors:
+# - Kyler Robison
+# - Yudong Lin
 #
 # Dependency for train_table script.
 #
@@ -7,23 +9,23 @@
 import math
 from datetime import timedelta
 
-import pandas as pd  # type: ignore
+import pandas as pd
+
+
+def get_average_difference_of_columns(_df: pd.DataFrame, col1: str, col2: str, round_to: int = 2):
+    _df["difference_temp_data"] = (_df[col1] - _df[col2]).dt.total_seconds() / 60
+    avg_delay: float = df_t["difference_temp_data"].mean()  # type: ignore
+    return round(0 if math.isnan(avg_delay) else avg_delay, round_to)
+
+
+def get_average_difference(df1: pd.DataFrame, df2: pd.DataFrame, col1: str, col2: str, round_to: int = 2) -> float:
+    return get_average_difference_of_columns(df1.merge(df2, on="gufi"), col1, col2, round_to)
 
 
 def average_departure_delay(
     etd_filtered: pd.DataFrame, runways_filtered: pd.DataFrame, column_name: str = "departure_runway_actual_time"
 ) -> float:
-    merged_df = pd.merge(etd_filtered, runways_filtered, on="gufi")
-
-    merged_df["departure_delay"] = (
-        merged_df[column_name] - merged_df["departure_runway_estimated_time"]
-    ).dt.total_seconds() / 60
-
-    avg_delay: float = merged_df["departure_delay"].mean()
-    if math.isnan(avg_delay):
-        avg_delay = 0
-
-    return round(avg_delay, 2)
+    return get_average_difference(etd_filtered, runways_filtered, column_name, "departure_runway_estimated_time")
 
 
 def average_arrival_delay(
@@ -33,17 +35,7 @@ def average_arrival_delay(
     Difference between the time that the airplane was scheduled to arrive and the time it is
     truly arriving
     """
-    merged_df = pd.merge(tfm_filtered, runways_filtered, on="gufi")
-
-    merged_df["arrival_delay"] = (
-        merged_df[column_name] - merged_df["arrival_runway_estimated_time"]
-    ).dt.total_seconds() / 60
-
-    avg_delay: float = merged_df["arrival_delay"].mean()
-    if math.isnan(avg_delay):
-        avg_delay = 0
-
-    return round(avg_delay, 2)
+    return get_average_difference(tfm_filtered, runways_filtered, column_name, "arrival_runway_estimated_time")
 
 
 def average_arrival_delay_on_prediction(
@@ -53,71 +45,23 @@ def average_arrival_delay_on_prediction(
     Difference between the time that the airplane was scheduled to arrive and the time it is currently
     estimated to arrive
     """
-    merged_df = pd.merge(tfm_filtered, tbfm_filtered, on="gufi")
-
-    merged_df["arrival_delay"] = (
-        merged_df[column_name] - merged_df["scheduled_runway_estimated_time"]
-    ).dt.total_seconds() / 60
-
-    avg_delay: float = merged_df["arrival_delay"].mean()
-    if math.isnan(avg_delay):
-        avg_delay = 0
-
-    return round(avg_delay, 2)
+    return get_average_difference(tfm_filtered, tbfm_filtered, column_name, "scheduled_runway_estimated_time")
 
 
-def average_stand_time(origin_filtered: pd.DataFrame, standtimes_filtered: pd.DataFrame) -> float:
-    merged_df = pd.merge(origin_filtered, standtimes_filtered, on="gufi")
-
-    merged_df["avg_stand_time"] = (
-        merged_df["origin_time"] - merged_df["departure_stand_actual_time"]
-    ).dt.total_seconds() / 60
-
-    avg_stand_time: float = merged_df["avg_stand_time"].mean()
-    if math.isnan(avg_stand_time):
-        avg_stand_time = 0
-
-    return round(avg_stand_time, 2)
+def average_stand_time(origin_filtered: pd.DataFrame, stand_times_filtered: pd.DataFrame) -> float:
+    return get_average_difference(origin_filtered, stand_times_filtered, "origin_time", "departure_stand_actual_time")
 
 
 def average_taxi_time(
     mfs: pd.DataFrame, standtimes: pd.DataFrame, runways_filtered: pd.DataFrame, departures: bool = True
 ) -> float:
-    mfs = mfs.loc[mfs["isdeparture"] == departures]
+    merged_df: pd.DataFrame = runways_filtered.merge(mfs[mfs["isdeparture"] == departures], on="gufi")
 
-    merged_df = pd.merge(runways_filtered, mfs, on="gufi")
-    merged_df = pd.merge(merged_df, standtimes, on="gufi")
-
-    if departures:
-        merged_df["taxi_time"] = (
-            merged_df["departure_runway_actual_time"] - merged_df["departure_stand_actual_time"]
-        ).dt.total_seconds() / 60
-    else:
-        merged_df["taxi_time"] = (
-            merged_df["arrival_stand_actual_time"] - merged_df["arrival_runway_actual_time"]
-        ).dt.total_seconds() / 60
-
-    avg_taxi_time: float = merged_df["taxi_time"].mean()
-    if math.isnan(avg_taxi_time):
-        avg_taxi_time = 0
-
-    return round(avg_taxi_time, 2)
-
-
-def average_true_flight_time(standtimes: pd.DataFrame) -> float:
-    """
-    The true time it takes for the flight to happen, avereged over n filtered hours
-    Not available for the predicted flight
-    """
-    df = standtimes.copy()
-
-    df["flight_time"] = (df["arrival_stand_actual_time"] - df["departure_stand_actual_time"]).dt.total_seconds() / 60
-
-    avg_flight_time: float = df["flight_time"].mean()
-    if math.isnan(avg_flight_time):
-        avg_flight_time = 0
-
-    return round(avg_flight_time, 2)
+    return (
+        get_average_difference(merged_df, standtimes, "departure_runway_actual_time", "departure_stand_actual_time")
+        if departures
+        else get_average_difference(merged_df, standtimes, "arrival_stand_actual_time", "arrival_runway_actual_time")
+    )
 
 
 def average_flight_delay(standtimes: pd.DataFrame) -> float:
@@ -125,15 +69,7 @@ def average_flight_delay(standtimes: pd.DataFrame) -> float:
     Delta between the true time it took to fly to the airport
     and estimated time was supposed to take for the flight to happen
     """
-    df = standtimes.copy()
-
-    df["flight_time"] = (df["arrival_stand_actual_time"] - df["departure_stand_actual_time"]).dt.total_seconds() / 60
-
-    avg_flight_time: float = df["flight_time"].mean()
-    if math.isnan(avg_flight_time):
-        avg_flight_time = 0
-
-    return round(avg_flight_time, 2)
+    return get_average_difference_of_columns(standtimes, "arrival_stand_actual_time", "departure_stand_actual_time")
 
 
 # returns a version of the passed in dataframe that only contains entries
