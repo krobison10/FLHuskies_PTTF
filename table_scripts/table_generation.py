@@ -5,7 +5,6 @@
 # - Daniil Filienko
 # generate the full table for a specific airport
 #
-
 import multiprocessing
 from functools import partial
 
@@ -19,6 +18,7 @@ from add_etd_features import add_etd_features
 from add_lamp import add_lamp
 from add_traffic import add_traffic
 from extract_gufi_features import extract_and_add_gufi_features
+from feature_tables import get_feature_tables
 from tqdm import tqdm
 from utils import get_csv_path
 
@@ -66,39 +66,12 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
         parse_dates=["timestamp"],
     )
 
-    # table = table.drop_duplicates(subset=["gufi"])
-
     # if you want to select only a certain amount of row
     if max_rows > 0:
         _df = _df[:max_rows]
 
     # define list of data tables to load and use for each airport
-    feature_tables: dict[str, pd.DataFrame] = {
-        "etd": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_etd.csv"),
-            parse_dates=["departure_runway_estimated_time", "timestamp"],
-        ).sort_values("timestamp"),
-        "config": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_config.csv"), parse_dates=["timestamp"]
-        ).sort_values("timestamp", ascending=False),
-        "first_position": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_first_position.csv"), parse_dates=["timestamp"]
-        ),
-        "lamp": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_lamp.csv"), parse_dates=["timestamp", "forecast_timestamp"]
-        )
-        .set_index("timestamp", drop=False)
-        .sort_index(),
-        "runways": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_runways.csv"),
-            parse_dates=["timestamp", "departure_runway_actual_time", "arrival_runway_actual_time"],
-        ),
-        "standtimes": pd.read_csv(
-            get_csv_path(data_dir, _airport, f"{_airport}_standtimes.csv"),
-            parse_dates=["timestamp", "departure_stand_actual_time", "arrival_stand_actual_time"],
-        ),
-        "mfs": pd.read_csv(get_csv_path(data_dir, _airport, f"{_airport}_mfs.csv"), dtype={"major_carrier": str}),
-    }
+    feature_tables: dict[str, pd.DataFrame] = get_feature_tables(data_dir, _airport)
 
     # process all prediction times in parallel
     with multiprocessing.Pool() as executor:

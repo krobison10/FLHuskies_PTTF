@@ -20,6 +20,7 @@ if __name__ == "__main__":
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split
+    import gc
 
     # the path for root folder
     _ROOT: str = os.path.join(os.path.dirname(__file__), "..")
@@ -59,6 +60,8 @@ if __name__ == "__main__":
         table = TableDtype.fix_potential_missing_int_features(table)
 
         # fill the result missing spot with UNK
+        for _col in table.select_dtypes(include=["category"]).columns:
+            table[_col] = table[_col].astype("string")
         table = table.fillna("UNK")
 
         # table = normalize_str_features(table)
@@ -75,6 +78,8 @@ if __name__ == "__main__":
 
         print("Finished processing", airport)
         print("------------------------------")
+
+        gc.collect()
 
     # put together big table and save properly according to other arguments
     if args.a is None:

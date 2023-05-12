@@ -18,7 +18,7 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
     etd["departure_runway_estimated_time"] = pd.to_datetime(etd["departure_runway_estimated_time"])
     etd = etd[etd["timestamp"] < etd["departure_runway_estimated_time"]]
 
-    time_intervals: tuple[int, ...] = tuple(sorted([30, 60, 180, 1400]))
+    time_intervals: tuple[int, ...] = tuple(sorted([30, 60, 180, 360]))
     increment_in_minutes: int = 15
 
     complete_etd = pd.DataFrame()
@@ -56,14 +56,16 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
                 "estdep_next_30min": "sum",
                 "estdep_next_60min": "sum",
                 "estdep_next_180min": "sum",
-                "estdep_next_1400min": "sum",
+                "estdep_next_360min": "sum",
             }
         )
         .reset_index()
     )
 
-    etd_aggregation.columns = ["feat_5_" + c if c != "timestamp" else c for c in etd_aggregation.columns]
-
-    _df = _df.merge(etd_aggregation, how="left", on=["timestamp"])
+    _df = _df.merge(
+        etd_aggregation.rename(columns={k: f"feat_5_{k}" for k in etd_aggregation.columns if k != "timestamp"}),
+        how="left",
+        on="timestamp",
+    )
 
     return _df

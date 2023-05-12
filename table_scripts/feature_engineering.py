@@ -14,7 +14,7 @@ import pandas as pd
 
 def get_average_difference_of_columns(_df: pd.DataFrame, col1: str, col2: str, round_to: int = 2):
     _df["difference_temp_data"] = (_df[col1] - _df[col2]).dt.total_seconds() / 60
-    avg_delay: float = df_t["difference_temp_data"].mean()  # type: ignore
+    avg_delay: float = _df["difference_temp_data"].mean()  # type: ignore
     return round(0 if math.isnan(avg_delay) else avg_delay, round_to)
 
 
@@ -75,4 +75,5 @@ def average_flight_delay(standtimes: pd.DataFrame) -> float:
 # returns a version of the passed in dataframe that only contains entries
 # between the time 'now' and n hours prior
 def filter_by_timestamp(df: pd.DataFrame, now: pd.Timestamp, hours: int) -> pd.DataFrame:
-    return df.loc[(df.timestamp > now - timedelta(hours=hours)) & (df.timestamp <= now)]
+    hours_bound: pd.Timestamp = now - timedelta(hours=hours)
+    return df.loc[(df.timestamp > hours_bound) & (df.timestamp <= now)]
