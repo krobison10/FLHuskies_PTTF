@@ -5,8 +5,6 @@
 # - Daniil Filienko
 # generate the full table for a specific airport
 #
-import multiprocessing
-from functools import partial
 
 import feature_engineering
 import pandas as pd
@@ -19,13 +17,15 @@ from add_lamp import add_lamp
 from add_traffic import add_traffic
 from extract_gufi_features import extract_and_add_gufi_features
 from feature_tables import get_feature_tables
-from tqdm import tqdm
 from utils import get_csv_path
 
 
-def _process_timestamp(now: pd.Timestamp, flights: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def _process_timestamp(filtered_table: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     # subset table to only contain flights for the current timestamp
-    filtered_table: pd.DataFrame = flights.loc[flights.timestamp == now].reset_index(drop=True)
+    filtered_table = filtered_table.reset_index(drop=True)
+
+    # get current time
+    now: pd.Timestamp = filtered_table.timestamp.iloc[0]
 
     # filters the data tables to only include data from past 30 hours, this call can be omitted in a submission script
     data_tables = filter_tables(now, data_tables)
@@ -60,6 +60,10 @@ def filter_mfs(mfs: pd.DataFrame, standtimes: pd.DataFrame) -> pd.DataFrame:
 
 
 def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataFrame:
+    from pandarallel import pandarallel  # type: ignore
+
+    pandarallel.initialize(verbose=1, progress_bar=True)
+
     # read train labels for given airport
     _df: pd.DataFrame = pd.read_csv(
         get_csv_path(data_dir, f"train_labels_prescreened", f"prescreened_train_labels_{_airport}.csv"),
@@ -74,14 +78,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
     feature_tables: dict[str, pd.DataFrame] = get_feature_tables(data_dir, _airport)
 
     # process all prediction times in parallel
-    with multiprocessing.Pool() as executor:
-        fn = partial(_process_timestamp, flights=_df, data_tables=feature_tables)
-        unique_timestamp = _df.timestamp.unique()
-        inputs = zip(pd.to_datetime(unique_timestamp))
-        timestamp_tables: list[pd.DataFrame] = executor.starmap(fn, tqdm(inputs, total=len(unique_timestamp)))
-
-    # concatenate individual prediction times to a single dataframe
-    _df = pd.concat(timestamp_tables, ignore_index=True)
+    _df = _df.groupby("timestamp").parallel_apply(lambda x: _process_timestamp(x, feature_tables))
 
     # Add runway information
     # _df = _df.merge(feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")

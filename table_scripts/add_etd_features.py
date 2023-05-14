@@ -62,7 +62,7 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    _df = _df.merge(
+    _df = _df.reset_index(drop=True).merge(
         etd_aggregation.rename(columns={k: f"feat_5_{k}" for k in etd_aggregation.columns if k != "timestamp"}),
         how="left",
         on="timestamp",
