@@ -17,9 +17,17 @@ from pathlib import Path
 from lightgbm import LGBMRegressor
 import seaborn as sns
 
-# ---------------------------------------- MAIN ----------------------------------------
-DATA_DIRECTORY_TRAIN = Path("./train_tables")
-DATA_DIRECTORY_VAL = Path("./validation_tables")
+# ---------------------------------------- SOURCE SETUP ----------------------------------------
+
+parser: argparse.ArgumentParser = argparse.ArgumentParser()
+parser.add_argument("-s", help="save the model")
+args: argparse.Namespace = parser.parse_args()
+
+carrier: str = "major" if args.s is None else str(args.s)
+
+
+DATA_DIRECTORY_TRAIN = Path("./ydlin/FLHuskies_PTTF/train_tables")
+DATA_DIRECTORY_VAL = Path("./ydlin/FLHuskies_PTTF/validation_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 OUTPUT_FIGURES_DIRECTORY = Path("./figures")
 DATA_DIRECTORY = Path("full_tables")
@@ -36,6 +44,7 @@ AIRPORTS = [
     "KPHX",
     "KSEA",
 ]
+# ---------------------------------------- MAIN ----------------------------------------
 
 def filter_dataframes_by_column(table, column_name):
     """
@@ -65,17 +74,10 @@ def filter_dataframes_by_column(table, column_name):
         
     return carrier_dataframes
 
-parser: argparse.ArgumentParser = argparse.ArgumentParser()
-parser.add_argument("-s", help="save the model")
-args: argparse.Namespace = parser.parse_args()
-
-carrier: str = "major" if args.s is None else str(args.s)
-
-
 def plotImp(model, X, airport = "ALL", airline = "ALL",num=20, fig_size=(40, 20)):
     feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": X.columns})
     plt.figure(figsize=fig_size)
-    sns.set(font_scale=1)
+    sns.set(font_scale=3)
     sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[0:num])
     plt.title("LightGBM Features (avg over folds)")
     plt.tight_layout()

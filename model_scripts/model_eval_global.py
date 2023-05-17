@@ -9,7 +9,8 @@ import pandas as pd
 import lightgbm as lgb
 import pickle
 import argparse
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder
+from train_test_split import *
 
 DATA_DIRECTORY_TRAIN = Path("./train_tables")
 DATA_DIRECTORY_VAL = Path("./validation_tables")
@@ -42,113 +43,154 @@ AIRPORTS = [
 ]
 
 print("Started")
-train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
-val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
+# train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
+# val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
 
-#Split into train and test datasets
-# test = train.iloc[round(train.shape[0]*0.99):]
-# train = train.iloc[:round(train.shape[0]*0.1)]
-
-# make sure that the categorical features are encoded as strings
-# cat_feature = train.columns[np.where(train.dtypes != float)[0]].values.tolist()
-# train[cat_feature] = train[cat_feature].astype(str)
-
-# train.rename(columns = {'wind_direction':'wind_direction_cat', 'cloud_ceiling':'cloud_ceiling_cat', 'visibility':'visibility_cat'}, inplace = True)
-
-cat_feats = []
-for c in val.columns:
-    col_type = val[c].dtype
-    if col_type != 'float' in c:
-        val[c] = val[c].astype('category')
-        cat_feats.append(c)
-
-#remove test for training the models
-# test[cat_feature] = test[cat_feature].astype(str)
+train,val =split(table= pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_full.csv", parse_dates=["timestamp"]),save=False)
 
 print("Generated a shared dataframe")
 
-# Preventing GUFI from being an attribute to analyze
-offset = 2
-features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
-features_all_val = (val.columns.values.tolist())[offset:(len(val.columns.values))]
+features_remove = ("gufi_flight_date","minutes_until_pushback","timestamp", 'gufi')
 
-features_remove = ("gufi_flight_date","minutes_until_pushback")
-features = [x for x in features_all if x not in features_remove]
+# # Preventing GUFI from being an attribute to analyze
+# offset = 2
+# features_all = (train.columns.values.tolist())[offset:(len(train.columns.values))]
+# features_all_val = (val.columns.values.tolist())[offset:(len(val.columns.values))]
+
+# features_remove = ("gufi_flight_date","minutes_until_pushback")
+# features = [x for x in features_all if x not in features_remove]
+# features_val = ["minutes_until_pushback","airport"]
+
+feats: list[str] = [
+            	"minutes_until_etd",
+            	"deps_3hr",
+                "airport",
+            	"deps_30hr",
+            	"arrs_3hr",
+            	"arrs_30hr",
+            	"deps_taxiing",
+            	"arrs_taxiing",
+            	"exp_deps_15min",
+            	"exp_deps_30min",
+            	"delay_30hr",
+            	"standtime_30hr",
+            	"dep_taxi_30hr",
+            	"arr_taxi_30hr",
+            	"delay_3hr",
+            	"standtime_3hr",
+            	"dep_taxi_3hr",
+            	"arr_taxi_3hr",
+            	"1h_ETDP",
+            	"departure_runways",
+            	"arrival_runways",
+            	"temperature",
+            	"wind_direction",
+            	"wind_speed",
+            	"wind_gust",
+            	"cloud_ceiling",
+            	"cloud",
+            	"lightning_prob",
+            	"gufi_flight_major_carrier",
+            	"gufi_flight_destination_airport",
+            	"gufi_timestamp_until_etd",
+            	"year",
+            	"month",
+            	"day",
+            	"hour",
+            	"minute",
+            	"weekday",
+            	"feat_5_gufi",
+            	"feat_5_estdep_next_30min",
+            	"feat_5_estdep_next_60min",
+            	"feat_5_estdep_next_180min",
+            	"feat_5_estdep_next_1400min",
+            	"aircraft_type",
+            	"major_carrier",
+                "visibility",
+                "flight_type",
+        	]
+
+cat_feats = [
+    "airport",
+    "departure_runways",
+    "arrival_runways",
+    "cloud",
+    "lightning_prob",
+    #"precip",
+    #"gufi_flight_number",
+    "gufi_flight_major_carrier",
+    "gufi_flight_destination_airport",
+    #"gufi_flight_FAA_system",
+    #"aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    # "isdeparture",
+    "feat_5_gufi",
+    ]
+
+int_features = [    "feat_5_estdep_next_30min",
+    "feat_5_estdep_next_60min",
+    "feat_5_estdep_next_180min",
+    "feat_5_estdep_next_1400min",
+]
+
 features_val = ["minutes_until_pushback","airport"]
 
-labelencoder = LabelEncoder()
+encoders = dict()
 
-for col in cat_feats:
-    train[col] = labelencoder.fit_transform(train[col])
-    val[col] = labelencoder.transform(val[col])
+for c in int_features:
+    train[c] = pd.to_numeric( train[c], errors ='coerce')
+    val[c] = pd.to_numeric( val[c], errors ='coerce')
 
-for col in cat_feats:
-    train[col] = train[col].astype('int')
-    val[col] = val[col].astype('int')
+for c in cat_feats:
+    train[c] = train[c].astype(str)
+    val[c] = val[c].astype(str)
+    encoders[c] = OrdinalEncoder(handle_unknown = 'use_encoded_value', unknown_value=-1)
+    train[c] = encoders[c].fit_transform(np.array(train[c]).reshape(-1,1))
+    train[c] = train[c].astype('int')
+    val[c] = encoders[c].transform(np.array(val[c]).reshape(-1,1))
+    val[c] = val[c].astype('int')
 
-X_train = train[features]
+airport_df = pd.DataFrame(AIRPORTS, columns=['airport'])
+airport_df['airport'] = encoders['airport'].transform(np.array(airport_df).reshape(-1,1))
+AIRPORTS = airport_df.airport.unique()
+
+X_train = train[feats]
 y_train = train[features_val]
 
-X_val = val[features]
+X_val = val[feats]
 y_val = val[features_val]
 
-
-train_data = lgb.Dataset(X_train, 
-                         label=y_train["minutes_until_pushback"], 
-                         categorical_feature=cat_feats, 
-                         free_raw_data=False)
-fit_params = { 
+train_data = lgb.Dataset(X_train,
+                         label=y_train["minutes_until_pushback"],
+                         )
+fit_params = {
     'objective': 'regression_l1', # Type of task (regression)
     'metric': 'mae', # Evaluation metric (mean squared error)
-    "num_leaves": 1024 * 8,
+    "num_leaves": 1024 * 4,
     "n_estimators": 128
 }
 
 regressor = LGBMRegressor(**fit_params)
 
-regressor.fit(X_train, y_train["minutes_until_pushback"])
-
-y_pred = regressor.predict(X_val,num_iteration=regressor.best_iteration_)
-
-# params = {
-#     # 'boosting_type': 'rf', # Type of boosting algorithm
-#     'objective': 'regression_l1', # Type of task (regression)
-#     'metric': 'mae', # Evaluation metric (mean squared error)
-#     'learning_rate': 0.02, # Learning rate for boosting
-#     'verbose': 0, # Verbosity level (0 for silent)
-#     'n_estimators': 4000
-# }
-# regressor = lgb.train(params, train_data)
-
-# y_pred = regressor.predict(X_val)
-
-print(f"Regression tree train error for ALL:", mean_absolute_error(y_val["minutes_until_pushback"], y_pred))
-plotImp(regressor, X_val)
-
-for airport in AIRPORTS:
-    print(len(AIRPORTS))
-    X_val_local = X_val.loc[X_val['airport'] == airport]
-    y_val_local = y_val.loc[y_val['airport'] == airport]
-
-    # add columns representing standard and improved baselines to validation table
-    X_val_local["baseline"] = X_val_local.apply(lambda row: max(row["minutes_until_etd"] - 15, 0), axis=1)
-
-    # print performance of baseline estimates
-    mae = mean_absolute_error(y_val_local["minutes_until_pushback"], X_val_local["baseline"])
-    print(f"\nMAE with baseline: {mae:.4f}")
-
-    y_pred = regressor.predict(X_val_local)
-    plotImp(regressor, X_val_local, airport=airport)
-    print(f"Regression tree train error for {airport}:", mean_absolute_error(y_val_local["minutes_until_pushback"], y_pred))
-
-# Remove the evaluation of the model
-# y_pred = ensembleRegressor.predict(X_test)
-# print("Ensemble of tree regressors test error:", mean_absolute_error(y_test, y_pred))
-
+regressor = lgb.train(fit_params, train_data)
 
 # # SAVING THE MODEL
 save_table_as: str = "save" if args.s is None else str(args.s)
 if save_table_as == "save":
     filename = f'model_GLOBAL.sav'
     pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
-    print("Saved the model for the airport: ", airport)
+
+y_pred = regressor.predict(X_val,num_iteration=regressor.best_iteration_)
+
+
+print(f"Regression tree train error for ALL:", mean_absolute_error(y_val["minutes_until_pushback"], y_pred))
+# plotImp(regressor, X_val)
+
+for airport in AIRPORTS:
+    X_val_local = X_val[X_val['airport'] == airport]
+    y_val_local = y_val[y_val['airport'] == airport]
+    y_pred = regressor.predict(X_val_local)
+    print(f"Regression tree train error for {airport}:", mean_absolute_error(y_val_local["minutes_until_pushback"], y_pred))
+    # plotImp(regressor, X_val, airport=airport)

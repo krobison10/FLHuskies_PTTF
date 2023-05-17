@@ -95,7 +95,7 @@ for airport in airports:
     # # SAVING THE MODEL
     save_table_as: str = "save" if args.s is None else str(args.s)
     if save_table_as == "save":
-        filename = f'model_{airport}_yudong.sav'
+        filename = f'model_{airport}.sav'
         pickle.dump(regressor, open(OUTPUT_DIRECTORY / filename, 'wb'))
         print("Saved the model for the airport: ", airport)
 
