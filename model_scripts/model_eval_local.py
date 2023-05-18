@@ -138,6 +138,8 @@ int_features = ["feat_5_estdep_next_30min",
 
 features_val = ["minutes_until_pushback"]
 
+y_tests = [0]
+y_preds = [0]
 for airport in AIRPORTS:
     train, val = split(table= pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv", parse_dates=["timestamp"]),save=False)
 
@@ -179,7 +181,9 @@ for airport in AIRPORTS:
 
     regressor = lgb.train(fit_params, train_data)
 
-    y_pred = regressor.predict(X_val,num_iteration=regressor.best_iteration_)
+    y_pred = regressor.predict(X_val)
+    y_tests = np.concatenate((y_tests, y_val))
+    y_preds = np.concatenate((y_preds, y_pred))
 
     # # SAVING THE MODEL
     save_table_as: str = "save" if args.s is None else str(args.s)
@@ -190,58 +194,11 @@ for airport in AIRPORTS:
     print(f"Regression tree train error for {airport}:", mean_absolute_error(y_val, y_pred))
     # plotImp(regressor, X_val)
 
+print(f"MAE on all test data: {mean_absolute_error(y_tests, y_preds):.4f}\n")
+
 exit()
 
 '''Old implementation of a traditional local eval'''
-from Yudong_scripts.mytools import *
-import matplotlib.pyplot as plt
-from train_test_split import *
-import pandas as pd
-import numpy as np
-from pathlib import Path
-import seaborn as sns
-from lightgbm import LGBMRegressor, Dataset
-import lightgbm as lgb
-import pickle
-from sklearn.preprocessing import OrdinalEncoder
-from sklearn.metrics import mean_absolute_error
-import argparse
-from pathlib import Path
-
-# ---------------------------------------- MAIN ----------------------------------------
-DATA_DIRECTORY = Path("full_tables")
-OUTPUT_DIRECTORY = Path("./models/Daniil_models")
-
-airports = [    
-    "KATL",
-    "KCLT",
-    "KDEN",
-    "KDFW",
-    "KJFK",
-    "KMEM",
-    "KMIA",
-    "KORD",
-    "KPHX",
-    "KSEA",
-]
-
-
-parser: argparse.ArgumentParser = argparse.ArgumentParser()
-parser.add_argument("-s", help="save the model")
-args: argparse.Namespace = parser.parse_args()
-
-def plotImp(model, X, airport = "ALL", num = 20, fig_size = (40, 20)):
-    feature_imp = pd.DataFrame({'Value':model.feature_importances_,'Feature':X.columns})
-    plt.figure(figsize=fig_size)
-    sns.set(font_scale = 1)
-    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", 
-                                                        ascending=False)[0:num])
-    plt.title('LightGBM Features (avg over folds)')
-    plt.tight_layout()
-    plt.savefig(f'lgbm_importances_{airport}_local.png')
-
-y_tests = [0]
-y_preds = [0]
 for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
     df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["gufi_flight_date","timestamp"])
