@@ -45,8 +45,6 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
 
 def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None) -> pd.DataFrame:
     unknown_dtype: dict = {
-        "minutes_until_etd": int,
-        "minutes_until_pushback": int,
         "precip": str,
         "gufi_flight_major_carrier": str,
         "arrival_runways": str,
@@ -168,6 +166,7 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
 
 
 _CATEGORICAL_STR_COLUMNS: list[str] = [
+    "airport",
     "cloud",
     "lightning_prob",
     "precip",
@@ -197,7 +196,6 @@ CATEGORICAL_INT_COLUMNS: list[str] = [
 _FEATURES_IGNORE: list[str] = [
     "gufi",
     "timestamp",
-    "airport",
     "isdeparture",
     "aircraft_engine_class",
     "precip",

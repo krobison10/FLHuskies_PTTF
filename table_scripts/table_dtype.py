@@ -15,6 +15,11 @@ class TableDtype:
         "wind_direction",
         "wind_speed",
         "wind_gust",
+        "gufi",
+        "estdep_next_30min",
+        "estdep_next_60min",
+        "estdep_next_180min",
+        "estdep_next_360min",
     )
 
     FLOAT_COLUMNS: tuple[str, ...] = ("cloud_ceiling", "visibility")
@@ -32,19 +37,10 @@ class TableDtype:
     )
 
     # fill potential missing int features with 0
-    @staticmethod
-    def fix_potential_missing_int_features(_df: pd.DataFrame) -> pd.DataFrame:
-        columns_need_normalize: tuple[str, ...] = (
-            "temperature",
-            "wind_direction",
-            "wind_speed",
-            "wind_gust",
-            "cloud_ceiling",
-            "visibility",
-        )
-
-        for _col in columns_need_normalize:
+    @classmethod
+    def fix_potential_missing_int_features(cls, _df: pd.DataFrame) -> pd.DataFrame:
+        for _col in cls.INT_COLUMNS:
             if _col in _df.columns:
-                _df[_col] = _df[_col].fillna(0)
+                _df[_col] = _df[_col].fillna(0).astype(int)
 
         return _df

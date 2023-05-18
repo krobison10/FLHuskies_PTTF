@@ -57,11 +57,14 @@ if __name__ == "__main__":
         # train model
         params: dict[str, str | int | float] = {
             "objective": "regression_l1",
-            "device_type": "gpu",
             "learning_rate": 0.05,
             "verbosity": -1,
         }
         params.update(hyperparameter)
+
+        # don not use gpu for global model training due to error
+        if airport != "ALL":
+            params["device_type"] = "gpu"
 
         model = lightgbm.train(params, lightgbm.Dataset(X_train, label=y_train))
 
@@ -106,9 +109,9 @@ if __name__ == "__main__":
 
         if airport == "ALL":
             for theAirport in ALL_AIRPORTS[:10]:
-                val_airport_df: pd.DataFrame = val_df.loc[val_df.airport == theAirport]
-                X_test = val_airport_df.drop(columns=[TARGET_LABEL])
-                y_test = val_airport_df[TARGET_LABEL]
+                all_df: pd.DataFrame = pd.concat([*mytools.get_train_and_test_ds(airport)], ignore_index=True)
+                X_test: pd.DataFrame = all_df.drop(columns=[TARGET_LABEL])
+                y_test: pd.DataFrame = all_df[TARGET_LABEL]
                 y_pred = model.predict(X_test)
                 mae = round(mean_absolute_error(y_test, y_pred), 4)
                 print(f"--------------------------------------------------")
