@@ -15,11 +15,11 @@ class TableDtype:
         "wind_direction",
         "wind_speed",
         "wind_gust",
-        "gufi",
-        "estdep_next_30min",
-        "estdep_next_60min",
-        "estdep_next_180min",
-        "estdep_next_360min",
+        "feat_5_gufi",
+        "feat_5_estdep_next_30min",
+        "feat_5_estdep_next_60min",
+        "feat_5_estdep_next_180min",
+        "feat_5_estdep_next_360min",
     )
 
     FLOAT_COLUMNS: tuple[str, ...] = ("cloud_ceiling", "visibility")

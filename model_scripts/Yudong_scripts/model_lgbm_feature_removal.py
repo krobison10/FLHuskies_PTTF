@@ -2,7 +2,7 @@ from typing import Any
 
 import lightgbm as lgb  # type: ignore
 import mytools
-import pandas as pd  # type: ignore
+import pandas as pd
 from constants import TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
 from sklearn.preprocessing import OrdinalEncoder  # type: ignore

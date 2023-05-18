@@ -9,7 +9,7 @@ from datetime import datetime
 import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import mytools
-import pandas as pd  # type: ignore
+import pandas as pd
 from constants import ALL_AIRPORTS, TARGET_LABEL  # type: ignore
 from sklearn.metrics import mean_absolute_error  # type: ignore
 
@@ -29,22 +29,6 @@ if __name__ == "__main__":
     airports: tuple[str, ...] = ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
 
     for airport in airports:
-        # check if the same hyperparameter has been used before
-        same_setup_mae: float = -1
-        if args.o is None or str(args.o).lower().startswith("f"):
-            for value in mytools.ModelRecords.get(airport).values():
-                if (
-                    value.get("num_leaves") == hyperparameter.get("num_leaves")
-                    and value.get("n_estimators") == hyperparameter.get("n_estimators")
-                    and value.get("boosting_type") == hyperparameter.get("boosting_type")
-                    and sorted(value.get("ignore_features", [])) == mytools.get_ignored_features()
-                ):
-                    same_setup_mae = value["val_mae"]
-                    break
-            if same_setup_mae > 0:
-                print(f"Same setup found for airport {airport} found with mae {same_setup_mae}, skip!")
-                continue
-
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(airport)
 
@@ -54,10 +38,37 @@ if __name__ == "__main__":
         y_train: pd.DataFrame = train_df[TARGET_LABEL]
         y_test: pd.DataFrame = val_df[TARGET_LABEL]
 
+        # check if the same hyperparameter has been used before
+        same_setup_mae: float = -1
+        if args.o is None or str(args.o).lower().startswith("f"):
+            for value in mytools.ModelRecords.get(airport).values():
+                if (
+                    value.get("num_leaves") == hyperparameter.get("num_leaves")
+                    and value.get("n_estimators") == hyperparameter.get("n_estimators")
+                    and value.get("boosting_type") == hyperparameter.get("boosting_type")
+                    and sorted(value.get("features", [])) == sorted(X_train.columns.to_list())
+                ):
+                    same_setup_mae = value["val_mae"]
+                    break
+            if same_setup_mae > 0:
+                print(f"Same setup found for airport {airport} found with mae {same_setup_mae}, skip!")
+                continue
+
+        """
+        train_matrix: xgboost.DMatrix = xgboost.DMatrix(X_train, enable_categorical=True)
+        test_matrix: xgboost.DMatrix = xgboost.DMatrix(X_test, enable_categorical=True)
+
+        xgboost_model = xgboost.XGBRegressor()
+        xgboost_model.load_model(mytools.get_model_path(f"xgboost_regression_{airport}.json"))
+
+        X_train["xgboost_pred"] = pd.Series(xgboost_model.predict(X_train))
+        X_test["xgboost_pred"] = pd.Series(xgboost_model.predict(X_test))
+        """
+
         # train model
         params: dict[str, str | int | float] = {
             "objective": "regression_l1",
-            "learning_rate": 0.05,
+            # "learning_rate": 0.05,
             "verbosity": -1,
         }
         params.update(hyperparameter)
@@ -79,7 +90,6 @@ if __name__ == "__main__":
         model_name: str = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_info: dict = {
             "val_mae": mae,
-            "ignore_features": mytools.get_ignored_features(),
             "features": X_train.columns.tolist(),
         }
         model_info.update(hyperparameter)
@@ -109,11 +119,9 @@ if __name__ == "__main__":
 
         if airport == "ALL":
             for theAirport in ALL_AIRPORTS[:10]:
-                all_df: pd.DataFrame = pd.concat([*mytools.get_train_and_test_ds(airport)], ignore_index=True)
-                X_test: pd.DataFrame = all_df.drop(columns=[TARGET_LABEL])
-                y_test: pd.DataFrame = all_df[TARGET_LABEL]
-                y_pred = model.predict(X_test)
-                mae = round(mean_absolute_error(y_test, y_pred), 4)
+                all_df: pd.DataFrame = pd.concat(mytools.get_train_and_test_ds(airport), ignore_index=True)
+                y_pred = model.predict(all_df.drop(columns=[TARGET_LABEL]))
+                mae = round(mean_absolute_error(all_df[TARGET_LABEL], y_pred), 4)
                 print(f"--------------------------------------------------")
                 print(f"MAE when apply cumulative model on validation data for airport {theAirport}: {mae}")
                 individual_model_best_mae = mytools.ModelRecords.get(airport)["best"]["val_mae"]

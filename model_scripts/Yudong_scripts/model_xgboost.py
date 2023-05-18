@@ -4,40 +4,36 @@
 # A simple regression model implements with xgboost
 #
 
-import os
-
 import mytools
-import numpy as np
-import pandas as pd  # type: ignore
 import xgboost
-from constants import TARGET_LABEL
+from constants import ALL_AIRPORTS, TARGET_LABEL
 
-_airport: str = "KMEM"
+for _airport in ALL_AIRPORTS:
+    # load train and test data frame
+    train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
-# load train and test data frame
-train_df, val_df = mytools.get_train_and_test_ds(_airport, False)
+    train_ds: xgboost.DMatrix = xgboost.DMatrix(
+        train_df.drop(columns=[TARGET_LABEL]), label=train_df[TARGET_LABEL], enable_categorical=True
+    )
+    test_ds: xgboost.DMatrix = xgboost.DMatrix(
+        val_df.drop(columns=[TARGET_LABEL]), label=val_df[TARGET_LABEL], enable_categorical=True
+    )
 
-dtrain = xgboost.DMatrix(train_df.drop(columns=[TARGET_LABEL]), label=train_df[TARGET_LABEL])
-dtest = xgboost.DMatrix(val_df.drop(columns=[TARGET_LABEL]), label=val_df[TARGET_LABEL])
+    _parameters: dict = {
+        "objective": "reg:squarederror",
+        "eval_metric": "mae",
+        "tree_method": "gpu_hist",
+        "subsample": 0.1,
+        "gamma": 1,
+        "eta": 0.01,
+    }
 
-# obtain the path for the model
-model_path: str = mytools.get_model_path(f"xgboost_regression_{_airport}.model")
+    num_round: int = 10000
 
-_parameters = {
-    "objective": "reg:squarederror",
-    "eval_metric": "mae",
-    "tree_method": "gpu_hist",
-    "subsample": 0.1,
-    "gamma": 1,
-    "eta": 0.01,
-}
+    model = xgboost.train(
+        _parameters, train_ds, num_round, evals=[(train_ds, "train"), (test_ds, "eval")], early_stopping_rounds=100
+    )
 
-evallist = [(dtrain, "train"), (dtest, "eval")]
+    print(f"Best mae for {_airport}: {model.best_score}\n")
 
-num_round: int = 10000
-
-model = xgboost.train(_parameters, dtrain, num_round, evallist, early_stopping_rounds=100)
-
-print(f"Best mae for {_airport}: {model.best_score}\n")
-
-# model.save_model(mytools.get_model_path(model_path))
+    model.save_model(mytools.get_model_path(f"xgboost_regression_{_airport}.json"))

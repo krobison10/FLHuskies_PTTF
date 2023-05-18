@@ -12,7 +12,7 @@ from copy import deepcopy
 import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
-import pandas as pd  # type: ignore
+import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
 
@@ -286,7 +286,7 @@ def save_model(_airport: str, _model: lightgbm.Booster) -> None:
 
 
 # get the train and test dataset
-def get_train_and_test_ds(_airport: str, category_features_support: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(_airport: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
     train_df: pd.DataFrame = get_train_tables(_airport, remove_duplicate_gufi=False)
     val_df: pd.DataFrame = get_validation_tables(_airport, remove_duplicate_gufi=False)
@@ -300,10 +300,9 @@ def get_train_and_test_ds(_airport: str, category_features_support: bool = True)
         train_df[col] = train_df[col].astype(int)
         val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
         val_df[col] = val_df[col].astype(int)
-    if category_features_support is True:
-        for col in get_categorical_columns():
-            train_df[col] = train_df[col].astype("category")
-            val_df[col] = val_df[col].astype("category")
+    for col in get_categorical_columns():
+        train_df[col] = train_df[col].astype("category")
+        val_df[col] = val_df[col].astype("category")
 
     # drop useless columns
     train_df.drop(columns=get_ignored_features(), inplace=True)
