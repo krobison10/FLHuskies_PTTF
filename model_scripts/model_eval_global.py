@@ -12,6 +12,7 @@ import argparse
 from sklearn.preprocessing import OrdinalEncoder
 from train_test_split import *
 
+DATA_DIRECTORY = Path("./full_tables")
 DATA_DIRECTORY_TRAIN = Path("./train_tables")
 DATA_DIRECTORY_VAL = Path("./validation_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
@@ -46,7 +47,7 @@ print("Started")
 # train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
 # val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
 
-train,val =split(table= pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_full.csv", parse_dates=["timestamp"]),save=False)
+train,val = split(table= pd.read_csv(DATA_DIRECTORY / f"ALL_full.csv", parse_dates=["timestamp"]),save=False)
 
 print("Generated a shared dataframe")
 
