@@ -17,7 +17,7 @@ from sklearn.tree import DecisionTreeRegressor  # type: ignore
 
 DATA_DIR: str = os.path.dirname(__file__)
 
-_data = pd.DataFrame = mytools.get_train_tables()
+_data: pd.DataFrame = mytools.get_train_tables()
 
 # fill nan with 0
 _data = _data.fillna(0)
