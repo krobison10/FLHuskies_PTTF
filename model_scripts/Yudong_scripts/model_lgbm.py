@@ -68,7 +68,7 @@ if __name__ == "__main__":
         # train model
         params: dict[str, str | int | float] = {
             "objective": "regression_l1",
-            # "learning_rate": 0.05,
+            "learning_rate": 0.05,
             "verbosity": -1,
         }
         params.update(hyperparameter)

@@ -85,7 +85,7 @@ if __name__ == "__main__":
     if args.a is None:
         master_table: pd.DataFrame = pd.concat(
             [
-                pd.read_csv(individual_table)
+                pd.read_csv(individual_table, unknown_dtype={"precip": str})
                 for individual_table in glob(os.path.join(_ROOT, "full_tables", "*_full.csv"))
             ],
             ignore_index=True,
