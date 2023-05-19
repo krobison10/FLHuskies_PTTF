@@ -16,7 +16,7 @@ class MyDNN:
         return mytools.get_model_path(f"tf_dnn_{_airport}_model.h5")
 
     @classmethod
-    def __get_model(
+    def get_model(
         cls, _airport: str, _normalizer: tf.keras.layers.Normalization, load_if_exists: bool = True
     ) -> tf.keras.models.Sequential:
         _model: tf.keras.models.Sequential
