@@ -172,3 +172,4 @@ dmypy.json
 
 model_scripts/catboost_info/catboost_training.json
 models/yudong_models/
+model_scripts/Yudong_scripts/auto_model/

@@ -71,7 +71,7 @@ class MyDNN:
         y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
         y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
-        model: tf.keras.models.Sequential = cls.__get_model(_airport, normalizer)
+        model: tf.keras.models.Sequential = cls.get_model(_airport, normalizer)
 
         model.summary()
 
