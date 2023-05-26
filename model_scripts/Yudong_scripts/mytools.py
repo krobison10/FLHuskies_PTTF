@@ -13,6 +13,7 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
+from constants import AIRLINES
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
 
@@ -286,10 +287,14 @@ def save_model(_airport: str, _model: lightgbm.Booster) -> None:
 
 
 # get the train and test dataset
-def get_train_and_test_ds(_airport: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(_airport: str, valid_airlines_only: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
     train_df: pd.DataFrame = get_train_tables(_airport, remove_duplicate_gufi=False)
     val_df: pd.DataFrame = get_validation_tables(_airport, remove_duplicate_gufi=False)
+
+    if valid_airlines_only is True:
+        train_df = train_df.loc[train_df.gufi_flight_major_carrier.isin(AIRLINES)]
+        val_df = val_df.loc[val_df.gufi_flight_major_carrier.isin(AIRLINES)]
 
     # load encoder
     _ENCODER: dict[str, OrdinalEncoder] = get_encoder()
@@ -313,7 +318,7 @@ def get_train_and_test_ds(_airport: str) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 class ModelRecords:
     # create or load model records
-    __PATH: str = get_model_path(f"model_records.json")
+    __PATH: str = get_model_path("model_records.json")
     __DATA: dict[str, dict[str, dict]] = {}
     if os.path.exists(__PATH):
         with open(__PATH, "r", encoding="utf-8") as f:

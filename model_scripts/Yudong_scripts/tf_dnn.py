@@ -4,10 +4,13 @@
 # A simple regression model implements with deep neural network
 #
 
+import json
 import os
+
+import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import tensorflow as tf  # type: ignore
-from constants import TARGET_LABEL
+from constants import ALL_AIRPORTS, TARGET_LABEL
 
 
 class MyDNN:
@@ -28,22 +31,22 @@ class MyDNN:
             _model = tf.keras.models.Sequential(
                 [
                     _normalizer,
-                    tf.keras.layers.Dense(64, activation="elu"),
-                    tf.keras.layers.Dense(64, activation="elu"),
-                    tf.keras.layers.Dense(64, activation="elu"),
-                    tf.keras.layers.Dense(64, activation="elu"),
-                    tf.keras.layers.Dense(128, activation="elu"),
-                    tf.keras.layers.Dense(128, activation="elu"),
-                    tf.keras.layers.Dense(128, activation="elu"),
-                    tf.keras.layers.Dense(128, activation="elu"),
-                    tf.keras.layers.Dense(256, activation="elu"),
-                    tf.keras.layers.Dense(256, activation="elu"),
-                    tf.keras.layers.Dense(256, activation="elu"),
-                    tf.keras.layers.Dense(256, activation="elu"),
-                    tf.keras.layers.Dense(512, activation="elu"),
-                    tf.keras.layers.Dense(512, activation="elu"),
-                    tf.keras.layers.Dense(1024, activation="elu"),
-                    tf.keras.layers.Dense(1024, activation="elu"),
+                    tf.keras.layers.Dense(64, activation="relu"),
+                    tf.keras.layers.Dense(64, activation="relu"),
+                    tf.keras.layers.Dense(64, activation="relu"),
+                    tf.keras.layers.Dense(64, activation="relu"),
+                    tf.keras.layers.Dense(128, activation="relu"),
+                    tf.keras.layers.Dense(128, activation="relu"),
+                    tf.keras.layers.Dense(128, activation="relu"),
+                    tf.keras.layers.Dense(128, activation="relu"),
+                    tf.keras.layers.Dense(256, activation="relu"),
+                    tf.keras.layers.Dense(256, activation="relu"),
+                    tf.keras.layers.Dense(256, activation="relu"),
+                    tf.keras.layers.Dense(256, activation="relu"),
+                    tf.keras.layers.Dense(512, activation="relu"),
+                    tf.keras.layers.Dense(512, activation="relu"),
+                    tf.keras.layers.Dense(1024, activation="relu"),
+                    tf.keras.layers.Dense(1024, activation="relu"),
                     tf.keras.layers.Dense(1),
                 ]
             )
@@ -71,6 +74,7 @@ class MyDNN:
         y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
         y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
+        # load model
         model: tf.keras.models.Sequential = cls.get_model(_airport, normalizer)
 
         model.summary()
@@ -90,19 +94,36 @@ class MyDNN:
             monitor="val_loss", patience=10
         )
 
-        history = model.fit(
+        result = model.fit(
             X_train,
             y_train,
             validation_data=(X_test, y_test),
             verbose=1,
-            epochs=30,
+            epochs=50,
             callbacks=[check_pointer, early_stopping],
         )
 
-        print(history.params)
+        print(result.params)
 
-        mytools.plot_loss(history)
+        plt.clf()
+        plt.plot(result.history["loss"], label="loss")
+        plt.plot(result.history["val_loss"], label="val_loss")
+        plt.xlabel("epochs")
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.legend(loc="lower right")
+        plt.title(f"validation loss curve for {_airport}")
+        plt.savefig(cls.__get_model_path(_airport).replace(".h5", ".png"))
+
+        with open(mytools.get_model_path("dnn_model_records.json"), "r", encoding="utf-8") as f:
+            _DATA: dict[str, dict] = dict(json.load(f))
+
+        _DATA[theAirport] = dict(result.history)
+
+        with open(mytools.get_model_path("dnn_model_records.json"), "w", encoding="utf-8") as f:
+            json.dump(_DATA, f, indent=4, ensure_ascii=False, sort_keys=True)
 
 
 if __name__ == "__main__":
-    MyDNN.train_dnn("KSEA")
+    for theAirport in ALL_AIRPORTS:
+        MyDNN.train_dnn(theAirport)
