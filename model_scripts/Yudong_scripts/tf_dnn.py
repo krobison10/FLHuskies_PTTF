@@ -31,26 +31,12 @@ class MyDNN:
             _model = tf.keras.models.Sequential(
                 [
                     _normalizer,
+                    tf.keras.layers.Dense(32, activation="relu"),
                     tf.keras.layers.Dense(64, activation="relu"),
-                    tf.keras.layers.Dense(64, activation="relu"),
-                    tf.keras.layers.Dense(64, activation="relu"),
-                    tf.keras.layers.Dense(64, activation="relu"),
-                    tf.keras.layers.Dense(128, activation="relu"),
-                    tf.keras.layers.Dense(128, activation="relu"),
-                    tf.keras.layers.Dense(128, activation="relu"),
-                    tf.keras.layers.Dense(128, activation="relu"),
-                    tf.keras.layers.Dense(256, activation="relu"),
-                    tf.keras.layers.Dense(256, activation="relu"),
-                    tf.keras.layers.Dense(256, activation="relu"),
-                    tf.keras.layers.Dense(256, activation="relu"),
-                    tf.keras.layers.Dense(512, activation="relu"),
-                    tf.keras.layers.Dense(512, activation="relu"),
-                    tf.keras.layers.Dense(1024, activation="relu"),
-                    tf.keras.layers.Dense(1024, activation="relu"),
                     tf.keras.layers.Dense(1),
                 ]
             )
-            _model.compile(loss="mean_absolute_error", optimizer="adam")
+            _model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam())
         else:
             print("----------------------------------------")
             print("A existing model has been found and will be loaded.")
@@ -115,8 +101,10 @@ class MyDNN:
         plt.title(f"validation loss curve for {_airport}")
         plt.savefig(cls.__get_model_path(_airport).replace(".h5", ".png"))
 
-        with open(mytools.get_model_path("dnn_model_records.json"), "r", encoding="utf-8") as f:
-            _DATA: dict[str, dict] = dict(json.load(f))
+        _DATA: dict[str, dict] = {}
+        if os.path.exists(mytools.get_model_path("dnn_model_records.json")):
+            with open(mytools.get_model_path("dnn_model_records.json"), "r", encoding="utf-8") as f:
+                _DATA.update(json.load(f))
 
         _DATA[theAirport] = dict(result.history)
 
