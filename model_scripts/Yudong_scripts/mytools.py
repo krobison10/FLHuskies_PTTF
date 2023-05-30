@@ -36,10 +36,7 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
     fs = SelectKBest(score_func=f_regression)
     fit = fs.fit(X_train, y_train)
 
-    df_scores = pd.DataFrame(fit.scores_)
-    df_columns = pd.DataFrame(features)
-    features_scores = pd.concat([df_columns, df_scores], axis=1)
-    features_scores.columns = ["Selected_columns", "Score"]
+    features_scores = pd.DataFrame({"Selected_columns": features, "Score": fit.scores_})
 
     print(features_scores.sort_values("Score"))
 

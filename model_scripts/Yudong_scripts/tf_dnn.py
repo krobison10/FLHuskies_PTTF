@@ -14,9 +14,15 @@ from constants import ALL_AIRPORTS, TARGET_LABEL
 
 
 class MyDNN:
-    @staticmethod
-    def __get_model_path(_airport: str) -> str:
-        return mytools.get_model_path(f"tf_dnn_{_airport}_model.h5")
+    start_from_global: bool = False
+
+    @classmethod
+    def __get_model_path(cls, _airport: str) -> str:
+        return (
+            mytools.get_model_path(f"tf_dnn_{_airport}_model.h5")
+            if not cls.start_from_global
+            else mytools.get_model_path(f"tf_dnn_global_model.h5")
+        )
 
     @classmethod
     def get_model(
@@ -65,6 +71,8 @@ class MyDNN:
 
         model.summary()
 
+        print(train_df.columns)
+
         # Model Checkpoint
         check_pointer: tf.keras.callbacks.ModelCheckpoint = tf.keras.callbacks.ModelCheckpoint(
             cls.__get_model_path(_airport),
@@ -106,7 +114,7 @@ class MyDNN:
             with open(mytools.get_model_path("dnn_model_records.json"), "r", encoding="utf-8") as f:
                 _DATA.update(json.load(f))
 
-        _DATA[theAirport] = dict(result.history)
+        _DATA[_airport] = dict(result.history)
 
         with open(mytools.get_model_path("dnn_model_records.json"), "w", encoding="utf-8") as f:
             json.dump(_DATA, f, indent=4, ensure_ascii=False, sort_keys=True)

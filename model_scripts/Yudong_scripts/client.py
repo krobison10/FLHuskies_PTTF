@@ -1,6 +1,6 @@
 import flwr
 import mytools
-import tensorflow as tf
+import tensorflow as tf  # type: ignore
 from constants import TARGET_LABEL
 from tf_dnn import MyDNN
 

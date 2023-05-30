@@ -35,8 +35,8 @@ if __name__ == "__main__":
         X_train: pd.DataFrame = train_df.drop(columns=[TARGET_LABEL])
         X_test: pd.DataFrame = val_df.drop(columns=[TARGET_LABEL])
 
-        y_train: pd.DataFrame = train_df[TARGET_LABEL]
-        y_test: pd.DataFrame = val_df[TARGET_LABEL]
+        y_train: pd.Series = train_df[TARGET_LABEL]
+        y_test: pd.Series = val_df[TARGET_LABEL]
 
         # check if the same hyperparameter has been used before
         same_setup_mae: float = -1
