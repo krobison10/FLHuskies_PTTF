@@ -8,6 +8,7 @@ import json
 import os
 import pickle
 from copy import deepcopy
+from glob import glob
 from typing import Any
 
 import lightgbm  # type: ignore
@@ -48,11 +49,25 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | N
         "gufi_flight_major_carrier": str,
         "arrival_runways": str,
     }
-    _df: pd.DataFrame = (
-        pd.read_csv(_path, parse_dates=["timestamp"], dtype=unknown_dtype)
-        if use_cols is None
-        else pd.read_csv(_path, dtype=unknown_dtype, usecols=use_cols)
-    )
+    _df: pd.DataFrame
+    if "ALL_" not in _path:
+        _df = (
+            pd.read_csv(_path, parse_dates=["timestamp"], dtype=unknown_dtype)
+            if use_cols is None
+            else pd.read_csv(_path, dtype=unknown_dtype, usecols=use_cols)
+        )
+    else:
+        _df = pd.concat(
+            [
+                (
+                    pd.read_csv(each_csv_path, parse_dates=["timestamp"], dtype=unknown_dtype)
+                    if use_cols is None
+                    else pd.read_csv(each_csv_path, dtype=unknown_dtype, usecols=use_cols)
+                )
+                for each_csv_path in glob(os.path.join(os.path.dirname(_path), "*.csv"))
+            ],
+            ignore_index=True,
+        )
     if remove_duplicate_gufi is True:
         _df = _df.drop_duplicates(subset=["gufi"])
     return _df

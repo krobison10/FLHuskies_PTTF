@@ -2,7 +2,7 @@ import flwr
 import mytools
 import tensorflow as tf  # type: ignore
 from constants import TARGET_LABEL
-from tf_dnn import MyDNN
+from tf_dnn import MyTensorflowDNN
 
 
 class CifarClient(flwr.client.NumPyClient):
@@ -21,7 +21,7 @@ class CifarClient(flwr.client.NumPyClient):
         self.__y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
         self.__y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
-        self.__model = MyDNN.get_model(_airport, normalizer, False)
+        self.__model = MyTensorflowDNN.get_model(_airport, normalizer, False)
 
     def get_parameters(self, config):
         return self.__model.get_weights()

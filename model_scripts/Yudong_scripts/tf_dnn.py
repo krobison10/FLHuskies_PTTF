@@ -8,19 +8,18 @@ import os
 
 import mytools
 import tensorflow as tf  # type: ignore
-from constants import ALL_AIRPORTS, TARGET_LABEL
+from constants import TARGET_LABEL
 
 
-class MyDNN:
-    start_from_global: bool = False
+# allow gpu memory growth
+physical_devices = tf.config.list_physical_devices("GPU")
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
+
+class MyTensorflowDNN:
     @classmethod
     def __get_model_path(cls, _airport: str) -> str:
-        return (
-            mytools.get_model_path(f"tf_dnn_{_airport}_model.h5")
-            if not cls.start_from_global
-            else mytools.get_model_path(f"tf_dnn_global_model.h5")
-        )
+        return mytools.get_model_path(f"tf_dnn_{_airport}_model.h5")
 
     @classmethod
     def get_model(
@@ -57,15 +56,14 @@ class MyDNN:
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
-        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
-        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32)
+        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32)
+        y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.float32)
+        y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.float32)
 
         normalizer: tf.keras.layers.Normalization = tf.keras.layers.Normalization(axis=-1)
         normalizer.adapt(X_test)
         normalizer.adapt(X_train)
-
-        y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
-        y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
         # load model
         model: tf.keras.models.Sequential = cls.get_model(_airport, normalizer)
@@ -103,8 +101,3 @@ class MyDNN:
         # save history
         mytools.plot_history(_airport, result.history, f"tf_dnn_{_airport}_info.png")
         mytools.ModelRecords.update(_airport, "history", result.history, True)
-
-
-if __name__ == "__main__":
-    for theAirport in ALL_AIRPORTS:
-        MyDNN.train_dnn(theAirport)

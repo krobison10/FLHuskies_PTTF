@@ -4,77 +4,96 @@ import os
 import mytools
 import numpy as np
 import torch
-from constants import ALL_AIRPORTS, TARGET_LABEL
+from constants import TARGET_LABEL
 
 torch.set_default_device("cuda")
 
-# Create an empty model
-model = torch.nn.Sequential(
-    torch.nn.LayerNorm(44),
-    torch.nn.Linear(44, 32),
-    torch.nn.ReLU(),
-    torch.nn.Linear(32, 64),
-    torch.nn.ReLU(),
-    torch.nn.Linear(64, 1),
-)
-print("----------------------------------------")
-if os.path.exists(mytools.get_model_path("pytorch_dnn_model.pt")):
-    print("A existing model has been found and will be loaded.")
-    model.load_state_dict(torch.load(mytools.get_model_path("pytorch_dnn_model.pt")))
-else:
-    print("Creating new model.")
-print("----------------------------------------")
 
-# loss function and optimizer
-loss_fn = torch.nn.L1Loss()  # mean square error
-optimizer = torch.optim.Adam(model.parameters())
+class MyTorchDNN:
+    @classmethod
+    def __get_model_path(cls, _airport: str) -> str:
+        return mytools.get_model_path(f"pytorch_dnn_{_airport}_model.pt")
 
-# number of epochs to run
-n_epochs = 10000
+    @classmethod
+    def get_model(cls, _airport: str, load_if_exists: bool = True) -> torch.nn.Sequential:
+        # Create an empty model
+        _model: torch.nn.Sequential = torch.nn.Sequential(
+            torch.nn.LayerNorm(44),
+            torch.nn.Linear(44, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 64),
+            torch.nn.ReLU(),
+            torch.nn.Linear(64, 1),
+        )
 
-# update database name
-mytools.ModelRecords.set_name("pytorch_dnn_model_records")
+        _model_path: str = cls.__get_model_path(_airport)
+        print("----------------------------------------")
+        if load_if_exists is True and os.path.exists(_model_path):
+            print("A existing model has been found and will be loaded.")
+            _model.load_state_dict(torch.load(_model_path))
+        else:
+            print("Creating new model.")
+        print("----------------------------------------")
 
-for _airport in ALL_AIRPORTS:
-    train_df, val_df = mytools.get_train_and_test_ds(_airport)
+        return _model
 
-    X_train: torch.Tensor = torch.as_tensor(train_df.drop(columns=[TARGET_LABEL]).values, dtype=torch.float32)
-    y_train: torch.Tensor = torch.as_tensor(train_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
-    X_test: torch.Tensor = torch.as_tensor(val_df.drop(columns=[TARGET_LABEL]).values, dtype=torch.float32)
-    y_test: torch.Tensor = torch.as_tensor(val_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
+    @classmethod
+    def train_dnn(cls, _airport: str) -> None:
+        # update database name
+        mytools.ModelRecords.set_name("pytorch_dnn_model_records")
 
-    # Hold the best model
-    best_mae: float = np.inf  # init to infinity
-    best_weights: dict = model.state_dict()
-    history: dict[str, list] = {"loss": [], "val_loss": []}
+        # load train and test data frame
+        train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
-    for epoch in range(n_epochs):
-        model.train()
-        # forward pass
-        y_pred = model(X_train)
-        loss = loss_fn(y_pred, y_train)
-        # backward pass
-        optimizer.zero_grad()
-        loss.backward()
-        # update weights
-        optimizer.step()
+        X_train: torch.Tensor = torch.as_tensor(train_df.drop(columns=[TARGET_LABEL]).values, dtype=torch.float32)
+        y_train: torch.Tensor = torch.as_tensor(train_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
+        X_test: torch.Tensor = torch.as_tensor(val_df.drop(columns=[TARGET_LABEL]).values, dtype=torch.float32)
+        y_test: torch.Tensor = torch.as_tensor(val_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
 
-        # evaluate accuracy at end of each epoch
-        model.eval()
-        y_pred = model(X_test)
-        val_mae: float = float(loss_fn(y_pred, y_test))
-        print(f"$({_airport}) Epoch {epoch}: {round(val_mae, 4)}")
-        history["loss"].append(float(loss))
-        history["val_loss"].append(val_mae)
-        if val_mae < best_mae:
-            best_mae = val_mae
-            best_weights = copy.deepcopy(model.state_dict())
+        model = cls.get_model(_airport)
 
-    # restore model and return best accuracy
-    model.load_state_dict(best_weights)
-    torch.save(model.state_dict(), mytools.get_model_path("pytorch_dnn_model.pt"))
-    print("MSE: %.2f" % best_mae)
+        # Hold the best model
+        best_mae: float = np.inf  # init to infinity
+        best_weights: dict = model.state_dict()
+        history: dict[str, list] = {"loss": [], "val_loss": []}
 
-    # save history
-    mytools.plot_history(_airport, history, f"pytorch_dnn_{_airport}_info.png")
-    mytools.ModelRecords.update(_airport, "best_mae", best_mae, True)
+        # loss function and optimizer
+        loss_fn: torch.nn.L1Loss = torch.nn.L1Loss()  # mean square error
+        optimizer: torch.optim.Adam = torch.optim.Adam(model.parameters())
+
+        # number of epochs to run
+        n_epochs: int = 10000
+
+        for epoch in range(n_epochs):
+            model.train()
+            # forward pass
+            y_pred = model(X_train)
+            loss = loss_fn(y_pred, y_train)
+            # backward pass
+            optimizer.zero_grad()
+            loss.backward()
+            # update weights
+            optimizer.step()
+
+            # evaluate accuracy at end of each epoch
+            model.eval()
+            y_pred = model(X_test)
+            val_mae: float = float(loss_fn(y_pred, y_test))
+            print(f"$({_airport}) Epoch {epoch}: {round(val_mae, 4)}")
+            history["loss"].append(float(loss))
+            history["val_loss"].append(val_mae)
+            if val_mae < best_mae:
+                best_mae = val_mae
+                best_weights = copy.deepcopy(model.state_dict())
+
+            # clear cache
+            torch.cuda.empty_cache()
+
+        # restore model and return best accuracy
+        model.load_state_dict(best_weights)
+        torch.save(model.state_dict(), mytools.get_model_path("pytorch_dnn_model.pt"))
+        print("MSE: %.2f" % best_mae)
+
+        # save history
+        mytools.plot_history(_airport, history, f"pytorch_dnn_{_airport}_info.png")
+        mytools.ModelRecords.update(_airport, "best_mae", best_mae, True)
