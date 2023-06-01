@@ -4,10 +4,8 @@
 # A simple regression model implements with deep neural network
 #
 
-import json
 import os
 
-import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import tensorflow as tf  # type: ignore
 from constants import ALL_AIRPORTS, TARGET_LABEL
@@ -53,6 +51,9 @@ class MyDNN:
 
     @classmethod
     def train_dnn(cls, _airport: str) -> None:
+        # update database name
+        mytools.ModelRecords.set_name("tf_dnn_model_records")
+
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
@@ -99,25 +100,9 @@ class MyDNN:
 
         print(result.params)
 
-        plt.clf()
-        plt.plot(result.history["loss"], label="loss")
-        plt.plot(result.history["val_loss"], label="val_loss")
-        plt.xlabel("epochs")
-        plt.xlabel("Epoch")
-        plt.ylabel("Accuracy")
-        plt.legend(loc="lower right")
-        plt.title(f"validation loss curve for {_airport}")
-        plt.savefig(cls.__get_model_path(_airport).replace(".h5", ".png"))
-
-        _DATA: dict[str, dict] = {}
-        if os.path.exists(mytools.get_model_path("dnn_model_records.json")):
-            with open(mytools.get_model_path("dnn_model_records.json"), "r", encoding="utf-8") as f:
-                _DATA.update(json.load(f))
-
-        _DATA[_airport] = dict(result.history)
-
-        with open(mytools.get_model_path("dnn_model_records.json"), "w", encoding="utf-8") as f:
-            json.dump(_DATA, f, indent=4, ensure_ascii=False, sort_keys=True)
+        # save history
+        mytools.plot_history(_airport, result.history, f"tf_dnn_{_airport}_info.png")
+        mytools.ModelRecords.update(_airport, "history", result.history, True)
 
 
 if __name__ == "__main__":

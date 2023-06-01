@@ -8,6 +8,7 @@ import json
 import os
 import pickle
 from copy import deepcopy
+from typing import Any
 
 import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
@@ -317,24 +318,51 @@ class ModelRecords:
     # create or load model records
     __PATH: str = get_model_path("model_records.json")
     __DATA: dict[str, dict[str, dict]] = {}
-    if os.path.exists(__PATH):
-        with open(__PATH, "r", encoding="utf-8") as f:
-            __DATA = dict(json.load(f))
+    __init: bool = False
+
+    @classmethod
+    def init(cls) -> None:
+        if os.path.exists(cls.__PATH):
+            with open(cls.__PATH, "r", encoding="utf-8") as f:
+                cls.__DATA = dict(json.load(f))
+        cls.__init = True
+
+    @classmethod
+    def set_name(cls, fileName: str) -> None:
+        cls.__PATH = get_model_path(fileName + ".json")
+        cls.__init = False
 
     @classmethod
     def get(cls, _airport: str) -> dict[str, dict]:
+        if not cls.__init:
+            cls.init()
         if _airport not in cls.__DATA:
             cls.__DATA[_airport] = {}
         return cls.__DATA[_airport]
 
     @classmethod
-    def update(cls, _airport: str, _key: str, _value: dict) -> None:
+    def update(cls, _airport: str, _key: str, _value: Any, save: bool = False) -> None:
         cls.get(_airport)[_key] = _value
+        if save is True:
+            cls.save()
 
     @classmethod
     def save(cls) -> None:
         with open(cls.__PATH, "w", encoding="utf-8") as f:
             json.dump(cls.__DATA, f, indent=4, ensure_ascii=False, sort_keys=True)
+
+
+def plot_history(_airport: str, history: dict[str, list], saveAsFileName: str | None = None) -> None:
+    plt.clf()
+    plt.plot(history["loss"], label="loss")
+    plt.plot(history["val_loss"], label="val_loss")
+    plt.xlabel("epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.legend(loc="lower right")
+    plt.title(f"validation loss curve for {_airport}")
+    if saveAsFileName is not None:
+        plt.savefig(get_model_path(saveAsFileName))
 
 
 """
