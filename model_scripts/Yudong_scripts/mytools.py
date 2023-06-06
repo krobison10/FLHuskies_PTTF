@@ -46,7 +46,7 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
 def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None) -> pd.DataFrame:
     unknown_dtype: dict = {
         "precip": str,
-        "gufi_flight_major_carrier": str,
+        "airline": str,
         "arrival_runways": str,
     }
     _df: pd.DataFrame
@@ -191,7 +191,7 @@ _CATEGORICAL_STR_COLUMNS: list[str] = [
     "departure_runways",
     "arrival_runways",
     "gufi_flight_destination_airport",
-    "gufi_flight_major_carrier",
+    "airline",
 ]
 
 ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
@@ -211,8 +211,8 @@ _FEATURES_IGNORE: list[str] = [
     "gufi",
     "timestamp",
     "isdeparture",
-    "aircraft_engine_class",
-    "precip",
+    # "aircraft_engine_class",
+    # "precip",
     "departure_runways",
     "arrival_runways",
     # "visibility",
@@ -306,8 +306,8 @@ def get_train_and_test_ds(_airport: str, valid_airlines_only: bool = False) -> t
     val_df: pd.DataFrame = get_validation_tables(_airport, remove_duplicate_gufi=False)
 
     if valid_airlines_only is True:
-        train_df = train_df.loc[train_df.gufi_flight_major_carrier.isin(AIRLINES)]
-        val_df = val_df.loc[val_df.gufi_flight_major_carrier.isin(AIRLINES)]
+        train_df = train_df.loc[train_df.airline.isin(AIRLINES)]
+        val_df = val_df.loc[val_df.airline.isin(AIRLINES)]
 
     # load encoder
     _ENCODER: dict[str, OrdinalEncoder] = get_encoder()
@@ -378,17 +378,3 @@ def plot_history(_airport: str, history: dict[str, list], saveAsFileName: str | 
     plt.title(f"validation loss curve for {_airport}")
     if saveAsFileName is not None:
         plt.savefig(get_model_path(saveAsFileName))
-
-
-"""
-temp = ["aircraft_type", "major_carrier", "gufi_flight_major_carrier"]
-df_t = get_master_tables(use_cols=temp)
-with open(get_model_path("report.txt"), "w", encoding="utf-8") as f:
-    pd.set_option("display.max_rows", None)
-    for _col_t in temp:
-        print(df_t[_col_t].value_counts())
-        f.write(str(df_t[_col_t].value_counts()))
-        print(df_t[_col_t].nunique())
-        print("------------------------")
-exit()
-"""

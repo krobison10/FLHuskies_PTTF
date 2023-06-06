@@ -29,7 +29,7 @@ encoded_columns: list[str] = [
     "arrival_runways",
     "gufi_flight_destination_airport",
     "gufi_flight_FAA_system",
-    "gufi_flight_major_carrier",
+    "airline",
 ]
 
 for _ignore in ignore_features:
@@ -67,7 +67,7 @@ params: dict[str, Any] = {
     "boosting_type": "gbdt",
     "objective": "regression_l1",
     "num_leaves": 1024 * 8,
-    "n_estimators": 128,
+    "num_iterations": 128,
 }
 
 model = lgb.train(

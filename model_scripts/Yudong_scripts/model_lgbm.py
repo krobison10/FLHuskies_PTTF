@@ -10,13 +10,13 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import mytools
 import pandas as pd
-from constants import ALL_AIRPORTS, TARGET_LABEL  # type: ignore
+from constants import ALL_AIRPORTS, TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
 
 if __name__ == "__main__":
     hyperparameter: dict = {
         "num_leaves": 1024 * 4,
-        "n_estimators": 128,
+        "num_iterations": 128,
         "boosting_type": "gbdt",
     }
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             for value in mytools.ModelRecords.get(airport).values():
                 if (
                     value.get("num_leaves") == hyperparameter.get("num_leaves")
-                    and value.get("n_estimators") == hyperparameter.get("n_estimators")
+                    and value.get("num_iterations") == hyperparameter.get("num_iterations")
                     and value.get("boosting_type") == hyperparameter.get("boosting_type")
                     and sorted(value.get("features", [])) == sorted(X_train.columns.to_list())
                 ):
@@ -74,8 +74,8 @@ if __name__ == "__main__":
         params.update(hyperparameter)
 
         # don not use gpu for global model training due to error
-        if airport != "ALL":
-            params["device_type"] = "gpu"
+        # if airport != "ALL":
+        #    params["device_type"] = "gpu"
 
         model = lightgbm.train(params, lightgbm.Dataset(X_train, label=y_train))
 
@@ -117,18 +117,24 @@ if __name__ == "__main__":
         # save the latest records
         mytools.ModelRecords.save()
 
-        if airport == "ALL":
-            for theAirport in ALL_AIRPORTS[:10]:
-                all_df: pd.DataFrame = pd.concat(mytools.get_train_and_test_ds(airport), ignore_index=True)
-                y_pred = model.predict(all_df.drop(columns=[TARGET_LABEL]))
-                mae = round(mean_absolute_error(all_df[TARGET_LABEL], y_pred), 4)
-                print(f"--------------------------------------------------")
-                print(f"MAE when apply cumulative model on validation data for airport {theAirport}: {mae}")
-                individual_model_best_mae = mytools.ModelRecords.get(airport)["best"]["val_mae"]
-                print(f"Compare to individual model's best current best {individual_model_best_mae},")
-                if individual_model_best_mae > mae:
-                    print("Cumulative model is better.")
-                elif individual_model_best_mae == mae:
-                    print("They are the same.")
-                else:
-                    print("Individual model is better.")
+    if airport == "ALL":
+        global_model = mytools.get_model(airport)
+        for theAirport in ALL_AIRPORTS[:10]:
+            train_df, val_df = mytools.get_train_and_test_ds(theAirport)
+
+            X_train, X_test = train_df.drop(columns=[TARGET_LABEL]), val_df.drop(columns=[TARGET_LABEL])
+            y_train, y_test = train_df[TARGET_LABEL], val_df[TARGET_LABEL]
+
+            train_mae: float = round(mean_absolute_error(global_model.predict(X_train), y_train), 4)
+            val_mae: float = round(mean_absolute_error(global_model.predict(X_test), y_test), 4)
+
+            print(f"--------------------------------------------------")
+            print(f"Apply cumulative model on {theAirport}: train - {train_mae}, test - {val_mae}")
+            individual_model_best_mae = mytools.ModelRecords.get(theAirport)["best"]["val_mae"]
+            print(f"Compare to individual model's best current best {individual_model_best_mae},")
+            if individual_model_best_mae > val_mae:
+                print("Cumulative model is better.")
+            elif individual_model_best_mae == val_mae:
+                print("They are the same.")
+            else:
+                print("Individual model is better.")

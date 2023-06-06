@@ -34,8 +34,9 @@ class MyTensorflowDNN:
             _model = tf.keras.models.Sequential(
                 [
                     _normalizer,
-                    tf.keras.layers.Dense(32, activation="relu"),
                     tf.keras.layers.Dense(64, activation="relu"),
+                    tf.keras.layers.Dense(64, activation="relu"),
+                    tf.keras.layers.Dense(128, activation="relu"),
                     tf.keras.layers.Dense(1),
                 ]
             )
@@ -49,12 +50,12 @@ class MyTensorflowDNN:
         return _model
 
     @classmethod
-    def train_dnn(cls, _airport: str) -> None:
+    def train(cls, _airport: str) -> None:
         # update database name
         mytools.ModelRecords.set_name("tf_dnn_model_records")
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport, True)
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32)
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32)

@@ -66,7 +66,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> pd.DataF
 
     # read train labels for given airport
     _df: pd.DataFrame = pd.read_csv(
-        get_csv_path(data_dir, f"train_labels_prescreened", f"prescreened_train_labels_{_airport}.csv"),
+        get_csv_path(data_dir, "train_labels_phase2", f"phase2_train_labels_{_airport}.csv"),
         parse_dates=["timestamp"],
     )
 

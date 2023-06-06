@@ -5,11 +5,14 @@ import mytools
 import numpy as np
 import torch
 from constants import TARGET_LABEL
+from sklearn.preprocessing import Normalizer  # type: ignore
 
 torch.set_default_device("cuda")
 
 
 class MyTorchDNN:
+    NUM_OF_FEATURES = 46
+
     @classmethod
     def __get_model_path(cls, _airport: str) -> str:
         return mytools.get_model_path(f"pytorch_dnn_{_airport}_model.pt")
@@ -18,8 +21,8 @@ class MyTorchDNN:
     def get_model(cls, _airport: str, load_if_exists: bool = True) -> torch.nn.Sequential:
         # Create an empty model
         _model: torch.nn.Sequential = torch.nn.Sequential(
-            torch.nn.LayerNorm(44),
-            torch.nn.Linear(44, 32),
+            # torch.nn.LayerNorm(cls.NUM_OF_FEATURES),
+            torch.nn.Linear(cls.NUM_OF_FEATURES, 32),
             torch.nn.ReLU(),
             torch.nn.Linear(32, 64),
             torch.nn.ReLU(),
@@ -38,16 +41,25 @@ class MyTorchDNN:
         return _model
 
     @classmethod
-    def train_dnn(cls, _airport: str) -> None:
+    def train(cls, _airport: str) -> None:
         # update database name
         mytools.ModelRecords.set_name("pytorch_dnn_model_records")
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport, True)
 
-        X_train: torch.Tensor = torch.as_tensor(train_df.drop(columns=[TARGET_LABEL]).values, dtype=torch.float32)
+        X_train_nd: np.ndarray = train_df.drop(columns=[TARGET_LABEL]).values
+        X_test_nd: np.ndarray = val_df.drop(columns=[TARGET_LABEL]).values
+
+        transformer: Normalizer = Normalizer()
+        transformer = transformer.fit(X_train_nd)
+        transformer = transformer.fit(X_test_nd)
+        X_train_nd = transformer.transform(X_train_nd)
+        X_test_nd = transformer.transform(X_test_nd)
+
+        X_train: torch.Tensor = torch.as_tensor(X_train_nd, dtype=torch.float32)
         y_train: torch.Tensor = torch.as_tensor(train_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
-        X_test: torch.Tensor = torch.as_tensor(val_df.drop(columns=[TARGET_LABEL]).values, dtype=torch.float32)
+        X_test: torch.Tensor = torch.as_tensor(X_test_nd, dtype=torch.float32)
         y_test: torch.Tensor = torch.as_tensor(val_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
 
         model = cls.get_model(_airport)
@@ -87,7 +99,7 @@ class MyTorchDNN:
                 best_weights = copy.deepcopy(model.state_dict())
 
             # clear cache
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         # restore model and return best accuracy
         model.load_state_dict(best_weights)

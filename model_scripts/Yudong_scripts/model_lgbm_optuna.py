@@ -21,7 +21,7 @@ def _train(trial, _airport, X_train, X_test, y_train, y_test) -> float:
         "device_type": "gpu",
         "verbosity": -1,
         "num_leaves": trial.suggest_int("num_leaves", 100, 1024 * 8),
-        "n_estimators": trial.suggest_int("n_estimators", 64, 64 * 3),
+        "num_iterations": trial.suggest_int("num_iterations", 64, 64 * 3),
         "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0),
         "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0),
         "subsample_for_bin": trial.suggest_int("subsample_for_bin", 200000, 400000),
