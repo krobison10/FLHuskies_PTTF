@@ -1,4 +1,4 @@
-#from utils import *
+# from utils import *
 import os
 import pandas as pd
 import pickle
@@ -33,7 +33,7 @@ from config import *
 from flower_client import *
 from airline_dataset import *
 from net import *
-from train_test import * 
+from train_test import *
 from flwr.common.typing import NDArray, NDArrays, Parameters, Scalar, Optional
 
 
@@ -44,12 +44,12 @@ def train_global(df):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    #for column in tqdm(encoded_columns):
+    # for column in tqdm(encoded_columns):
     for column in encoded_columns:
         try:
             enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
-            #print(train_df[column])
-            #print(train_df[[column]])
+            # print(train_df[column])
+            # print(train_df[[column]])
             X_train[column] = enc.fit_transform(X_train[[column]])
             X_test[column] = enc.transform(X_test[[column]])
         except Exception as e:
@@ -65,8 +65,8 @@ def train_global(df):
     train_data = AirlineDataset(X_train, y_train)
     test_data = AirlineDataset(X_test, y_test)
 
-        #print(len(train_data))
-        #print(len(test_data))
+    # print(len(train_data))
+    # print(len(test_data))
 
     train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=32)
@@ -87,8 +87,10 @@ def main():
 
     for airport in airports[:1]:
         print(f"Processing Airport {airport}")
-        #df = pd.read_csv(os.path.join(ROOT1, DATA_DIRECTORY, f"{airport}_full.csv"), parse_dates=["timestamp"])
-        df = pd.read_csv(os.path.join(ROOT, "data_apr16/tables/train_tables/", f"{airport}_train.csv"), parse_dates=["timestamp"])
+        # df = pd.read_csv(os.path.join(ROOT1, DATA_DIRECTORY, f"{airport}_full.csv"), parse_dates=["timestamp"])
+        df = pd.read_csv(
+            os.path.join(ROOT, "data_apr16/tables/train_tables/", f"{airport}_train.csv"), parse_dates=["timestamp"]
+        )
         df["precip"] = df["precip"].astype(str)
         df["isdeparture"] = df["isdeparture"].astype(str)
 
@@ -101,14 +103,14 @@ def main():
         for airline, df in airlines:
             dfs[airline] = pd.concat([dfs[airline], df])
 
-        #break
+        # break
 
     stop = timeit.default_timer()
     print(f"Finished Processing Airports in {int(stop-start)} seconds")
 
     num_clients = len(dfs)
 
-    #print(dfs.keys())
+    # print(dfs.keys())
 
     start = timeit.default_timer()
 
@@ -124,11 +126,10 @@ def main():
         fraction_fit=1.0,
         fraction_evaluate=0.5,
         min_fit_clients=num_clients,
-        min_evaluate_clients=num_clients//2,
+        min_evaluate_clients=num_clients // 2,
         min_available_clients=num_clients,
-        evaluate_fn=get_evaluate_fn(server_model)
+        evaluate_fn=get_evaluate_fn(server_model),
     )
-
 
     fl.simulation.start_simulation(
         client_fn=lambda x: client_fn(x, train_loaders, test_loaders),
@@ -138,7 +139,7 @@ def main():
         client_resources=client_resources,
     )
 
-    with open('server.pickle', 'wb') as f:
+    with open("server.pickle", "wb") as f:
         pickle.dump(server_model.state_dict(), f)
 
 
@@ -148,15 +149,13 @@ def load_datasets(dfs):
 
     for airline, df in dfs.items():
         print(f"Processing Airline {airline}")
-        #df = dfs[airline]
+        # df = dfs[airline]
 
-        #print(df.head())
+        # print(df.head())
 
-        #train_df, val_df = train_test_split(table=df, ROOT=ROOT1, airport="", save=False)
+        # train_df, val_df = train_test_split(table=df, ROOT=ROOT1, airport="", save=False)
 
-        #print(X_train.head())
-
-
+        # print(X_train.head())
 
         # X_train = train_df[features].to_numpy()
         # X_test = val_df[features].to_numpy()
@@ -168,12 +167,12 @@ def load_datasets(dfs):
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        #for column in tqdm(encoded_columns):
+        # for column in tqdm(encoded_columns):
         for column in encoded_columns:
             try:
                 enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
-                #print(train_df[column])
-                #print(train_df[[column]])
+                # print(train_df[column])
+                # print(train_df[[column]])
                 X_train[column] = enc.fit_transform(X_train[[column]])
                 X_test[column] = enc.transform(X_test[[column]])
             except Exception as e:
@@ -186,10 +185,10 @@ def load_datasets(dfs):
         y_train = y_train.to_numpy(dtype=np.float32, copy=True).reshape(-1, 1)
         y_test = y_test.to_numpy(dtype=np.float32, copy=True).reshape(-1, 1)
 
-        X_train.flags.writeable=True
-        y_train.flags.writeable=True
-        X_test.flags.writeable=True
-        y_test.flags.writeable=True
+        X_train.flags.writeable = True
+        y_train.flags.writeable = True
+        X_test.flags.writeable = True
+        y_test.flags.writeable = True
 
         # X_train = train_df[features].to_numpy(dtype=np.float32)
         # X_test = val_df[features].to_numpy(dtype=np.float32)
@@ -199,8 +198,8 @@ def load_datasets(dfs):
         train_data = AirlineDataset(X_train, y_train)
         test_data = AirlineDataset(X_test, y_test)
 
-        #print(len(train_data))
-        #print(len(test_data))
+        # print(len(train_data))
+        # print(len(test_data))
 
         train_loaders.append(DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True))
         test_loaders.append(DataLoader(test_data, batch_size=BATCH_SIZE))
@@ -220,7 +219,6 @@ def get_evaluate_fn(model):
     def evaluate(
         server_round: int, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-        
         params_dict = zip(model.state_dict().keys(), parameters)
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
         model.load_state_dict(state_dict, strict=True)

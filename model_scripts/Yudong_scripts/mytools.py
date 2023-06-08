@@ -211,10 +211,11 @@ _FEATURES_IGNORE: list[str] = [
     "gufi",
     "timestamp",
     "isdeparture",
-    # "aircraft_engine_class",
-    # "precip",
+    "aircraft_engine_class",
+    "precip",
     "departure_runways",
     "arrival_runways",
+    "minute"
     # "visibility",
     # "flight_type",
 ]
@@ -280,22 +281,22 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
 
 
 def get_model(_airport: str) -> lightgbm.Booster:
-    if not os.path.exists(get_model_path("models.pickle")):
+    if not os.path.exists(get_model_path("models.lightgbm.pickle")):
         raise FileNotFoundError("The model does not exist!")
     _models: dict[str, lightgbm.Booster] = {}
-    with open(get_model_path("models.pickle"), "rb") as handle:
+    with open(get_model_path("models.lightgbm.pickle"), "rb") as handle:
         _models = pickle.load(handle)
     return _models[_airport]
 
 
 def save_model(_airport: str, _model: lightgbm.Booster) -> None:
     _models: dict[str, lightgbm.Booster] = {}
-    if os.path.exists(get_model_path("models.pickle")):
-        with open(get_model_path("models.pickle"), "rb") as handle:
+    if os.path.exists(get_model_path("models.lightgbm.pickle")):
+        with open(get_model_path("models.lightgbm.pickle"), "rb") as handle:
             _models = pickle.load(handle)
     _models[_airport] = _model
     # save the model
-    with open(get_model_path("models.pickle"), "wb") as handle:
+    with open(get_model_path("models.lightgbm.pickle"), "wb") as handle:
         pickle.dump(_models, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -315,12 +316,11 @@ def get_train_and_test_ds(_airport: str, valid_airlines_only: bool = False) -> t
     # need to make provisions for handling unknown values
     for col in ENCODED_STR_COLUMNS:
         train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
-        train_df[col] = train_df[col].astype(int)
         val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
-        val_df[col] = val_df[col].astype(int)
+
     for col in get_categorical_columns():
-        train_df[col] = train_df[col].astype("category")
-        val_df[col] = val_df[col].astype("category")
+        train_df[col] = train_df[col].astype("int8")
+        val_df[col] = val_df[col].astype("int8")
 
     # drop useless columns
     train_df.drop(columns=get_ignored_features(), inplace=True)

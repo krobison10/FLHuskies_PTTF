@@ -1,7 +1,7 @@
 # Daniil Filienko
 #
 # Running the model emsemble with Kyler's Train Split
-# save and then report accuracy values for 
+# save and then report accuracy values for
 # individual airports and overall
 
 import matplotlib.pyplot as plt
@@ -32,7 +32,7 @@ OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 OUTPUT_FIGURES_DIRECTORY = Path("./figures")
 DATA_DIRECTORY = Path("full_tables")
 
-AIRPORTS = [    
+AIRPORTS = [
     "KATL",
     "KCLT",
     "KDEN",
@@ -46,15 +46,16 @@ AIRPORTS = [
 ]
 # ---------------------------------------- MAIN ----------------------------------------
 
+
 def filter_dataframes_by_column(table, column_name):
     """
     Filters a table of data based on the 'carrier' column and returns an array of filtered dataframes,
     where each dataframe contains data for a unique carrier.
-    
+
     Args:
-        table (pd.DataFrame): Table of data containing the 'gufi_flight_major_carrier', 'etd', 'carrier', 
+        table (pd.DataFrame): Table of data containing the 'gufi_flight_major_carrier', 'etd', 'carrier',
                               and 'gufi_flight_destination_airport' columns.
-                              
+
     Returns:
         list: An array of filtered dataframes, where each dataframe contains data for a unique carrier.
     """
@@ -71,10 +72,11 @@ def filter_dataframes_by_column(table, column_name):
 
         # Store the filtered dataframe in the dictionary with carrier as the key
         carrier_dataframes[carrier] = filtered_df
-        
+
     return carrier_dataframes
 
-def plotImp(model, X, airport = "ALL", airline = "ALL",num=20, fig_size=(40, 20)):
+
+def plotImp(model, X, airport="ALL", airline="ALL", num=20, fig_size=(40, 20)):
     feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": X.columns})
     plt.figure(figsize=fig_size)
     sns.set(font_scale=3)
@@ -83,25 +85,26 @@ def plotImp(model, X, airport = "ALL", airline = "ALL",num=20, fig_size=(40, 20)
     plt.tight_layout()
     plt.savefig(f"lgbm_importances_{airline}_at_{airport}_global.png")
 
+
 print("Started")
 # train = pd.read_csv(DATA_DIRECTORY_TRAIN / f"ALL_train.csv", parse_dates=["gufi_flight_date","timestamp"])
 # val = pd.read_csv(DATA_DIRECTORY_VAL / f"ALL_validation.csv", parse_dates=["gufi_flight_date","timestamp"])
 
-df = pd.read_csv(DATA_DIRECTORY / f"ALL_full.csv",parse_dates=["gufi_flight_date","timestamp"])
+df = pd.read_csv(DATA_DIRECTORY / f"ALL_full.csv", parse_dates=["gufi_flight_date", "timestamp"])
 train, val = split(table=df, save=False)
 
 for c in val.columns:
     col_type = val[c].dtype
-    if col_type == 'object' or col_type == 'string' or "cat" in c:
-        val[c] = val[c].astype('category')
+    if col_type == "object" or col_type == "string" or "cat" in c:
+        val[c] = val[c].astype("category")
 
-#remove train for testing the models
+# remove train for testing the models
 if carrier == "major":
-    val_dfs = filter_dataframes_by_column(val,"major_carrier")
+    val_dfs = filter_dataframes_by_column(val, "major_carrier")
     carrier_column_name = "major_carrier"
 
 else:
-    val_dfs = filter_dataframes_by_column(val,"gufi_flight_major_carrier")
+    val_dfs = filter_dataframes_by_column(val, "gufi_flight_major_carrier")
     carrier_column_name = "gufi_flight_major_carrier"
 
 airlines_val = val[carrier_column_name].unique()
@@ -111,16 +114,16 @@ y_preds = [0]
 
 # Preventing GUFI from being an attribute to analyze
 offset = 2
-features_all = (df.columns.values.tolist())[offset:(len(df.columns.values))]
+features_all = (df.columns.values.tolist())[offset : (len(df.columns.values))]
 
-features_remove = ("gufi_flight_date","minutes_until_pushback")
+features_remove = ("gufi_flight_date", "minutes_until_pushback")
 features = [x for x in features_all if x not in features_remove]
-features_val = ["minutes_until_pushback","airport"]
+features_val = ["minutes_until_pushback", "airport"]
 
 for airline in airlines_val:
     pickled_airline = airline
     if airline not in train[carrier_column_name].values:
-        #Replace the unknown value with the most frequently [assuming best trained] model
+        # Replace the unknown value with the most frequently [assuming best trained] model
         pickled_airline = train[carrier_column_name].mode().iloc[0]
 
     val = val_dfs[airline]
@@ -129,14 +132,14 @@ for airline in airlines_val:
     y_val = val[features_val]
 
     # open file where we stored the pickled model
-    filename = f'model_{pickled_airline}_gufi.sav'
-    regressor = pickle.load(open(OUTPUT_DIRECTORY / filename, 'rb'))
+    filename = f"model_{pickled_airline}_gufi.sav"
+    regressor = pickle.load(open(OUTPUT_DIRECTORY / filename, "rb"))
 
     y_pred = regressor.predict(X_val)
 
     y_tests = np.concatenate((y_tests, y_val["minutes_until_pushback"]))
     y_preds = np.concatenate((y_preds, y_pred))
-    print(f"Regression tree train error for {airline}:", mean_absolute_error(y_pred,y_val["minutes_until_pushback"]))
+    print(f"Regression tree train error for {airline}:", mean_absolute_error(y_pred, y_val["minutes_until_pushback"]))
     # plotImp(regressor,X_val, airline=airline)
 
 print(f"Regression tree train error for ALL:", mean_absolute_error(y_tests, y_preds))

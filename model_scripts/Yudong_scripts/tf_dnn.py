@@ -35,7 +35,6 @@ class MyTensorflowDNN:
                 [
                     _normalizer,
                     tf.keras.layers.Dense(64, activation="relu"),
-                    tf.keras.layers.Dense(64, activation="relu"),
                     tf.keras.layers.Dense(128, activation="relu"),
                     tf.keras.layers.Dense(1),
                 ]
@@ -57,10 +56,10 @@ class MyTensorflowDNN:
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(_airport, True)
 
-        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32)
-        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32)
-        y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.float32)
-        y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.float32)
+        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+        y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
+        y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 
         normalizer: tf.keras.layers.Normalization = tf.keras.layers.Normalization(axis=-1)
         normalizer.adapt(X_test)

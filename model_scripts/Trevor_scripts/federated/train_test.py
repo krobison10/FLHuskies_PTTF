@@ -34,7 +34,7 @@ def test(net, testloader):
             X, y = X.to(DEVICE), y.to(DEVICE)
             outputs = net(X)
             loss += criterion(outputs, y).item()
-            total+=1
+            total += 1
 
     loss /= total
     return loss

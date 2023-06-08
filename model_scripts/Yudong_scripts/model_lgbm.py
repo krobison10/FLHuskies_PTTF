@@ -18,15 +18,20 @@ if __name__ == "__main__":
         "num_leaves": 1024 * 4,
         "num_iterations": 128,
         "boosting_type": "gbdt",
+        "gpu_use_dp": True,
     }
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("-a", help="airport")
     parser.add_argument("-o", help="override")
+    parser.add_argument("-g", help="enable gpu")
     args: argparse.Namespace = parser.parse_args()
 
     airports: tuple[str, ...] = ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
+
+    train_mae: float = 0.0
+    val_mae: float = 0.0
 
     for airport in airports:
         # load train and test data frame
@@ -74,22 +79,23 @@ if __name__ == "__main__":
         params.update(hyperparameter)
 
         # don not use gpu for global model training due to error
-        # if airport != "ALL":
-        #    params["device_type"] = "gpu"
+        if airport != "ALL" and not str(args.g).lower().startswith("f"):
+            params["device_type"] = "gpu"
 
         model = lightgbm.train(params, lightgbm.Dataset(X_train, label=y_train))
 
         y_pred = model.predict(X_train)
-        mae: float = round(mean_absolute_error(y_train, y_pred), 4)
-        print(f"MAE on train data {airport}: {mae}")
+        train_mae = round(mean_absolute_error(y_train, y_pred), 4)
+        print(f"MAE on train data {airport}: {train_mae}")
         y_pred = model.predict(X_test)
-        mae = round(mean_absolute_error(y_test, y_pred), 4)
-        print(f"MAE on validation data {airport}: {mae}")
+        val_mae = round(mean_absolute_error(y_test, y_pred), 4)
+        print(f"MAE on validation data {airport}: {val_mae}")
 
         # record model information
         model_name: str = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_info: dict = {
-            "val_mae": mae,
+            "train_mae": train_mae,
+            "val_mae": val_mae,
             "features": X_train.columns.tolist(),
         }
         model_info.update(hyperparameter)
@@ -125,8 +131,8 @@ if __name__ == "__main__":
             X_train, X_test = train_df.drop(columns=[TARGET_LABEL]), val_df.drop(columns=[TARGET_LABEL])
             y_train, y_test = train_df[TARGET_LABEL], val_df[TARGET_LABEL]
 
-            train_mae: float = round(mean_absolute_error(global_model.predict(X_train), y_train), 4)
-            val_mae: float = round(mean_absolute_error(global_model.predict(X_test), y_test), 4)
+            train_mae = round(mean_absolute_error(global_model.predict(X_train), y_train), 4)
+            val_mae = round(mean_absolute_error(global_model.predict(X_test), y_test), 4)
 
             print(f"--------------------------------------------------")
             print(f"Apply cumulative model on {theAirport}: train - {train_mae}, test - {val_mae}")

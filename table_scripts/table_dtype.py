@@ -22,7 +22,17 @@ class TableDtype:
         "feat_5_estdep_next_360min",
     )
 
-    FLOAT_COLUMNS: tuple[str, ...] = ("cloud_ceiling", "visibility")
+    FLOAT_COLUMNS: tuple[str, ...] = (
+        "delay_30hr",
+        "standtime_30hr",
+        "dep_taxi_30hr",
+        "arr_taxi_30hr",
+        "delay_3hr",
+        "standtime_3hr",
+        "dep_taxi_3hr",
+        "arr_taxi_3hr",
+        "1h_ETDP",
+    )
 
     STR_COLUMS: tuple[str, ...] = (
         "cloud",
@@ -41,6 +51,9 @@ class TableDtype:
     def fix_potential_missing_int_features(cls, _df: pd.DataFrame) -> pd.DataFrame:
         for _col in cls.INT_COLUMNS:
             if _col in _df.columns:
-                _df[_col] = _df[_col].fillna(0).astype(int)
+                _df[_col] = _df[_col].fillna(0).astype("int16")
+        for _col in cls.FLOAT_COLUMNS:
+            if _col in _df.columns:
+                _df[_col] = _df[_col].fillna(0.0).astype("float32")
 
         return _df

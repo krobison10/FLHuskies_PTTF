@@ -130,7 +130,7 @@ features_all = [
     "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
-    "flight_type"
+    "flight_type",
 ]
 
 features_trimmed = [
@@ -193,9 +193,8 @@ encoded_columns = [
     "aircraft_type",
     "major_carrier",
     "flight_type",
-
     "dep_ratio",
-    "arr_ratio"
+    "arr_ratio",
 ]
 
 input_features = features_all
@@ -204,7 +203,7 @@ input_features = features_all
 TRAIN_MAE = True
 
 # whether to use encoders for all airports, or encoders for each airport.
-GLOBAL_ENCODERS = False # Absolutely leave this false, takes forever and uses a lot of memory
+GLOBAL_ENCODERS = False  # Absolutely leave this false, takes forever and uses a lot of memory
 
 encoders = {}
 

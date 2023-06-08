@@ -21,7 +21,7 @@ from pathlib import Path
 DATA_DIRECTORY = Path("full_tables")
 OUTPUT_DIRECTORY = Path("./models/Daniil_models")
 
-airports = [    
+airports = [
     "KATL",
     "KCLT",
     "KDEN",
@@ -44,14 +44,14 @@ total_airlines = set([])
 
 for airport in airports:
     # replace this path with the locations of the full tables for each airport if necessary
-    df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv",parse_dates=["timestamp"])
+    df = pd.read_csv(DATA_DIRECTORY / f"{airport}_full.csv", parse_dates=["timestamp"])
 
     # get the unique values in the column
     unique_values = df[column_name].unique()
 
     # count the number of occurrences of each unique value
     value_counts = df[column_name].value_counts()
-    
+
     print(f"Listing Airlines for {airport}\n")
 
     # print the results
@@ -61,7 +61,7 @@ for airport in airports:
         print(f"{value}: {count} rows")
         total_airlines.add(value)
 
-    
+
 print(f"Total number of unique values in {column_name}: {len(total_airlines)}")
 
 exit()

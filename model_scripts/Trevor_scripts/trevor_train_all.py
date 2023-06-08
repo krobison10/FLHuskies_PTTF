@@ -1,4 +1,3 @@
-
 from utils import *
 import pandas as pd
 import pickle
@@ -42,29 +41,34 @@ for airport in airports:
     df = pd.read_csv(os.path.join(ROOT, DATA_DIRECTORY, f"{airport}_full.csv"), parse_dates=["timestamp"])
 
     offset = 2
-    features_all = (df.columns.values.tolist())[offset:(len(df.columns.values))]
-    features_remove = ("gufi_flight_date","minutes_until_pushback")
-    features = [x for x in features_all if x not in features_remove and not str(x).startswith("feat_lamp_") and not str(x).startswith("feats_lamp_")]
+    features_all = (df.columns.values.tolist())[offset : (len(df.columns.values))]
+    features_remove = ("gufi_flight_date", "minutes_until_pushback")
+    features = [
+        x
+        for x in features_all
+        if x not in features_remove and not str(x).startswith("feat_lamp_") and not str(x).startswith("feats_lamp_")
+    ]
 
-    X_train = (df[features])
-    y_train = (df["minutes_until_pushback"])
+    X_train = df[features]
+    y_train = df["minutes_until_pushback"]
 
     for c in tqdm(X_train.columns):
         col_type = X_train[c].dtype
-        if col_type == 'object' or col_type == 'string' or "cat" in c:
-            X_train[c] = X_train[c].astype('category')
+        if col_type == "object" or col_type == "string" or "cat" in c:
+            X_train[c] = X_train[c].astype("category")
 
-    gbm = LGBMRegressor(objective="regression_l1",
-                        num_leaves=128,
-                        n_estimators=128,
-                        #learning_rate=0.05,
-                        )
+    gbm = LGBMRegressor(
+        objective="regression_l1",
+        num_leaves=128,
+        n_estimators=128,
+        # learning_rate=0.05,
+    )
 
     gbm.fit(X_train, y_train)
 
     models[airport] = gbm
 
 with open("models.pickle", "wb") as f:
-        pickle.dump(models, f)
+    pickle.dump(models, f)
 
 exit()
