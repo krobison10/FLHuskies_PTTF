@@ -44,11 +44,11 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
 
 
 def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None) -> pd.DataFrame:
-    unknown_dtype: dict = {
-        "precip": str,
-        "airline": str,
-        "arrival_runways": str,
-    }
+    unknown_dtype: dict = {"precip": str, "airline": str, "arrival_runways": str, "year": str}
+    for _col in _FLOAT32_COLUMNS:
+        unknown_dtype[_col] = "float32"
+    for _col in _INT16_COLUMNS:
+        unknown_dtype[_col] = "int16"
     _df: pd.DataFrame
     if "ALL_" not in _path:
         _df = (
@@ -179,6 +179,43 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
                 f.write(msg + "\n")
 
 
+_INT16_COLUMNS: tuple[str, ...] = (
+    "minutes_until_pushback",
+    "minutes_until_etd",
+    "deps_3hr",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "gufi_timestamp_until_etd",
+    "feat_5_gufi",
+    "feat_5_estdep_next_30min",
+    "feat_5_estdep_next_60min",
+    "feat_5_estdep_next_180min",
+    "feat_5_estdep_next_360min",
+)
+
+_FLOAT32_COLUMNS: tuple[str, ...] = (
+    "delay_30hr",
+    "standtime_30hr",
+    "dep_taxi_30hr",
+    "arr_taxi_30hr",
+    "delay_3hr",
+    "standtime_3hr",
+    "dep_taxi_3hr",
+    "arr_taxi_3hr",
+    "1h_ETDP",
+)
+
 _CATEGORICAL_STR_COLUMNS: list[str] = [
     "airport",
     "cloud",
@@ -192,14 +229,14 @@ _CATEGORICAL_STR_COLUMNS: list[str] = [
     "arrival_runways",
     "gufi_flight_destination_airport",
     "airline",
+    "year",
 ]
 
 ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
 
-CATEGORICAL_INT_COLUMNS: list[str] = [
+_CATEGORICAL_INT8_COLUMNS: list[str] = [
     "cloud_ceiling",
     "visibility",
-    "year",
     "month",
     "day",
     "hour",
@@ -222,12 +259,12 @@ _FEATURES_IGNORE: list[str] = [
 
 
 def get_categorical_columns() -> list[str]:
-    return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
+    return ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS
 
 
 def get_clean_categorical_columns() -> list[str]:
     ignore_categorical_features(_FEATURES_IGNORE)
-    return ENCODED_STR_COLUMNS + CATEGORICAL_INT_COLUMNS
+    return ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS
 
 
 def get_ignored_features() -> list[str]:
@@ -238,8 +275,8 @@ def ignore_categorical_features(features_ignore: list[str]) -> None:
     for _ignore in features_ignore:
         if _ignore in ENCODED_STR_COLUMNS:
             ENCODED_STR_COLUMNS.remove(_ignore)
-        if _ignore in CATEGORICAL_INT_COLUMNS:
-            CATEGORICAL_INT_COLUMNS.remove(_ignore)
+        if _ignore in _CATEGORICAL_INT8_COLUMNS:
+            _CATEGORICAL_INT8_COLUMNS.remove(_ignore)
 
 
 ignore_categorical_features(_FEATURES_IGNORE)

@@ -13,6 +13,7 @@ import numpy as np
 import lightgbm as lgb
 from datetime import datetime
 
+
 def load_model(solution_directory: Path) -> Any:
     """Load any model assets from disk."""
     with (solution_directory / "models.pickle").open("rb") as fp:
@@ -49,8 +50,8 @@ def predict(
     minutes_until_etd = partial_submission_format.merge(
         latest_etd, how="left", on="gufi"
     ).departure_runway_estimated_time
-    
-    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds()/60
+
+    minutes_until_etd = (minutes_until_etd - partial_submission_format.timestamp).dt.total_seconds() / 60
 
     # Empty dataframe gets passed to the function sometimes
     if len(minutes_until_etd) == 0:
@@ -58,12 +59,25 @@ def predict(
 
     prediction = partial_submission_format.copy()
 
-    table = prediction.merge(mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"), how="left", on="gufi")
+    table = prediction.merge(
+        mfs[["aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "gufi"]].fillna("UNK"),
+        how="left",
+        on="gufi",
+    )
 
-    for col in ["temperature","wind_direction","wind_speed","wind_gust","cloud_ceiling","visibility"]:
-        table[col] = prediction["timestamp"].apply(lambda now: lamp.loc[lamp.timestamp <= now].sort_values("timestamp").iloc[-1][col]).fillna(0)
-    for col in ["cloud","lightning_prob","precip"]:
-        table[col] = prediction["timestamp"].apply(lambda now: lamp.loc[lamp.timestamp <= now].sort_values("timestamp").iloc[-1][col]).fillna("UNK").astype(str)
+    for col in ["temperature", "wind_direction", "wind_speed", "wind_gust", "cloud_ceiling", "visibility"]:
+        table[col] = (
+            prediction["timestamp"]
+            .apply(lambda now: lamp.loc[lamp.timestamp <= now].sort_values("timestamp").iloc[-1][col])
+            .fillna(0)
+        )
+    for col in ["cloud", "lightning_prob", "precip"]:
+        table[col] = (
+            prediction["timestamp"]
+            .apply(lambda now: lamp.loc[lamp.timestamp <= now].sort_values("timestamp").iloc[-1][col])
+            .fillna("UNK")
+            .astype(str)
+        )
 
     table["precip"] = table["precip"].astype(str)
 
@@ -107,53 +121,57 @@ def predict(
 
     table = table.rename(columns={"airport": "airport_x"})
 
-    encoded_columns = ["gufi_flight_destination_airport",
-                       "airport_x",
-                       "aircraft_engine_class",
-                       "aircraft_type",
-                       "major_carrier",
-                       "flight_type",
-                       "cloud",
-                       "lightning_prob",
-                       "precip"]
+    encoded_columns = [
+        "gufi_flight_destination_airport",
+        "airport_x",
+        "aircraft_engine_class",
+        "aircraft_type",
+        "major_carrier",
+        "flight_type",
+        "cloud",
+        "lightning_prob",
+        "precip",
+    ]
 
+    features = [
+        "gufi_flight_destination_airport",
+        "month",
+        "day",
+        "hour",
+        "year",
+        "weekday",
+        "airport_x",
+        "minutes_until_etd",
+        "aircraft_engine_class",
+        "aircraft_type",
+        "major_carrier",
+        "flight_type",
+        "temperature",
+        "wind_direction",
+        "wind_speed",
+        "wind_gust",
+        "cloud_ceiling",
+        "visibility",
+        "cloud",
+        "lightning_prob",
+        "precip",
+    ]
 
-    features = ["gufi_flight_destination_airport",
-                "month",
-                "day",
-                "hour",
-                "year",
-                "weekday",
-                "airport_x",
-                "minutes_until_etd",
-                "aircraft_engine_class",
-                "aircraft_type",
-                "major_carrier",
-                "flight_type",
-                "temperature",
-                "wind_direction",
-                "wind_speed",
-                "wind_gust",
-                "cloud_ceiling",
-                "visibility",
-                "cloud",
-                "lightning_prob",
-                "precip",
-            ]
-    
-    #print(table.columns)
+    # print(table.columns)
 
     for col in encoded_columns:
         table[[col]] = encoders[col].transform(table[[col]].values)
 
     for airport in table.airport_x.unique():
-        airport_str = str(encoders["airport_x"].inverse_transform(np.asarray([airport]).reshape(-1,1))[0][0])
-        #print(type(airport_str))
-        #print(airport_str)
-        #print(model)
-        #print(airport_str in model)
-        #print(model[airport_str])
-        prediction.loc[table.airport_x == airport, "minutes_until_pushback"] = model[airport_str].predict(table.loc[table.airport_x == airport, features].to_numpy())
+        airport_str = str(encoders["airport_x"].inverse_transform(np.asarray([airport]).reshape(-1, 1))[0][0])
+        # print(type(airport_str))
+        # print(airport_str)
+        # print(model)
+        # print(airport_str in model)
+        # print(model[airport_str])
+        prediction.loc[table.airport_x == airport, "minutes_until_pushback"] = model[airport_str].predict(
+            table.loc[table.airport_x == airport, features].to_numpy()
+        )
 
     prediction["minutes_until_pushback"] = prediction.minutes_until_pushback.clip(lower=0).fillna(0)
 
