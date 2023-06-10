@@ -8,7 +8,7 @@ import os
 
 import mytools
 import tensorflow as tf  # type: ignore
-from constants import TARGET_LABEL
+from constants import TARGET_LABEL, ALL_AIRPORTS
 
 
 # allow gpu memory growth
@@ -19,7 +19,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 class MyTensorflowDNN:
     @classmethod
     def __get_model_path(cls, _airport: str) -> str:
-        return mytools.get_model_path(f"tf_dnn_{_airport}_model.h5")
+        return mytools.get_model_path(f"tf_dnn_{_airport}_model")
 
     @classmethod
     def get_model(
@@ -75,7 +75,7 @@ class MyTensorflowDNN:
         # Model Checkpoint
         check_pointer: tf.keras.callbacks.ModelCheckpoint = tf.keras.callbacks.ModelCheckpoint(
             cls.__get_model_path(_airport),
-            monitor="loss",
+            monitor="val_loss",
             verbose=1,
             save_best_only=True,
             save_weights_only=False,
@@ -94,6 +94,7 @@ class MyTensorflowDNN:
             verbose=1,
             epochs=50,
             callbacks=[check_pointer, early_stopping],
+            batch_size=32 * 8 * 2,
         )
 
         print(result.params)
@@ -101,3 +102,20 @@ class MyTensorflowDNN:
         # save history
         mytools.plot_history(_airport, result.history, f"tf_dnn_{_airport}_info.png")
         mytools.ModelRecords.update(_airport, "history", result.history, True)
+
+    @classmethod
+    def evaluate_global(cls) -> None:
+        _model = tf.keras.models.load_model(cls.__get_model_path("ALL"))
+
+        for theAirport in ALL_AIRPORTS:
+            # load train and test data frame
+            train_df, val_df = mytools.get_train_and_test_ds(theAirport, True)
+
+            X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+            X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+            y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
+            y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
+
+            print(theAirport, ":")
+            # _model.evaluate(X_train, y_train)
+            _model.evaluate(X_test, y_test)
