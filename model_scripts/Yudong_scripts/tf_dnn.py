@@ -34,8 +34,9 @@ class MyTensorflowDNN:
             _model = tf.keras.models.Sequential(
                 [
                     _normalizer,
+                    tf.keras.layers.Dense(32, activation="relu"),
                     tf.keras.layers.Dense(64, activation="relu"),
-                    tf.keras.layers.Dense(128, activation="relu"),
+                    tf.keras.layers.Dense(64, activation="relu"),
                     tf.keras.layers.Dense(1),
                 ]
             )
@@ -54,7 +55,7 @@ class MyTensorflowDNN:
         mytools.ModelRecords.set_name("tf_dnn_model_records")
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport, True)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
@@ -94,7 +95,7 @@ class MyTensorflowDNN:
             verbose=1,
             epochs=50,
             callbacks=[check_pointer, early_stopping],
-            batch_size=32 * 8 * 2,
+            batch_size=32 * 8,
         )
 
         print(result.params)
@@ -109,7 +110,7 @@ class MyTensorflowDNN:
 
         for theAirport in ALL_AIRPORTS:
             # load train and test data frame
-            train_df, val_df = mytools.get_train_and_test_ds(theAirport, True)
+            train_df, val_df = mytools.get_train_and_test_ds(theAirport)
 
             X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
             X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))

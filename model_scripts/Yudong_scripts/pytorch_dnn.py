@@ -46,7 +46,7 @@ class MyTorchDNN:
         mytools.ModelRecords.set_name("pytorch_dnn_model_records")
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport, True)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
         X_train_nd: np.ndarray = train_df.drop(columns=[TARGET_LABEL]).values
         X_test_nd: np.ndarray = val_df.drop(columns=[TARGET_LABEL]).values
