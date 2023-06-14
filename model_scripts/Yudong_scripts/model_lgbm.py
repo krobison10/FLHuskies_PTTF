@@ -8,16 +8,20 @@ from datetime import datetime
 
 import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
+import xgboost  # type: ignore
 import mytools
 import pandas as pd
 from constants import ALL_AIRPORTS, TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
+
+# mytools.ModelRecords.display_best()
 
 if __name__ == "__main__":
     hyperparameter: dict = {
         "num_leaves": 1024 * 4,
         "num_iterations": 128,
         "boosting_type": "gbdt",
+        "device_type": "gpu",
         "gpu_use_dp": True,
     }
 
@@ -26,6 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("-a", help="airport")
     parser.add_argument("-o", help="override")
     parser.add_argument("-g", help="enable gpu")
+    parser.add_argument("-m", help="use xgboost data")
     args: argparse.Namespace = parser.parse_args()
 
     airports: tuple[str, ...] = ALL_AIRPORTS if args.a is None else (str(args.a).upper(),)
@@ -59,16 +64,13 @@ if __name__ == "__main__":
                 print(f"Same setup found for airport {airport} found with mae {same_setup_mae}, skip!")
                 continue
 
-        """
-        train_matrix: xgboost.DMatrix = xgboost.DMatrix(X_train, enable_categorical=True)
-        test_matrix: xgboost.DMatrix = xgboost.DMatrix(X_test, enable_categorical=True)
-
-        xgboost_model = xgboost.XGBRegressor()
-        xgboost_model.load_model(mytools.get_model_path(f"xgboost_regression_{airport}.json"))
-
-        X_train["xgboost_pred"] = pd.Series(xgboost_model.predict(X_train))
-        X_test["xgboost_pred"] = pd.Series(xgboost_model.predict(X_test))
-        """
+        if str(args.m).lower().startswith("t"):
+            train_matrix: xgboost.DMatrix = xgboost.DMatrix(X_train, enable_categorical=True)
+            test_matrix: xgboost.DMatrix = xgboost.DMatrix(X_test, enable_categorical=True)
+            xgboost_model = xgboost.XGBRegressor()
+            xgboost_model.load_model(mytools.get_model_path(f"xgboost_regression_{airport}.json"))
+            X_train["xgboost_pred"] = pd.Series(xgboost_model.predict(X_train))
+            X_test["xgboost_pred"] = pd.Series(xgboost_model.predict(X_test))
 
         # train model
         params: dict[str, str | int | float] = {
@@ -77,10 +79,6 @@ if __name__ == "__main__":
             "verbosity": -1,
         }
         params.update(hyperparameter)
-
-        # don not use gpu for global model training due to error
-        if airport != "ALL" and not str(args.g).lower().startswith("f"):
-            params["device_type"] = "gpu"
 
         model = lightgbm.train(params, lightgbm.Dataset(X_train, label=y_train))
 
@@ -91,37 +89,37 @@ if __name__ == "__main__":
         val_mae = round(mean_absolute_error(y_test, y_pred), 4)
         print(f"MAE on validation data {airport}: {val_mae}")
 
-        # record model information
-        model_name: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        model_info: dict = {
+        # note down model information
+        model_record_latest: dict = {
             "train_mae": train_mae,
             "val_mae": val_mae,
             "features": X_train.columns.tolist(),
         }
-        model_info.update(hyperparameter)
-        mytools.ModelRecords.update(airport, model_name, model_info)
 
-        # plot the graph that shows importance
+        # if the model is the best, the save it
+        model_record_current_best: dict | None = mytools.ModelRecords.get_smallest(airport)
+        if model_record_current_best is None or model_record_current_best["val_mae"] > model_record_latest["val_mae"]:
+            if model_record_current_best is not None:
+                print(f'The best result so far (previous best: {model_record_current_best["val_mae"]}), saved!')
+            else:
+                print(f"The best result so far, saved!")
+            mytools.save_model(airport, model)
+        else:
+            print(f'Worse than previous best: {model_record_current_best["val_mae"]})')
+
+        # update record
+        model_name: str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        model_record_latest.update(hyperparameter)
+        mytools.ModelRecords.update(airport, model_name, model_record_latest)
+
+        # save the latest records
+        mytools.ModelRecords.save()
+
+        # plot and save the graph that shows importance
         lightgbm.plot_importance(model, ignore_zero=False, importance_type="gain")
         plt.savefig(mytools.get_model_path(f"lgbm_{airport}_{model_name}_gain_importance.png"), bbox_inches="tight")
         lightgbm.plot_importance(model, ignore_zero=False, importance_type="split")
         plt.savefig(mytools.get_model_path(f"lgbm_{airport}_{model_name}_split_importance.png"), bbox_inches="tight")
-
-        # if the model is the best, the save it
-        model_records_ref: dict[str, dict] = mytools.ModelRecords.get(airport)
-        if (
-            "best" not in model_records_ref
-            or model_records_ref["best"]["val_mae"] > model_records_ref[model_name]["val_mae"]
-        ):
-            if "best" in model_records_ref:
-                print(f'The best result so far (previous best: {model_records_ref["best"]["val_mae"]}), saved!')
-            mytools.ModelRecords.update(airport, "best", model_records_ref[model_name])
-            mytools.save_model(airport, model)
-        else:
-            print(f'Worse than previous best: {model_records_ref["best"]["val_mae"]})')
-
-        # save the latest records
-        mytools.ModelRecords.save()
 
     if airport == "ALL":
         global_model = mytools.get_model(airport)

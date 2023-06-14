@@ -4,19 +4,30 @@
 # A simple regression model implements with xgboost
 #
 
-import mytools
+import os
+import sys
+
 import xgboost
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+import mytools
 from constants import ALL_AIRPORTS, TARGET_LABEL
+
+sys.path.pop()
 
 for _airport in ALL_AIRPORTS:
     # load train and test data frame
     train_df, val_df = mytools.get_train_and_test_ds(_airport)
 
     train_ds: xgboost.DMatrix = xgboost.DMatrix(
-        train_df.drop(columns=[TARGET_LABEL]), label=train_df[TARGET_LABEL], enable_categorical=True
+        train_df.drop(columns=[TARGET_LABEL]),
+        label=train_df[TARGET_LABEL].apply(lambda x: x // 50),
+        enable_categorical=True,
     )
     test_ds: xgboost.DMatrix = xgboost.DMatrix(
-        val_df.drop(columns=[TARGET_LABEL]), label=val_df[TARGET_LABEL], enable_categorical=True
+        val_df.drop(columns=[TARGET_LABEL]),
+        label=val_df[TARGET_LABEL].apply(lambda x: x // 50),
+        enable_categorical=True,
     )
 
     _parameters: dict = {

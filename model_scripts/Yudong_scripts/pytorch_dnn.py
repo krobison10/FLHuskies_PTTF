@@ -11,7 +11,7 @@ torch.set_default_device("cuda")
 
 
 class MyTorchDNN:
-    NUM_OF_FEATURES = 46
+    NUM_OF_FEATURES = -1
 
     @classmethod
     def __get_model_path(cls, _airport: str) -> str:
@@ -57,10 +57,12 @@ class MyTorchDNN:
         X_train_nd = transformer.transform(X_train_nd)
         X_test_nd = transformer.transform(X_test_nd)
 
-        X_train: torch.Tensor = torch.as_tensor(X_train_nd, dtype=torch.float32)
-        y_train: torch.Tensor = torch.as_tensor(train_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
-        X_test: torch.Tensor = torch.as_tensor(X_test_nd, dtype=torch.float32)
-        y_test: torch.Tensor = torch.as_tensor(val_df[TARGET_LABEL].values, dtype=torch.float32).reshape(-1, 1)
+        X_train: torch.Tensor = torch.as_tensor(X_train_nd)
+        y_train: torch.Tensor = torch.as_tensor(train_df[TARGET_LABEL].values, dtype=torch.int16).reshape(-1, 1)
+        X_test: torch.Tensor = torch.as_tensor(X_test_nd)
+        y_test: torch.Tensor = torch.as_tensor(val_df[TARGET_LABEL].values, dtype=torch.int16).reshape(-1, 1)
+
+        cls.NUM_OF_FEATURES = X_train.shape[1]
 
         model = cls.get_model(_airport)
 
@@ -94,17 +96,14 @@ class MyTorchDNN:
             print(f"$({_airport}) Epoch {epoch}: {round(val_mae, 4)}")
             history["loss"].append(float(loss))
             history["val_loss"].append(val_mae)
+            print("Val mae: %.2f" % best_mae)
             if val_mae < best_mae:
                 best_mae = val_mae
-                best_weights = copy.deepcopy(model.state_dict())
+                # save the best model
+                torch.save(model.state_dict(), mytools.get_model_path("pytorch_dnn_model.pt"))
 
             # clear cache
             # torch.cuda.empty_cache()
-
-        # restore model and return best accuracy
-        model.load_state_dict(best_weights)
-        torch.save(model.state_dict(), mytools.get_model_path("pytorch_dnn_model.pt"))
-        print("MSE: %.2f" % best_mae)
 
         # save history
         mytools.plot_history(_airport, history, f"pytorch_dnn_{_airport}_info.png")

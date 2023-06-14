@@ -9,15 +9,18 @@ import os
 import pickle
 from copy import deepcopy
 from glob import glob
-from typing import Any
+from typing import Any, Final
 
 import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
-from constants import AIRLINES
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
 from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
+
+from constants import AIRLINES, ALL_AIRPORTS
+
+_ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
 def plot_loss(history):
@@ -74,7 +77,7 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | N
 
 
 def get_train_tables_path(_airport: str = "KSEA") -> str:
-    return os.path.join(os.path.dirname(__file__), "..", "..", "train_tables", f"{_airport}_train.csv")
+    return os.path.join(_ROOT_PATH, "train_tables", f"{_airport}_train.csv")
 
 
 def get_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
@@ -86,7 +89,7 @@ def get_preprocessed_train_tables(_airport: str = "KSEA", remove_duplicate_gufi:
 
 
 def get_validation_tables_path(_airport: str = "KSEA") -> str:
-    return os.path.join(os.path.dirname(__file__), "..", "..", "validation_tables", f"{_airport}_validation.csv")
+    return os.path.join(_ROOT_PATH, "validation_tables", f"{_airport}_validation.csv")
 
 
 def get_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
@@ -98,7 +101,7 @@ def get_preprocessed_validation_tables(_airport: str = "KSEA", remove_duplicate_
 
 
 def get_master_tables_path(_airport: str = "ALL") -> str:
-    return os.path.join(os.path.dirname(__file__), "..", "..", "full_tables", f"{_airport}_full.csv")
+    return os.path.join(_ROOT_PATH, "full_tables", f"{_airport}_full.csv")
 
 
 def get_master_tables(
@@ -126,7 +129,7 @@ def normalizeNumericalFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFra
 
 
 def get_model_path(_fileName: str | None) -> str:
-    _dir: str = os.path.join(os.path.dirname(__file__), "..", "..", "models", "yudong_models")
+    _dir: str = os.path.join(_ROOT_PATH, "models", "yudong_models")
     if not os.path.exists(_dir):
         os.mkdir(_dir)
     return os.path.join(_dir, _fileName) if _fileName is not None else _dir
@@ -393,6 +396,17 @@ class ModelRecords:
         return cls.__DATA[_airport]
 
     @classmethod
+    def get_smallest(cls, _airport: str, _key: str = "val_mae") -> dict | None:
+        results: dict[str, dict] = cls.get(_airport)
+        if len(results) == 0:
+            return None
+        _best_result: dict = {_key: 999999999999}
+        for _recode in results.values():
+            if float(_recode[_key]) < float(_best_result[_key]):
+                _best_result = _recode
+        return _best_result
+
+    @classmethod
     def update(cls, _airport: str, _key: str, _value: Any, save: bool = False) -> None:
         cls.get(_airport)[_key] = _value
         if save is True:
@@ -402,6 +416,16 @@ class ModelRecords:
     def save(cls) -> None:
         with open(cls.__PATH, "w", encoding="utf-8") as f:
             json.dump(cls.__DATA, f, indent=4, ensure_ascii=False, sort_keys=True)
+
+    @classmethod
+    def display_best(cls) -> None:
+        for _airport in ALL_AIRPORTS:
+            _best: dict | None = cls.get_smallest(_airport)
+            if _best is not None:
+                print("--------------------")
+                print(f"{_airport}:")
+                print("train mae:", _best["train_mae"])
+                print("val mae:", _best["val_mae"])
 
 
 def plot_history(_airport: str, history: dict[str, list], saveAsFileName: str | None = None) -> None:
