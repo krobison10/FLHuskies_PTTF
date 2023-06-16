@@ -12,9 +12,7 @@ import pandas as pd
 def add_traffic(
     now: pd.Timestamp, flights_selected: pd.DataFrame, latest_etd: pd.DataFrame, data_tables: dict[str, pd.DataFrame]
 ) -> pd.DataFrame:
-    mfs = data_tables["mfs"]
     runways = data_tables["runways"]
-    standtimes = data_tables["standtimes"]
 
     runways_filtered_3hr = feature_engineering.filter_by_timestamp(runways, now, 3)
 
@@ -32,11 +30,8 @@ def add_traffic(
 
     # technically is the # of planes whom have arrived at destination airport gate and also departed their origin
     # airport over 30 hours ago, but who cares, it's an important feature regardless
-    deps_taxiing = count_planes_taxiing(mfs, runways, standtimes, flights="departures")
+    deps_taxiing = count_planes_taxiing(data_tables["mfs"], runways, data_tables["standtimes"], flights="departures")
     flights_selected["deps_taxiing"] = pd.Series([deps_taxiing] * len(flights_selected), index=flights_selected.index)
-
-    arrs_taxiing = count_planes_taxiing(mfs, runways, standtimes, flights="arrivals")
-    flights_selected["arrs_taxiing"] = pd.Series([arrs_taxiing] * len(flights_selected), index=flights_selected.index)
 
     # apply count of expected departures within various windows
     flights_selected["exp_deps_15min"] = flights_selected.apply(
@@ -47,6 +42,15 @@ def add_traffic(
         lambda row: count_expected_departures(row["gufi"], latest_etd, 30), axis=1
     )
 
+    return flights_selected
+
+
+# calculate various traffic measures for airport (with private features)
+def add_traffic_private(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    arrs_taxiing = count_planes_taxiing(
+        data_tables["private_mfs"], data_tables["runways"], data_tables["private_standtimes"], flights="arrivals"
+    )
+    flights_selected["arrs_taxiing"] = pd.Series([arrs_taxiing] * len(flights_selected), index=flights_selected.index)
     return flights_selected
 
 

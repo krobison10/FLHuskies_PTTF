@@ -47,10 +47,11 @@ def filter_tables(now: pd.Timestamp, data_tables: dict[str, pd.DataFrame]) -> di
     new_dict: dict[str, pd.DataFrame] = {}
 
     for key in data_tables:
-        if key != "mfs":
+        if not key.endswith("mfs"):
             new_dict[key] = feature_engineering.filter_by_timestamp(data_tables[key], now, 30)
 
     new_dict["mfs"] = filter_mfs(data_tables["mfs"], new_dict["standtimes"])
+    new_dict["private_mfs"] = filter_mfs(data_tables["private_mfs"], new_dict["private_standtimes"])
 
     return new_dict
 

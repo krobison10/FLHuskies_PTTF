@@ -255,7 +255,7 @@ _FEATURES_IGNORE: list[str] = [
     "precip",
     "departure_runways",
     "arrival_runways",
-    "minute"
+    # "minute"
     # "visibility",
     # "flight_type",
 ]

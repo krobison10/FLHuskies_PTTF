@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
             print(f"--------------------------------------------------")
             print(f"Apply cumulative model on {theAirport}: train - {train_mae}, test - {val_mae}")
-            individual_model_best_mae = mytools.ModelRecords.get(theAirport)["best"]["val_mae"]
+            individual_model_best_mae = mytools.ModelRecords.get_smallest(theAirport)["val_mae"]
             print(f"Compare to individual model's best current best {individual_model_best_mae},")
             if individual_model_best_mae > val_mae:
                 print("Cumulative model is better.")

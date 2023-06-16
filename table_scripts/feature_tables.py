@@ -40,7 +40,12 @@ def get_feature_tables(data_dir: str, _airport: str) -> dict[str, pd.DataFrame]:
             dtype={"departure_runway_actual": "category", "arrival_runway_actual": "category"},
             parse_dates=["timestamp", "departure_runway_actual_time", "arrival_runway_actual_time"],
         ),
-        "standtimes": pd.concat(
+        "mfs": pd.read_csv(get_csv_path(data_dir, "public", _airport, f"{_airport}_mfs.csv")),
+        "standtimes": pd.read_csv(
+            get_csv_path(data_dir, "public", _airport, f"{_airport}_standtimes.csv"),
+            parse_dates=["departure_stand_actual_time", "timestamp"],
+        ).sort_values("timestamp"),
+        "private_standtimes": pd.concat(
             [
                 pd.read_csv(
                     get_csv_path(airline_standtimes),
@@ -49,7 +54,7 @@ def get_feature_tables(data_dir: str, _airport: str) -> dict[str, pd.DataFrame]:
                 for airline_standtimes in glob(get_csv_path(data_dir, "private", _airport, f"*_standtimes.csv"))
             ]
         ),
-        "mfs": pd.concat(
+        "private_mfs": pd.concat(
             [
                 pd.read_csv(
                     get_csv_path(airline_standtimes),

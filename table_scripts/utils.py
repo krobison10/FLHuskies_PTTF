@@ -7,6 +7,7 @@
 #
 
 import os
+import shutil
 
 import pandas as pd
 
@@ -35,10 +36,21 @@ def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None)
     test_data: pd.DataFrame = table[table.gufi.isin(_gufi)]
     train_data: pd.DataFrame = table[~table.gufi.isin(_gufi)]
 
+    train_tables_out_dir: str = os.path.join(ROOT, "train_tables", ext)
+    test_tables_out_dir: str = os.path.join(ROOT, "validation_tables", ext)
+
+    # remove cache
+    if os.path.exists(train_tables_out_dir):
+        shutil.rmtree(train_tables_out_dir)
+    os.mkdir(train_tables_out_dir)
+    if os.path.exists(test_tables_out_dir):
+        shutil.rmtree(test_tables_out_dir)
+    os.mkdir(test_tables_out_dir)
+
     # replace these paths with any desired ones if necessary
     train_data.sort_values(["gufi", "timestamp"]).to_csv(
-        os.path.join(ROOT, "train_tables", f"{ext}_train.csv"), index=False
+        os.path.join(train_tables_out_dir, f"public_train.csv"), index=False
     )
     test_data.sort_values(["gufi", "timestamp"]).to_csv(
-        os.path.join(ROOT, "validation_tables", f"{ext}_validation.csv"), index=False
+        os.path.join(test_tables_out_dir, f"public_validation.csv"), index=False
     )

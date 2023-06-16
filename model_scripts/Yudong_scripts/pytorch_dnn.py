@@ -68,7 +68,6 @@ class MyTorchDNN:
 
         # Hold the best model
         best_mae: float = np.inf  # init to infinity
-        best_weights: dict = model.state_dict()
         history: dict[str, list] = {"loss": [], "val_loss": []}
 
         # loss function and optimizer
