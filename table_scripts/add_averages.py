@@ -56,16 +56,13 @@ def add_averages(
 
 
 # calculate various traffic measures for airport (with private features)
-def add_averages_private(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    mfs: pd.DataFrame = data_tables["private_mfs"]
-
-    runways: pd.DataFrame = data_tables["runways"]
-    standtimes: pd.DataFrame = data_tables["private_standtimes"]
-
-    arr_taxi_30hr = feature_engineering.average_taxi_time(mfs, standtimes, runways, departures=False)
+def add_averages_private(
+    flights_selected: pd.DataFrame, private_mfs: pd.DataFrame, runways: pd.DataFrame, private_standtimes: pd.DataFrame
+) -> pd.DataFrame:
+    arr_taxi_30hr = feature_engineering.average_taxi_time(private_mfs, private_standtimes, runways, departures=False)
     flights_selected["arr_taxi_30hr"] = pd.Series([arr_taxi_30hr] * len(flights_selected), index=flights_selected.index)
 
-    arr_taxi_3hr = feature_engineering.average_taxi_time(mfs, standtimes, runways, departures=False)
+    arr_taxi_3hr = feature_engineering.average_taxi_time(private_mfs, private_standtimes, runways, departures=False)
     flights_selected["arr_taxi_3hr"] = pd.Series([arr_taxi_3hr] * len(flights_selected), index=flights_selected.index)
 
     return flights_selected

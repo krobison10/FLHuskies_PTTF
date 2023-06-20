@@ -23,34 +23,24 @@ def get_csv_path(*argv: str) -> str:
 
 
 # specify an airport to split for only one, otherwise a split for all airports will be executed
-def train_test_split(table: pd.DataFrame, ROOT: str, airport: str | None = None) -> None:
+def train_test_split(table: pd.DataFrame, ROOT: str, airport: str, _k: str) -> None:
     val_data: pd.DataFrame = pd.read_csv(os.path.join(ROOT, "_data", "submission_format.csv"))
 
     # If there is a specific airport then we are only interested in those rows
-    ext: str = "ALL"
-    if airport is not None:
-        ext = f"{airport}"
+    if airport != "ALL":
         val_data = val_data[val_data.airport == airport]
 
     _gufi = val_data.gufi.unique()
     test_data: pd.DataFrame = table[table.gufi.isin(_gufi)]
     train_data: pd.DataFrame = table[~table.gufi.isin(_gufi)]
 
-    train_tables_out_dir: str = os.path.join(ROOT, "train_tables", ext)
-    test_tables_out_dir: str = os.path.join(ROOT, "validation_tables", ext)
-
-    # remove cache
-    if os.path.exists(train_tables_out_dir):
-        shutil.rmtree(train_tables_out_dir)
-    os.mkdir(train_tables_out_dir)
-    if os.path.exists(test_tables_out_dir):
-        shutil.rmtree(test_tables_out_dir)
-    os.mkdir(test_tables_out_dir)
+    train_tables_out_dir: str = os.path.join(ROOT, "train_tables", airport)
+    test_tables_out_dir: str = os.path.join(ROOT, "validation_tables", airport)
 
     # replace these paths with any desired ones if necessary
     train_data.sort_values(["gufi", "timestamp"]).to_csv(
-        os.path.join(train_tables_out_dir, f"public_train.csv"), index=False
+        os.path.join(train_tables_out_dir, f"{_k}_train.csv"), index=False
     )
     test_data.sort_values(["gufi", "timestamp"]).to_csv(
-        os.path.join(test_tables_out_dir, f"public_validation.csv"), index=False
+        os.path.join(test_tables_out_dir, f"{_k}_validation.csv"), index=False
     )

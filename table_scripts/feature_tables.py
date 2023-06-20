@@ -3,12 +3,42 @@
 #
 # read all feature tables
 
-from glob import glob
+import os
+from collections import namedtuple
+
 import pandas as pd
 from utils import get_csv_path
 
+AIRLINES: tuple[str, ...] = (
+    "AAL",
+    "AJT",
+    "ASA",
+    "ASH",
+    "AWI",
+    "DAL",
+    "EDV",
+    "EJA",
+    "ENY",
+    "FDX",
+    "FFT",
+    "GJS",
+    "GTI",
+    "JBU",
+    "JIA",
+    "NKS",
+    "PDT",
+    "QXE",
+    "RPA",
+    "SKW",
+    "SWA",
+    "SWQ",
+    "TPA",
+    "UAL",
+    "UPS",
+)
 
-def get_feature_tables(data_dir: str, _airport: str) -> dict[str, pd.DataFrame]:
+
+def get_public_feature_tables(data_dir: str, _airport: str) -> dict[str, pd.DataFrame]:
     return {
         "etd": pd.read_csv(
             get_csv_path(data_dir, "public", _airport, f"{_airport}_etd.csv"),
@@ -45,28 +75,41 @@ def get_feature_tables(data_dir: str, _airport: str) -> dict[str, pd.DataFrame]:
             get_csv_path(data_dir, "public", _airport, f"{_airport}_standtimes.csv"),
             parse_dates=["departure_stand_actual_time", "timestamp"],
         ).sort_values("timestamp"),
-        "private_standtimes": pd.concat(
-            [
-                pd.read_csv(
-                    get_csv_path(airline_standtimes),
-                    parse_dates=["timestamp", "arrival_stand_actual_time", "departure_stand_actual_time"],
-                )
-                for airline_standtimes in glob(get_csv_path(data_dir, "private", _airport, f"*_standtimes.csv"))
-            ]
-        ),
-        "private_mfs": pd.concat(
-            [
-                pd.read_csv(
-                    get_csv_path(airline_standtimes),
-                    dtype={
-                        "aircraft_engine_class": "category",
-                        "aircraft_type": "category",
-                        "major_carrier": "category",
-                        "flight_type": "category",
-                        "isdeparture": bool,
-                    },
-                )
-                for airline_standtimes in glob(get_csv_path(data_dir, "private", _airport, f"*_mfs.csv"))
-            ]
-        ),
     }
+
+
+PrivateAirlineFeature = namedtuple("PrivateAirlineFeature", ["mfs", "standtimes"])
+
+
+def get_private_feature_tables(data_dir: str, _airport: str) -> dict[str, PrivateAirlineFeature]:
+    return {_airline: try_load_csv_with_private_feature(data_dir, _airport, _airline) for _airline in AIRLINES}
+
+
+def try_load_csv_with_private_feature(data_dir: str, _airport: str, airline: str) -> PrivateAirlineFeature:
+    _path: str = get_csv_path(data_dir, "private", _airport, f"{_airport}_{airline}_mfs.csv")
+    mfs_pd: pd.DataFrame = (
+        pd.read_csv(
+            _path,
+            dtype={
+                "aircraft_engine_class": "category",
+                "aircraft_type": "category",
+                "major_carrier": "category",
+                "flight_type": "category",
+                "isdeparture": bool,
+            },
+        )
+        if os.path.exists(_path)
+        else pd.DataFrame(
+            columns=["gufi", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "isdeparture"]
+        )
+    )
+    _path = get_csv_path(data_dir, "private", _airport, f"{_airport}_{airline}_standtimes.csv")
+    standtimes_pd: pd.DataFrame = (
+        pd.read_csv(
+            _path,
+            parse_dates=["timestamp", "arrival_stand_actual_time", "departure_stand_actual_time"],
+        )
+        if os.path.exists(_path)
+        else pd.DataFrame(columns=["gufi", "timestamp", "arrival_stand_actual_time", "departure_stand_actual_time"])
+    )
+    return PrivateAirlineFeature(mfs_pd, standtimes_pd)

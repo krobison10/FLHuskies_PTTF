@@ -46,10 +46,10 @@ def add_traffic(
 
 
 # calculate various traffic measures for airport (with private features)
-def add_traffic_private(flights_selected: pd.DataFrame, data_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    arrs_taxiing = count_planes_taxiing(
-        data_tables["private_mfs"], data_tables["runways"], data_tables["private_standtimes"], flights="arrivals"
-    )
+def add_traffic_private(
+    flights_selected: pd.DataFrame, private_mfs: pd.DataFrame, runways: pd.DataFrame, private_standtimes: pd.DataFrame
+) -> pd.DataFrame:
+    arrs_taxiing = count_planes_taxiing(private_mfs, runways, private_standtimes, flights="arrivals")
     flights_selected["arrs_taxiing"] = pd.Series([arrs_taxiing] * len(flights_selected), index=flights_selected.index)
     return flights_selected
 
