@@ -113,7 +113,7 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> dict[str
 
     # process all private prediction times in parallel
     all_df: dict[str, pd.DataFrame] = {}
-    process_index: int = 0
+    process_index: int = 1
     for key in private_feature_tables:
         airline_df = _df[_df.airline == key]
         if len(airline_df) > 0:
