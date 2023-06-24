@@ -108,27 +108,6 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> dict[str
     # extract and add mfs information
     _df = extract_and_add_gufi_features(_df)
 
-    # load private data
-    private_feature_tables: dict[str, PrivateAirlineFeature] = get_private_feature_tables(data_dir, _airport)
-
-    # process all private prediction times in parallel
-    all_df: dict[str, pd.DataFrame] = {}
-    process_index: int = 1
-    for key in private_feature_tables:
-        airline_df = _df[_df.airline == key]
-        if len(airline_df) > 0:
-            print(f"\nProcessing private data for ({process_index}/25):", key)
-            pandarallel.initialize(verbose=1, progress_bar=True)
-            all_df[key] = (
-                airline_df.reset_index(drop=True)
-                .groupby("timestamp")
-                .parallel_apply(
-                    lambda x: _process_airline_private(x, private_feature_tables[key], public_feature_tables)
-                )
-            )
-        else:
-            print(f"\nNo private data for ({process_index}/25):", key)
-        process_index += 1
     # Add runway information
     # _df = _df.merge(public_feature_tables["runways"][["gufi", "departure_runway_actual"]], how="left", on="gufi")
 
@@ -139,8 +118,37 @@ def generate_table(_airport: str, data_dir: str, max_rows: int = -1) -> dict[str
     _df = add_etd_features(_df, public_feature_tables["etd"])
 
     # Add mfs information
-    _df = _df.merge(public_feature_tables["mfs"], how="left", on="gufi")
+    # _df = _df.merge(public_feature_tables["mfs"], how="left", on="gufi")
 
+    # create a dictionary that store all airport data frames
+    all_df: dict[str, pd.DataFrame] = {}
+
+    # load private data
+    private_feature_tables: dict[str, PrivateAirlineFeature] = get_private_feature_tables(data_dir, _airport)
+
+    # process all private prediction times in parallel
+    process_index: int = 1
+    for key in private_feature_tables:
+        airline_df = _df[_df.airline == key]
+        if len(airline_df) > 0:
+            print(f"\nProcessing private data for ({process_index}/25):", key)
+            """
+            pandarallel.initialize(verbose=1, progress_bar=True)
+            all_df[key] = (
+                airline_df.reset_index(drop=True)
+                .groupby("timestamp")
+                .parallel_apply(
+                    lambda x: _process_airline_private(x, private_feature_tables[key], public_feature_tables)
+                )
+            )
+            """
+            if len(private_feature_tables[key].mfs) > 0:
+                all_df[key] = airline_df.merge(private_feature_tables[key].mfs, how="left", on="gufi")
+        else:
+            print(f"\nNo private data for ({process_index}/25):", key)
+        process_index += 1
+
+    # set _df as airport global public
     all_df["PUBLIC"] = _df
 
     return all_df

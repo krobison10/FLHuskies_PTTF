@@ -100,6 +100,7 @@ if __name__ == "__main__":
         gc.collect()
 
     # put together big table and save properly according to other arguments
+    """
     if args.a is None:
         public_master_table: pd.DataFrame = pd.concat(
             [
@@ -118,6 +119,7 @@ if __name__ == "__main__":
         if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
             train_test_split(public_master_table, _ROOT, our_dirs, "ALL", "PUBLIC")
         del public_master_table
+    """
 
     # zip all generated csv files
     if save_table_as == "zip":

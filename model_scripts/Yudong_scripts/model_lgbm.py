@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     for airport in airports:
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(airport)
+        train_df, val_df = mytools.get_train_and_test_ds(airport, "PRIVATE_ALL")
 
         X_train: pd.DataFrame = train_df.drop(columns=[TARGET_LABEL])
         X_test: pd.DataFrame = val_df.drop(columns=[TARGET_LABEL])
@@ -134,11 +134,13 @@ if __name__ == "__main__":
 
             print(f"--------------------------------------------------")
             print(f"Apply cumulative model on {theAirport}: train - {train_mae}, test - {val_mae}")
-            individual_model_best_mae = mytools.ModelRecords.get_smallest(theAirport)["val_mae"]
-            print(f"Compare to individual model's best current best {individual_model_best_mae},")
-            if individual_model_best_mae > val_mae:
-                print("Cumulative model is better.")
-            elif individual_model_best_mae == val_mae:
-                print("They are the same.")
-            else:
-                print("Individual model is better.")
+            individual_model_best: dict | None = mytools.ModelRecords.get_smallest(theAirport)
+            if individual_model_best is not None:
+                individual_model_best_mae: float = float(individual_model_best["val_mae"])
+                print(f"Compare to individual model's best current best {individual_model_best_mae},")
+                if individual_model_best_mae > val_mae:
+                    print("Cumulative model is better.")
+                elif individual_model_best_mae == val_mae:
+                    print("They are the same.")
+                else:
+                    print("Individual model is better.")

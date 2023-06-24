@@ -67,7 +67,7 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | N
                     if use_cols is None
                     else pd.read_csv(each_csv_path, dtype=unknown_dtype, usecols=use_cols)
                 )
-                for each_csv_path in glob(os.path.join(os.path.dirname(_path), "*.csv"))
+                for each_csv_path in glob(os.path.join(os.path.dirname(os.path.dirname(_path)), "*", "*.csv"))
             ],
             ignore_index=True,
         )
@@ -76,38 +76,64 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | N
     return _df
 
 
-def get_train_tables_path(_airport: str = "KSEA") -> str:
-    return os.path.join(_ROOT_PATH, "train_tables", f"{_airport}_train.csv")
+def get_train_tables_path(_airport: str, _airline: str) -> str:
+    return os.path.join(_ROOT_PATH, "train_tables", _airport, f"{_airline}_train.csv")
 
 
-def get_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
-    return _get_tables(get_train_tables_path(_airport), remove_duplicate_gufi)
-
-
-def get_preprocessed_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
-    return _get_tables(get_train_tables_path(_airport).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi)
-
-
-def get_validation_tables_path(_airport: str = "KSEA") -> str:
-    return os.path.join(_ROOT_PATH, "validation_tables", f"{_airport}_validation.csv")
-
-
-def get_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
-    return _get_tables(get_validation_tables_path(_airport), remove_duplicate_gufi)
-
-
-def get_preprocessed_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
-    return _get_tables(get_validation_tables_path(_airport).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi)
-
-
-def get_master_tables_path(_airport: str = "ALL") -> str:
-    return os.path.join(_ROOT_PATH, "full_tables", f"{_airport}_full.csv")
-
-
-def get_master_tables(
-    _airport: str = "ALL", remove_duplicate_gufi: bool = False, use_cols: list[str] | None = None
+def get_train_tables(
+    _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
 ) -> pd.DataFrame:
-    return _get_tables(get_master_tables_path(_airport), remove_duplicate_gufi, use_cols)
+    if _airport != "ALL":
+        return _get_tables(get_train_tables_path(_airport, airline), remove_duplicate_gufi)
+    else:
+        return pd.concat(
+            [
+                _get_tables(pd_path, remove_duplicate_gufi)
+                for pd_path in glob(os.path.join(_ROOT_PATH, "train_tables", "*", f"{airline}_train.csv"))
+            ]
+        )
+
+
+def get_preprocessed_train_tables(
+    _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
+) -> pd.DataFrame:
+    return _get_tables(get_train_tables_path(_airport, airline).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi)
+
+
+def get_validation_tables_path(_airport: str, _airline: str) -> str:
+    return os.path.join(_ROOT_PATH, "validation_tables", _airport, f"{_airline}_validation.csv")
+
+
+def get_validation_tables(
+    _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
+) -> pd.DataFrame:
+    if _airport != "ALL":
+        return _get_tables(get_validation_tables_path(_airport, airline), remove_duplicate_gufi)
+    else:
+        return pd.concat(
+            [
+                _get_tables(pd_path, remove_duplicate_gufi)
+                for pd_path in glob(os.path.join(_ROOT_PATH, "validation_tables", "*", f"{airline}_validation.csv"))
+            ]
+        )
+
+
+def get_preprocessed_validation_tables(
+    _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
+) -> pd.DataFrame:
+    return _get_tables(
+        get_validation_tables_path(_airport, airline).replace(".csv", "_xgboost.csv"), remove_duplicate_gufi
+    )
+
+
+def get_private_master_tables(remove_duplicate_gufi: bool = False, use_cols: list[str] | None = None) -> pd.DataFrame:
+    return pd.concat(
+        [
+            _get_tables(pd_path, remove_duplicate_gufi, use_cols)
+            for pd_path in glob(os.path.join(_ROOT_PATH, "full_tables", "*", "*_full.csv"))
+            if "PUBLIC_full" not in pd_path
+        ]
+    )
 
 
 def _encodeFeatures(
@@ -219,21 +245,19 @@ _FLOAT32_COLUMNS: tuple[str, ...] = (
     "1h_ETDP",
 )
 
+_PRIVATE_CATEGORICAL_STR_COLUMNS: list[str] = ["aircraft_engine_class", "major_carrier", "flight_type", "aircraft_type"]
+
 _CATEGORICAL_STR_COLUMNS: list[str] = [
     "airport",
     "cloud",
     "lightning_prob",
     "precip",
-    "aircraft_engine_class",
-    "aircraft_type",
-    "major_carrier",
-    "flight_type",
     "departure_runways",
     "arrival_runways",
     "gufi_flight_destination_airport",
     "airline",
     "year",
-]
+] + _PRIVATE_CATEGORICAL_STR_COLUMNS
 
 ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
 
@@ -261,17 +285,9 @@ _FEATURES_IGNORE: list[str] = [
 ]
 
 
-def get_categorical_columns() -> list[str]:
-    return ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS
-
-
 def get_clean_categorical_columns() -> list[str]:
     ignore_categorical_features(_FEATURES_IGNORE)
     return ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS
-
-
-def get_ignored_features() -> list[str]:
-    return _FEATURES_IGNORE
 
 
 def ignore_categorical_features(features_ignore: list[str]) -> None:
@@ -293,7 +309,7 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
     else:
         _encoder: dict[str, OrdinalEncoder] = {}
         print(f"No encoder is found, will generate one right now.")
-        _df: pd.DataFrame = get_master_tables(use_cols=_CATEGORICAL_STR_COLUMNS)
+        _df: pd.DataFrame = get_private_master_tables(use_cols=_CATEGORICAL_STR_COLUMNS)
         # need to make provisions for handling unknown values
         for _col in _CATEGORICAL_STR_COLUMNS:
             if _col == "cloud":
@@ -341,30 +357,46 @@ def save_model(_airport: str, _model: lightgbm.Booster) -> None:
 
 
 # get the train and test dataset
-def get_train_and_test_ds(_airport: str, valid_airlines_only: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(_airport: str, airline: str = "PUBLIC") -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
-    train_df: pd.DataFrame = get_train_tables(_airport, remove_duplicate_gufi=False)
-    val_df: pd.DataFrame = get_validation_tables(_airport, remove_duplicate_gufi=False)
-
-    if valid_airlines_only is True:
-        train_df = train_df.loc[train_df.airline.isin(AIRLINES)]
-        val_df = val_df.loc[val_df.airline.isin(AIRLINES)]
+    train_df: pd.DataFrame
+    val_df: pd.DataFrame
+    if airline != "PRIVATE_ALL":
+        train_df = get_train_tables(_airport, airline, remove_duplicate_gufi=False)
+        val_df = get_validation_tables(_airport, airline, remove_duplicate_gufi=False)
+    else:
+        train_df = pd.concat(
+            [
+                get_train_tables(_airport, each_airline, remove_duplicate_gufi=False)
+                for each_airline in AIRLINES
+                if os.path.exists(get_train_tables_path(_airport, each_airline))
+            ]
+        )
+        val_df = pd.concat(
+            [
+                get_validation_tables(_airport, each_airline, remove_duplicate_gufi=False)
+                for each_airline in AIRLINES
+                if os.path.exists(get_validation_tables_path(_airport, each_airline))
+            ]
+        )
 
     # load encoder
     _ENCODER: dict[str, OrdinalEncoder] = get_encoder()
 
     # need to make provisions for handling unknown values
     for col in ENCODED_STR_COLUMNS:
-        train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
-        val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+        if col in train_df.columns:
+            train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
+            val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
 
-    for col in get_categorical_columns():
-        train_df[col] = train_df[col].astype("int8")
-        val_df[col] = val_df[col].astype("int8")
+    for col in ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS:
+        if col in train_df.columns:
+            train_df[col] = train_df[col].astype("int8")
+            val_df[col] = val_df[col].astype("int8")
 
     # drop useless columns
-    train_df.drop(columns=get_ignored_features(), inplace=True)
-    val_df.drop(columns=get_ignored_features(), inplace=True)
+    train_df.drop(columns=(_col for _col in _FEATURES_IGNORE if _col in train_df), inplace=True)
+    val_df.drop(columns=(_col for _col in _FEATURES_IGNORE if _col in val_df), inplace=True)
 
     return train_df, val_df
 

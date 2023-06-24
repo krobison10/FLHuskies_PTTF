@@ -100,7 +100,14 @@ def try_load_csv_with_private_feature(data_dir: str, _airport: str, airline: str
         )
         if os.path.exists(_path)
         else pd.DataFrame(
-            columns=["gufi", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "isdeparture"]
+            columns=["gufi", "aircraft_engine_class", "aircraft_type", "major_carrier", "flight_type", "isdeparture"],
+            dtype={
+                "aircraft_engine_class": "category",
+                "aircraft_type": "category",
+                "major_carrier": "category",
+                "flight_type": "category",
+                "isdeparture": bool,
+            },
         )
     )
     _path = get_csv_path(data_dir, "private", _airport, f"{_airport}_{airline}_standtimes.csv")
