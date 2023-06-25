@@ -76,13 +76,16 @@ if __name__ == "__main__":
             # some int features may be missing due to a lack of information
             table[k] = TableDtype.fix_potential_missing_int_features(table[k])
 
-            # fill the result missing spot with UNK
-            for _col in table[k].select_dtypes(include=["category"]).columns:
-                table[k][_col] = table[k][_col].astype(str)
-            table[k] = table[k].fillna("UNK")
-
             # fix index issue
             table[k].reset_index(drop=True, inplace=True)
+
+            # fill the result missing spot with UNK
+            for _col in table[k].select_dtypes(include=["category"]).columns:
+                table[k][_col] = table[k][_col].cat.add_categories("UNK")
+                table[k][_col] = table[k][_col].fillna("UNK").astype(str)
+
+            # fill null
+            table[k].fillna("UNK", inplace=True)
 
             # -- save data ---
             # full

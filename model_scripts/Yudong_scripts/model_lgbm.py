@@ -15,6 +15,7 @@ from constants import ALL_AIRPORTS, TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
 
 # mytools.ModelRecords.display_best()
+# exit()
 
 if __name__ == "__main__":
     hyperparameter: dict = {

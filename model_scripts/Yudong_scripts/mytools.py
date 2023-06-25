@@ -80,18 +80,29 @@ def get_train_tables_path(_airport: str, _airline: str) -> str:
     return os.path.join(_ROOT_PATH, "train_tables", _airport, f"{_airline}_train.csv")
 
 
+def get_all_train_tables(airline: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
+    return pd.concat(
+        [
+            _get_tables(pd_path, remove_duplicate_gufi)
+            for pd_path in glob(os.path.join(_ROOT_PATH, "train_tables", "*", f"{airline}_train.csv"))
+        ]
+        if airline != "ALL"
+        else [
+            _get_tables(pd_path, remove_duplicate_gufi)
+            for pd_path in glob(os.path.join(_ROOT_PATH, "train_tables", "*", f"*_train.csv"))
+            if "PUBLIC_" not in pd_path
+        ]
+    )
+
+
 def get_train_tables(
     _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
 ) -> pd.DataFrame:
-    if _airport != "ALL":
-        return _get_tables(get_train_tables_path(_airport, airline), remove_duplicate_gufi)
-    else:
-        return pd.concat(
-            [
-                _get_tables(pd_path, remove_duplicate_gufi)
-                for pd_path in glob(os.path.join(_ROOT_PATH, "train_tables", "*", f"{airline}_train.csv"))
-            ]
-        )
+    return (
+        _get_tables(get_train_tables_path(_airport, airline), remove_duplicate_gufi)
+        if _airport != "ALL"
+        else get_all_train_tables(airline, remove_duplicate_gufi)
+    )
 
 
 def get_preprocessed_train_tables(
@@ -104,18 +115,29 @@ def get_validation_tables_path(_airport: str, _airline: str) -> str:
     return os.path.join(_ROOT_PATH, "validation_tables", _airport, f"{_airline}_validation.csv")
 
 
+def get_all_validation_tables(airline: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
+    return pd.concat(
+        [
+            _get_tables(pd_path, remove_duplicate_gufi)
+            for pd_path in glob(os.path.join(_ROOT_PATH, "validation_tables", "*", f"{airline}_validation.csv"))
+        ]
+        if airline != "ALL"
+        else [
+            _get_tables(pd_path, remove_duplicate_gufi)
+            for pd_path in glob(os.path.join(_ROOT_PATH, "validation_tables", "*", f"*_validation.csv"))
+            if "PUBLIC_" not in pd_path
+        ]
+    )
+
+
 def get_validation_tables(
     _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
 ) -> pd.DataFrame:
-    if _airport != "ALL":
-        return _get_tables(get_validation_tables_path(_airport, airline), remove_duplicate_gufi)
-    else:
-        return pd.concat(
-            [
-                _get_tables(pd_path, remove_duplicate_gufi)
-                for pd_path in glob(os.path.join(_ROOT_PATH, "validation_tables", "*", f"{airline}_validation.csv"))
-            ]
-        )
+    return (
+        _get_tables(get_validation_tables_path(_airport, airline), remove_duplicate_gufi)
+        if _airport != "ALL"
+        else get_all_validation_tables(airline, remove_duplicate_gufi)
+    )
 
 
 def get_preprocessed_validation_tables(
@@ -131,7 +153,7 @@ def get_private_master_tables(remove_duplicate_gufi: bool = False, use_cols: lis
         [
             _get_tables(pd_path, remove_duplicate_gufi, use_cols)
             for pd_path in glob(os.path.join(_ROOT_PATH, "full_tables", "*", "*_full.csv"))
-            if "PUBLIC_full" not in pd_path
+            if "PUBLIC_" not in pd_path
         ]
     )
 
@@ -364,7 +386,7 @@ def get_train_and_test_ds(_airport: str, airline: str = "PUBLIC") -> tuple[pd.Da
     if airline != "PRIVATE_ALL":
         train_df = get_train_tables(_airport, airline, remove_duplicate_gufi=False)
         val_df = get_validation_tables(_airport, airline, remove_duplicate_gufi=False)
-    else:
+    elif _airport.upper() != "ALL":
         train_df = pd.concat(
             [
                 get_train_tables(_airport, each_airline, remove_duplicate_gufi=False)
@@ -379,6 +401,9 @@ def get_train_and_test_ds(_airport: str, airline: str = "PUBLIC") -> tuple[pd.Da
                 if os.path.exists(get_validation_tables_path(_airport, each_airline))
             ]
         )
+    else:
+        train_df = get_all_train_tables("ALL", remove_duplicate_gufi=False)
+        val_df = get_all_validation_tables("ALL", remove_duplicate_gufi=False)
 
     # load encoder
     _ENCODER: dict[str, OrdinalEncoder] = get_encoder()
