@@ -12,12 +12,12 @@ def load_airports(airport: str) -> dict:
     train_loaders = []
     test_loaders = []
     
-    labels = pd.read_csv(f"{P2PATH}/{airport}/phase2_train_labels_{airport}.csv.bz2", parse_dates=["timestamp"])
+    labels = pd.read_csv(f"{P2PATH}/train_labels_phase2/phase2_train_labels_{airport}.csv.bz2", parse_dates=["timestamp"])
 
     for airline in AIRLINES:
         dfs = labels[labels["gufi"].str[:3] == airline]
 
-        etd = pd.read_csv(f"{P2PATH}/{airport}/public/{airport}/{airport}_etd.csv.bz2", parse_dates=["timestamp"])
+        etd = pd.read_csv(f"{P2PATH}/public/{airport}/{airport}_etd.csv.bz2", parse_dates=["timestamp"])
 
         latest_etd = etd.sort_values("timestamp").groupby("gufi").last().departure_runway_estimated_time
 
@@ -33,7 +33,7 @@ def load_airports(airport: str) -> dict:
 
         dfs["minutes_until_etd"] = minutes_until_etd
 
-        mfs = pd.read_csv(f"{P2PATH}/{airport}/private/{airport}/{airport}_{airline}_mfs.csv.bz2")
+        mfs = pd.read_csv(f"{P2PATH}/private/{airport}/{airport}_{airline}_mfs.csv.bz2")
         
         dfs = dfs.merge(mfs, on="gufi")
         #dfs = dfs.dropna()

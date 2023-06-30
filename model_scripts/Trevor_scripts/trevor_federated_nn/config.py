@@ -9,7 +9,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 client_resources = None
 if DEVICE.type == "cuda":
     client_resources = {"num_gpus": 1}
-P2PATH = Path("/home/daniilf/FLHuskies_PTTF/data/files/")
+P2PATH = Path("/home/daniilf/FLHuskies_PTTF/_data/")
 
 airports = [
     "KATL",
