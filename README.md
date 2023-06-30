@@ -1,9 +1,6 @@
 # FLHuskies_PTTF
 
-Repository to share scripts and data for:
-
-[Pushback to the Future: Predict Pushback Time at US Airports]: https://www.drivendata.org/competitions/group/competition-nasa-airport-pushback/
-
+Repository to share scripts and data for: [Pushback to the Future: Predict Pushback Time at US Airports](https://www.drivendata.org/competitions/group/competition-nasa-airport-pushback/)
 Used by team FLHuskies from the University of Washington Tacoma.
 
 ## Members

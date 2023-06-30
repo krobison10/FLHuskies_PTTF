@@ -16,11 +16,101 @@ import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
+from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder  # type: ignore
 
 from constants import AIRLINES, ALL_AIRPORTS
 
+"""
+arguments and constants
+"""
+# the path to root
 _ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..")
+# if use one hot encoder
+_USE_ONE_HOT: Final[bool] = True
+_INT16_COLUMNS: tuple[str, ...] = (
+    "minutes_until_pushback",
+    "minutes_until_etd",
+    "deps_3hr",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "gufi_timestamp_until_etd",
+    "feat_5_gufi",
+    "feat_5_estdep_next_30min",
+    "feat_5_estdep_next_60min",
+    "feat_5_estdep_next_180min",
+    "feat_5_estdep_next_360min",
+)
+
+_FLOAT32_COLUMNS: tuple[str, ...] = (
+    "delay_30hr",
+    "standtime_30hr",
+    "dep_taxi_30hr",
+    "arr_taxi_30hr",
+    "delay_3hr",
+    "standtime_3hr",
+    "dep_taxi_3hr",
+    "arr_taxi_3hr",
+    "1h_ETDP",
+)
+
+_PRIVATE_CATEGORICAL_STR_COLUMNS: list[str] = ["aircraft_engine_class", "major_carrier", "flight_type", "aircraft_type"]
+
+_CATEGORICAL_STR_CATEGORIES: dict[str, list[list[str]]] = {
+    "cloud": [["BK", "CL", "FEW", "OV", "SC"]],
+    "lightning_prob": [["N", "L", "M", "H"]],
+    "aircraft_engine_class": [["OTHER", "PISTON", "TURBO", "JET"]],
+}
+
+for v in _CATEGORICAL_STR_CATEGORIES.values():
+    v[0].append("UNK")
+
+_CATEGORICAL_STR_COLUMNS: list[str] = [
+    "airport",
+    "cloud",
+    "lightning_prob",
+    "precip",
+    "departure_runways",
+    "arrival_runways",
+    "gufi_flight_destination_airport",
+    "airline",
+    "year",
+] + _PRIVATE_CATEGORICAL_STR_COLUMNS
+
+ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
+
+_CATEGORICAL_INT8_COLUMNS: list[str] = [
+    "cloud_ceiling",
+    "visibility",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "weekday",
+]
+
+_FEATURES_IGNORE: list[str] = [
+    "gufi",
+    "timestamp",
+    "isdeparture",
+    "aircraft_engine_class",
+    "precip",
+    "departure_runways",
+    "arrival_runways",
+    # "minute"
+    # "visibility",
+    # "flight_type",
+]
 
 
 def plot_loss(history):
@@ -159,7 +249,7 @@ def get_private_master_tables(remove_duplicate_gufi: bool = False, use_cols: lis
 
 
 def _encodeFeatures(
-    _data_train: pd.DataFrame, _data_test: pd.DataFrame, cols: tuple[str, ...], encoder: OrdinalEncoder | MinMaxScaler
+    _data_train: pd.DataFrame, _data_test: pd.DataFrame, cols: tuple[str, ...], encoder: OrdinalEncoder
 ) -> None:
     _data_full: pd.DataFrame = pd.concat((_data_train, _data_test))
     for _col in cols:
@@ -170,10 +260,6 @@ def _encodeFeatures(
 
 def encodeStrFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols: str) -> None:
     _encodeFeatures(_data_train, _data_test, cols, OrdinalEncoder())
-
-
-def normalizeNumericalFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols: str) -> None:
-    _encodeFeatures(_data_train, _data_test, cols, MinMaxScaler())
 
 
 def get_model_path(_fileName: str | None) -> str:
@@ -230,83 +316,6 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
                 f.write(msg + "\n")
 
 
-_INT16_COLUMNS: tuple[str, ...] = (
-    "minutes_until_pushback",
-    "minutes_until_etd",
-    "deps_3hr",
-    "deps_30hr",
-    "arrs_3hr",
-    "arrs_30hr",
-    "deps_taxiing",
-    "arrs_taxiing",
-    "exp_deps_15min",
-    "exp_deps_30min",
-    "temperature",
-    "wind_direction",
-    "wind_speed",
-    "wind_gust",
-    "cloud_ceiling",
-    "visibility",
-    "gufi_timestamp_until_etd",
-    "feat_5_gufi",
-    "feat_5_estdep_next_30min",
-    "feat_5_estdep_next_60min",
-    "feat_5_estdep_next_180min",
-    "feat_5_estdep_next_360min",
-)
-
-_FLOAT32_COLUMNS: tuple[str, ...] = (
-    "delay_30hr",
-    "standtime_30hr",
-    "dep_taxi_30hr",
-    "arr_taxi_30hr",
-    "delay_3hr",
-    "standtime_3hr",
-    "dep_taxi_3hr",
-    "arr_taxi_3hr",
-    "1h_ETDP",
-)
-
-_PRIVATE_CATEGORICAL_STR_COLUMNS: list[str] = ["aircraft_engine_class", "major_carrier", "flight_type", "aircraft_type"]
-
-_CATEGORICAL_STR_COLUMNS: list[str] = [
-    "airport",
-    "cloud",
-    "lightning_prob",
-    "precip",
-    "departure_runways",
-    "arrival_runways",
-    "gufi_flight_destination_airport",
-    "airline",
-    "year",
-] + _PRIVATE_CATEGORICAL_STR_COLUMNS
-
-ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
-
-_CATEGORICAL_INT8_COLUMNS: list[str] = [
-    "cloud_ceiling",
-    "visibility",
-    "month",
-    "day",
-    "hour",
-    "minute",
-    "weekday",
-]
-
-_FEATURES_IGNORE: list[str] = [
-    "gufi",
-    "timestamp",
-    "isdeparture",
-    "aircraft_engine_class",
-    "precip",
-    "departure_runways",
-    "arrival_runways",
-    # "minute"
-    # "visibility",
-    # "flight_type",
-]
-
-
 def get_clean_categorical_columns() -> list[str]:
     ignore_categorical_features(_FEATURES_IGNORE)
     return ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS
@@ -334,24 +343,19 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
         _df: pd.DataFrame = get_private_master_tables(use_cols=_CATEGORICAL_STR_COLUMNS)
         # need to make provisions for handling unknown values
         for _col in _CATEGORICAL_STR_COLUMNS:
-            if _col == "cloud":
-                _encoder[_col] = OrdinalEncoder(
-                    categories=[["BK", "CL", "FEW", "OV", "SC"]],
+            _encoder[_col] = (
+                OneHotEncoder(
+                    categories=_CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
+                    handle_unknown="infrequent_if_exist",
+                    sparse_output=False,
+                ).set_output(transform="pandas")
+                if _USE_ONE_HOT
+                else OrdinalEncoder(
+                    categories=_CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
                     handle_unknown="use_encoded_value",
                     unknown_value=-1,
-                ).fit(_df[[_col]])
-            elif _col == "lightning_prob":
-                _encoder[_col] = OrdinalEncoder(
-                    categories=[["N", "L", "M", "H"]], handle_unknown="use_encoded_value", unknown_value=-1
-                ).fit(_df[[_col]])
-            elif _col == "aircraft_engine_class":
-                _encoder[_col] = OrdinalEncoder(
-                    categories=[["OTHER", "PISTON", "TURBO", "JET"]],
-                    handle_unknown="use_encoded_value",
-                    unknown_value=-1,
-                ).fit(_df[[_col]])
-            else:
-                _encoder[_col] = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1).fit(_df[[_col]])
+                )
+            ).fit(_df[[_col]])
         # save the encoder
         with open(get_model_path("encoders.pickle"), "wb") as handle:
             pickle.dump(_encoder, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -406,13 +410,17 @@ def get_train_and_test_ds(_airport: str, airline: str = "PUBLIC") -> tuple[pd.Da
         val_df = get_all_validation_tables("ALL", remove_duplicate_gufi=False)
 
     # load encoder
-    _ENCODER: dict[str, OrdinalEncoder] = get_encoder()
+    _ENCODER: dict[str, OrdinalEncoder | OneHotEncoder] = get_encoder()
 
     # need to make provisions for handling unknown values
     for col in ENCODED_STR_COLUMNS:
         if col in train_df.columns:
-            train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
-            val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+            if isinstance(_ENCODER[col], OrdinalEncoder):
+                train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
+                val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+            else:
+                train_df = pd.concat([train_df, _ENCODER[col].transform(train_df[[col]])], axis=1).drop([col], axis=1)
+                val_df = pd.concat([val_df, _ENCODER[col].transform(val_df[[col]])], axis=1).drop([col], axis=1)
 
     for col in ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS:
         if col in train_df.columns:
