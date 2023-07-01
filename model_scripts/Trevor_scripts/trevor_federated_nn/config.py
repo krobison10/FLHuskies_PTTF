@@ -54,64 +54,64 @@ AIRLINES = [
 ]
 
 
-features = [
-    "minutes_until_etd",
-    "aircraft_engine_class",
-    "aircraft_type",
-    "flight_type",
-]
-
-
-encoded_columns = [
-    "aircraft_engine_class",
-    "aircraft_type",
-    "flight_type",
-]
-
-# encoded_columns = [
-#     "cloud",
-#     "lightning_prob",
-#     "precip",
-#     "gufi_flight_major_carrier",
-#     "gufi_flight_destination_airport",
-#     "aircraft_engine_class",
-#     "aircraft_type",
-#     "major_carrier",
-#     "flight_type",
-# ]
-
 # features = [
-#     "gufi_flight_major_carrier",
-#     "deps_3hr",
-#     "deps_30hr",
-#     "arrs_3hr",
-#     "arrs_30hr",
-#     "deps_taxiing",
-#     "arrs_taxiing",
-#     "exp_deps_15min",
-#     "exp_deps_30min",
-#     "standtime_30hr",
-#     "dep_taxi_30hr",
-#     "arr_taxi_30hr",
-#     "minute",
-#     "gufi_flight_destination_airport",
-#     "month",
-#     "day",
-#     "hour",
-#     "year",
-#     "weekday",
 #     "minutes_until_etd",
 #     "aircraft_engine_class",
 #     "aircraft_type",
-#     "major_carrier",
 #     "flight_type",
-#     "temperature",
-#     "wind_direction",
-#     "wind_speed",
-#     "wind_gust",
-#     "cloud_ceiling",
-#     "visibility",
-#     "cloud",
-#     "lightning_prob",
-#     "precip",
 # ]
+
+
+# encoded_columns = [
+#     "aircraft_engine_class",
+#     "aircraft_type",
+#     "flight_type",
+# ]
+
+encoded_columns = [
+    "cloud",
+    "lightning_prob",
+    "precip",
+    #"gufi_flight_major_carrier",
+    "gufi_flight_destination_airport",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+]
+
+features = [
+    #"gufi_flight_major_carrier",
+    "deps_3hr",
+    "deps_30hr",
+    #"arrs_3hr",
+    #"arrs_30hr",
+    "deps_taxiing",
+    #"arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "standtime_30hr",
+    "dep_taxi_30hr",
+    #"arr_taxi_30hr",
+    "minute",
+    "gufi_flight_destination_airport",
+    "month",
+    "day",
+    "hour",
+    "year",
+    "weekday",
+    "minutes_until_etd",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "cloud",
+    "lightning_prob",
+    "precip",
+]

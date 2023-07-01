@@ -107,7 +107,7 @@ def main():
         hist = fl.simulation.start_simulation(
             client_fn=lambda x: client_fn(x, train_loaders, test_loaders),
             num_clients=num_clients,
-            config=fl.server.ServerConfig(num_rounds=2),
+            config=fl.server.ServerConfig(num_rounds=5),
             strategy=strategy,
             client_resources=client_resources,
         )
@@ -118,7 +118,7 @@ def main():
 
         maes = pd.concat([maes, local_maes])
 
-    maes.to_csv("global_vs_fed_june19.csv")
+    #maes.to_csv("global_vs_fed_june19.csv")
 
 
 def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:

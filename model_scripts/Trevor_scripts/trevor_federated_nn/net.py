@@ -25,9 +25,9 @@ from config import *
 class Net(nn.Module):
     def __init__(self) -> None:
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(len(features), 10)
-        self.fc2 = nn.Linear(10, 10)
-        self.fc3 = nn.Linear(10, 1)
+        self.fc1 = nn.Linear(len(features), 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, 1)
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
