@@ -18,7 +18,7 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
     etd["departure_runway_estimated_time"] = pd.to_datetime(etd["departure_runway_estimated_time"])
     etd = etd[etd["timestamp"] < etd["departure_runway_estimated_time"]]
 
-    time_intervals: tuple[int, ...] = tuple(sorted([30, 60, 180, 360]))
+    time_intervals: tuple[int, ...] = tuple(sorted([30, 60, 180, 1400]))
     increment_in_minutes: int = 15
 
     complete_etd = pd.DataFrame()
@@ -56,7 +56,7 @@ def add_etd_features(_df: pd.DataFrame, etd: pd.DataFrame) -> pd.DataFrame:
                 "estdep_next_30min": "sum",
                 "estdep_next_60min": "sum",
                 "estdep_next_180min": "sum",
-                "estdep_next_360min": "sum",
+                "estdep_next_1400min": "sum",
             }
         )
         .reset_index()

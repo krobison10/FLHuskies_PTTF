@@ -52,6 +52,10 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | N
         unknown_dtype[_col] = "float32"
     for _col in _INT16_COLUMNS:
         unknown_dtype[_col] = "int16"
+    if use_cols is not None:
+        for key in tuple(unknown_dtype.keys()):
+            if key not in use_cols:
+                unknown_dtype.pop(key)
     _df: pd.DataFrame
     if "ALL_" not in _path:
         _df = (
@@ -80,8 +84,10 @@ def get_train_tables_path(_airport: str = "KSEA") -> str:
     return os.path.join(_ROOT_PATH, "train_tables", f"{_airport}_train.csv")
 
 
-def get_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
-    return _get_tables(get_train_tables_path(_airport), remove_duplicate_gufi)
+def get_train_tables(
+    _airport: str = "KSEA", remove_duplicate_gufi: bool = True, use_cols: list[str] | None = None
+) -> pd.DataFrame:
+    return _get_tables(get_train_tables_path(_airport), remove_duplicate_gufi, use_cols)
 
 
 def get_preprocessed_train_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
@@ -92,8 +98,10 @@ def get_validation_tables_path(_airport: str = "KSEA") -> str:
     return os.path.join(_ROOT_PATH, "validation_tables", f"{_airport}_validation.csv")
 
 
-def get_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
-    return _get_tables(get_validation_tables_path(_airport), remove_duplicate_gufi)
+def get_validation_tables(
+    _airport: str = "KSEA", remove_duplicate_gufi: bool = True, use_cols: list[str] | None = None
+) -> pd.DataFrame:
+    return _get_tables(get_validation_tables_path(_airport), remove_duplicate_gufi, use_cols)
 
 
 def get_preprocessed_validation_tables(_airport: str = "KSEA", remove_duplicate_gufi: bool = True) -> pd.DataFrame:
@@ -341,10 +349,12 @@ def save_model(_airport: str, _model: lightgbm.Booster) -> None:
 
 
 # get the train and test dataset
-def get_train_and_test_ds(_airport: str, valid_airlines_only: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(
+    _airport: str, valid_airlines_only: bool = False, use_cols: list[str] | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
-    train_df: pd.DataFrame = get_train_tables(_airport, remove_duplicate_gufi=False)
-    val_df: pd.DataFrame = get_validation_tables(_airport, remove_duplicate_gufi=False)
+    train_df: pd.DataFrame = get_train_tables(_airport, False, use_cols)
+    val_df: pd.DataFrame = get_validation_tables(_airport, False, use_cols)
 
     if valid_airlines_only is True:
         train_df = train_df.loc[train_df.airline.isin(AIRLINES)]
@@ -355,16 +365,18 @@ def get_train_and_test_ds(_airport: str, valid_airlines_only: bool = False) -> t
 
     # need to make provisions for handling unknown values
     for col in ENCODED_STR_COLUMNS:
-        train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
-        val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+        if col in train_df.columns:
+            train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
+            val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
 
     for col in get_categorical_columns():
-        train_df[col] = train_df[col].astype("int8")
-        val_df[col] = val_df[col].astype("int8")
+        if col in train_df.columns:
+            train_df[col] = train_df[col].astype("int8")
+            val_df[col] = val_df[col].astype("int8")
 
     # drop useless columns
-    train_df.drop(columns=get_ignored_features(), inplace=True)
-    val_df.drop(columns=get_ignored_features(), inplace=True)
+    train_df.drop(columns=[col for col in get_ignored_features() if col in train_df], inplace=True)
+    val_df.drop(columns=[col for col in get_ignored_features() if col in val_df], inplace=True)
 
     return train_df, val_df
 

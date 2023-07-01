@@ -11,6 +11,48 @@ import tensorflow as tf  # type: ignore
 from constants import TARGET_LABEL, ALL_AIRPORTS
 
 
+_features_using: list[str] = [
+    "minutes_until_etd",
+    "deps_3hr",
+    "airport",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "delay_30hr",
+    "standtime_30hr",
+    "dep_taxi_30hr",
+    "delay_3hr",
+    "standtime_3hr",
+    "dep_taxi_3hr",
+    "1h_ETDP",
+    "departure_runways",
+    "arrival_runways",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "cloud",
+    "lightning_prob",
+    "airline",
+    "gufi_flight_destination_airport",
+    "gufi_timestamp_until_etd",
+    "year",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "weekday",
+    "aircraft_type",
+    "major_carrier",
+    "visibility",
+    "flight_type",
+    TARGET_LABEL,
+]
+
 # allow gpu memory growth
 physical_devices = tf.config.list_physical_devices("GPU")
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -55,7 +97,7 @@ class MyTensorflowDNN:
         mytools.ModelRecords.set_name("tf_dnn_model_records")
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport, use_cols=_features_using)
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))

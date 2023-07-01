@@ -61,7 +61,10 @@ if __name__ == "__main__":
 
         # fill the result missing spot with UNK
         for _col in table.select_dtypes(include=["category"]).columns:
-            table[_col] = table[_col].astype("string")
+            table[_col] = table[_col].cat.add_categories("UNK")
+            table[_col] = table[_col].fillna("UNK").astype(str)
+
+        # fill null
         table = table.fillna("UNK")
 
         # table = normalize_str_features(table)
