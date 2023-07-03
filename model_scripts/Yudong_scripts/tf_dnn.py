@@ -147,16 +147,36 @@ class MyTensorflowDNN:
         mytools.ModelRecords.update(_airport, "history", result.history, True)
 
     @classmethod
+    def evaluate(cls, theAirport: str) -> None:
+        if theAirport == "ALL":
+            cls.evaluate_global()
+            return
+
+        _model = tf.keras.models.load_model(cls.__get_model_path(theAirport))
+
+        # load train and test data frame
+        train_df, val_df = mytools.get_train_and_test_ds(theAirport, use_cols=_features_using)
+
+        # X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+        # y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
+        y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
+
+        print(theAirport, ":")
+        # _model.evaluate(X_train, y_train)
+        _model.evaluate(X_test, y_test)
+
+    @classmethod
     def evaluate_global(cls) -> None:
         _model = tf.keras.models.load_model(cls.__get_model_path("ALL"))
 
-        for theAirport in ALL_AIRPORTS:
+        for theAirport in [*ALL_AIRPORTS, "ALL"]:
             # load train and test data frame
-            train_df, val_df = mytools.get_train_and_test_ds(theAirport)
+            train_df, val_df = mytools.get_train_and_test_ds(theAirport, use_cols=_features_using)
 
-            X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+            # X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
             X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
-            y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
+            # y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
             y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 
             print(theAirport, ":")

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder  # type: ignore
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder  # type: ignore
 
 from constants import AIRLINES, ALL_AIRPORTS
 
@@ -47,7 +47,7 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
 
 
 def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None) -> pd.DataFrame:
-    unknown_dtype: dict = {"precip": str, "airline": str, "arrival_runways": str, "year": str}
+    unknown_dtype: dict = {"airline": str, "arrival_runways": str, "year": str}
     for _col in _FLOAT32_COLUMNS:
         unknown_dtype[_col] = "float32"
     for _col in _INT16_COLUMNS:
@@ -231,7 +231,6 @@ _CATEGORICAL_STR_COLUMNS: list[str] = [
     "airport",
     "cloud",
     "lightning_prob",
-    "precip",
     "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
@@ -255,18 +254,7 @@ _CATEGORICAL_INT8_COLUMNS: list[str] = [
     "weekday",
 ]
 
-_FEATURES_IGNORE: list[str] = [
-    "gufi",
-    "timestamp",
-    "isdeparture",
-    "aircraft_engine_class",
-    "precip",
-    "departure_runways",
-    "arrival_runways",
-    "minute"
-    # "visibility",
-    # "flight_type",
-]
+_FEATURES_IGNORE: list[str] = []
 
 
 def get_categorical_columns() -> list[str]:
@@ -292,6 +280,17 @@ def ignore_categorical_features(features_ignore: list[str]) -> None:
 
 ignore_categorical_features(_FEATURES_IGNORE)
 
+_CATEGORICAL_STR_CATEGORIES: dict[str, list[list[str]]] = {
+    "cloud": [["BK", "CL", "FEW", "OV", "SC"]],
+    "lightning_prob": [["N", "L", "M", "H"]],
+    "aircraft_engine_class": [["OTHER", "PISTON", "TURBO", "JET"]],
+}
+
+for v in _CATEGORICAL_STR_CATEGORIES.values():
+    v[0].append("UNK")
+
+_USE_ONE_HOT: bool = False
+
 
 def get_encoder() -> dict[str, OrdinalEncoder]:
     # generate encoders if not exists
@@ -304,24 +303,19 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
         _df: pd.DataFrame = get_master_tables(use_cols=_CATEGORICAL_STR_COLUMNS)
         # need to make provisions for handling unknown values
         for _col in _CATEGORICAL_STR_COLUMNS:
-            if _col == "cloud":
-                _encoder[_col] = OrdinalEncoder(
-                    categories=[["BK", "CL", "FEW", "OV", "SC"]],
+            _encoder[_col] = (
+                OneHotEncoder(
+                    categories=_CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
+                    handle_unknown="infrequent_if_exist",
+                    sparse_output=False,
+                ).set_output(transform="pandas")
+                if _USE_ONE_HOT
+                else OrdinalEncoder(
+                    categories=_CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
                     handle_unknown="use_encoded_value",
                     unknown_value=-1,
-                ).fit(_df[[_col]])
-            elif _col == "lightning_prob":
-                _encoder[_col] = OrdinalEncoder(
-                    categories=[["N", "L", "M", "H"]], handle_unknown="use_encoded_value", unknown_value=-1
-                ).fit(_df[[_col]])
-            elif _col == "aircraft_engine_class":
-                _encoder[_col] = OrdinalEncoder(
-                    categories=[["OTHER", "PISTON", "TURBO", "JET"]],
-                    handle_unknown="use_encoded_value",
-                    unknown_value=-1,
-                ).fit(_df[[_col]])
-            else:
-                _encoder[_col] = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1).fit(_df[[_col]])
+                )
+            ).fit(_df[[_col]])
         # save the encoder
         with open(get_model_path("encoders.pickle"), "wb") as handle:
             pickle.dump(_encoder, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -366,8 +360,12 @@ def get_train_and_test_ds(
     # need to make provisions for handling unknown values
     for col in ENCODED_STR_COLUMNS:
         if col in train_df.columns:
-            train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
-            val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+            if isinstance(_ENCODER[col], OrdinalEncoder):
+                train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
+                val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+            else:
+                train_df = pd.concat([train_df, _ENCODER[col].transform(train_df[[col]])], axis=1).drop([col], axis=1)
+                val_df = pd.concat([val_df, _ENCODER[col].transform(val_df[[col]])], axis=1).drop([col], axis=1)
 
     for col in get_categorical_columns():
         if col in train_df.columns:
