@@ -14,14 +14,10 @@ class CifarClient(flwr.client.NumPyClient):
         self.__X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         self.__X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
 
-        normalizer: tf.keras.layers.Normalization = tf.keras.layers.Normalization(axis=-1)
-        normalizer.adapt(self.__X_test)
-        normalizer.adapt(self.__X_train)
-
         self.__y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
         self.__y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
-        self.__model = MyTensorflowDNN.get_model(_airport, normalizer, False)
+        self.__model = MyTensorflowDNN.get_model(_airport, (self.__X_train.get_shape()[1],), load_if_exists=False)
 
     def get_parameters(self, config):
         return self.__model.get_weights()
@@ -33,8 +29,8 @@ class CifarClient(flwr.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         self.__model.set_weights(parameters)
-        loss, accuracy = self.__model.evaluate(self.__X_test, self.__y_test)
-        return loss, len(self.__X_test), {"accuracy": float(accuracy)}
+        loss = self.__model.evaluate(self.__X_test, self.__y_test)
+        return loss, len(self.__X_test), {"loss": loss}
 
 
-flwr.client.start_numpy_client(server_address="127.0.0.1:8080", client=CifarClient("KSEA"))
+flwr.client.start_numpy_client(server_address="[::]:8080", client=CifarClient("KSEA"))

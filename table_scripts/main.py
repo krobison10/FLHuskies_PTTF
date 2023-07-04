@@ -19,9 +19,13 @@ if __name__ == "__main__":
     from glob import glob
 
     import pandas as pd
+    import psutil
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split
+
+    p = psutil.Process(os.getpid())
+    p.nice(psutil.HIGH_PRIORITY_CLASS)
 
     # the path for root folder
     _ROOT: str = os.path.join(os.path.dirname(__file__), "..")

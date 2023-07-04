@@ -24,9 +24,12 @@ from constants import AIRLINES, ALL_AIRPORTS
 arguments and constants
 """
 # the path to root
-_ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..")
+_ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..", "..")
 # if use one hot encoder
-_USE_ONE_HOT: Final[bool] = True
+_USE_ONE_HOT: Final[bool] = False
+# dev mode
+_IS_DEV_MODE: Final[bool] = True
+
 _INT16_COLUMNS: tuple[str, ...] = (
     "minutes_until_pushback",
     "minutes_until_etd",
@@ -263,7 +266,7 @@ def encodeStrFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols
 
 
 def get_model_path(_fileName: str | None) -> str:
-    _dir: str = os.path.join(_ROOT_PATH, "models", "yudong_models")
+    _dir: str = os.path.join(_ROOT_PATH, "models", "yudong_models") if _IS_DEV_MODE else "."
     if not os.path.exists(_dir):
         os.mkdir(_dir)
     return os.path.join(_dir, _fileName) if _fileName is not None else _dir
