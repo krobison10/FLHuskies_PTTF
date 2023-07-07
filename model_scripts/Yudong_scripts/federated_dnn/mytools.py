@@ -15,10 +15,9 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
+from constants import AIRLINES, ALL_AIRPORTS, CATEGORICAL_STR_CATEGORIES
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
-from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder  # type: ignore
-
-from constants import AIRLINES, ALL_AIRPORTS
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder  # type: ignore
 
 """
 arguments and constants
@@ -69,15 +68,6 @@ _FLOAT32_COLUMNS: tuple[str, ...] = (
 
 _PRIVATE_CATEGORICAL_STR_COLUMNS: list[str] = ["aircraft_engine_class", "major_carrier", "flight_type", "aircraft_type"]
 
-_CATEGORICAL_STR_CATEGORIES: dict[str, list[list[str]]] = {
-    "cloud": [["BK", "CL", "FEW", "OV", "SC"]],
-    "lightning_prob": [["N", "L", "M", "H"]],
-    "aircraft_engine_class": [["OTHER", "PISTON", "TURBO", "JET"]],
-}
-
-for v in _CATEGORICAL_STR_CATEGORIES.values():
-    v[0].append("UNK")
-
 _CATEGORICAL_STR_COLUMNS: list[str] = [
     "airport",
     "cloud",
@@ -110,9 +100,9 @@ _FEATURES_IGNORE: list[str] = [
     "precip",
     "departure_runways",
     "arrival_runways",
-    # "minute"
-    # "visibility",
-    # "flight_type",
+    "gufi_flight_destination_airport",
+    "minute",
+    "year",
 ]
 
 
@@ -145,6 +135,8 @@ def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | N
         unknown_dtype[_col] = "float32"
     for _col in _INT16_COLUMNS:
         unknown_dtype[_col] = "int16"
+    for _col in _CATEGORICAL_INT8_COLUMNS:
+        unknown_dtype[_col] = "int8"
     _df: pd.DataFrame
     if "ALL_" not in _path:
         _df = (
@@ -343,22 +335,32 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
     else:
         _encoder: dict[str, OrdinalEncoder] = {}
         print(f"No encoder is found, will generate one right now.")
-        _df: pd.DataFrame = get_private_master_tables(use_cols=_CATEGORICAL_STR_COLUMNS)
+        # _df: pd.DataFrame = get_private_master_tables(use_cols=_CATEGORICAL_STR_COLUMNS)
+        # _encoder["_UNIQUE"] = {}
         # need to make provisions for handling unknown values
         for _col in _CATEGORICAL_STR_COLUMNS:
+            """
             _encoder[_col] = (
                 OneHotEncoder(
-                    categories=_CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
+                    categories=CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
                     handle_unknown="infrequent_if_exist",
                     sparse_output=False,
                 ).set_output(transform="pandas")
                 if _USE_ONE_HOT
                 else OrdinalEncoder(
-                    categories=_CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
+                    categories=CATEGORICAL_STR_CATEGORIES.get(_col, "auto"),
                     handle_unknown="use_encoded_value",
                     unknown_value=-1,
                 )
             ).fit(_df[[_col]])
+            """
+            _encoder[_col] = (
+                OneHotEncoder(handle_unknown="infrequent_if_exist", sparse_output=False).set_output(transform="pandas")
+                if _USE_ONE_HOT
+                else OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+            ).fit(pd.DataFrame({_col: CATEGORICAL_STR_CATEGORIES[_col]})[[_col]])
+            # _encoder["_UNIQUE"][_col] = _df[_col].unique().tolist()
+        # print(_encoder["_UNIQUE"])
         # save the encoder
         with open(get_model_path("encoders.pickle"), "wb") as handle:
             pickle.dump(_encoder, handle, protocol=pickle.HIGHEST_PROTOCOL)

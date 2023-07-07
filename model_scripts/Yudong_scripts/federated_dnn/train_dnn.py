@@ -6,5 +6,5 @@ from tf_dnn import MyTensorflowDNN
 if __name__ == "__main__":
     # for theAirport in ALL_AIRPORTS:
     #    MyTensorflowDNN.train(theAirport)
-    MyTensorflowDNN.train("ALL")
+    MyTensorflowDNN.train("ALL", False)
     # MyTensorflowDNN.evaluate_global()
