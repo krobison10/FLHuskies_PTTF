@@ -388,13 +388,13 @@ def save_model(_airport: str, _model: lightgbm.Booster) -> None:
 
 
 # get the train and test dataset
-def get_train_and_test_ds(_airport: str, airline: str = "PUBLIC") -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(_airport: str, _airline: str = "PUBLIC") -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
     train_df: pd.DataFrame
     val_df: pd.DataFrame
-    if airline != "PRIVATE_ALL":
-        train_df = get_train_tables(_airport, airline, remove_duplicate_gufi=False)
-        val_df = get_validation_tables(_airport, airline, remove_duplicate_gufi=False)
+    if _airline != "PRIVATE_ALL":
+        train_df = get_train_tables(_airport, _airline, remove_duplicate_gufi=False)
+        val_df = get_validation_tables(_airport, _airline, remove_duplicate_gufi=False)
     elif _airport.upper() != "ALL":
         train_df = pd.concat(
             [

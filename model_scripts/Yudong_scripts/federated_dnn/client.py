@@ -6,10 +6,10 @@ from tf_dnn import MyTensorflowDNN
 
 
 class CifarClient(flwr.client.NumPyClient):
-    def __init__(self, _airport: str) -> None:
+    def __init__(self, _airport: str, _airline: str) -> None:
         super().__init__()
 
-        train_df, val_df = mytools.get_train_and_test_ds(_airport)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport, _airline)
 
         self.__X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         self.__X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
@@ -33,4 +33,22 @@ class CifarClient(flwr.client.NumPyClient):
         return loss, len(self.__X_test), {"loss": loss}
 
 
-flwr.client.start_numpy_client(server_address="[::]:8080", client=CifarClient("KSEA"))
+if __name__ == "__main__":
+    import argparse
+
+    import flwr
+
+    # using argparse to parse the argument from command line
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument("-p", help="airport")
+    parser.add_argument("-l", help="airline")
+    parser.add_argument("-i", help="ip")
+    args: argparse.Namespace = parser.parse_args()
+
+    flwr.client.start_numpy_client(
+        server_address=str(args.i).lower() if args.i is not None else "[::]:8080",
+        client=CifarClient(
+            str(args.p).upper() if args.p is not None else "ALL",
+            str(args.l).upper() if args.l is not None else "PRIVATE_ALL",
+        ),
+    )
