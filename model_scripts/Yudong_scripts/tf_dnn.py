@@ -7,9 +7,10 @@
 import os
 
 import mytools
+import numpy
 import tensorflow as tf  # type: ignore
-from constants import TARGET_LABEL, ALL_AIRPORTS
-
+from constants import ALL_AIRPORTS, TARGET_LABEL
+from sklearn.metrics import mean_absolute_error
 
 _features_using: list[str] = [
     "minutes_until_etd",
@@ -170,7 +171,7 @@ class MyTensorflowDNN:
     def evaluate_global(cls) -> None:
         _model = tf.keras.models.load_model(cls.__get_model_path("ALL"))
 
-        for theAirport in [*ALL_AIRPORTS, "ALL"]:
+        for theAirport in ALL_AIRPORTS:
             # load train and test data frame
             train_df, val_df = mytools.get_train_and_test_ds(theAirport, use_cols=_features_using)
 
@@ -182,3 +183,21 @@ class MyTensorflowDNN:
             print(theAirport, ":")
             # _model.evaluate(X_train, y_train)
             _model.evaluate(X_test, y_test)
+
+    @classmethod
+    def evaluate_individual_in_global_setting(cls) -> None:
+        y_real = numpy.asarray([], dtype=numpy.int32)
+        y_pred = numpy.asarray([], dtype=numpy.int32)
+        for theAirport in ALL_AIRPORTS:
+            _model = tf.keras.models.load_model(cls.__get_model_path(theAirport))
+
+            # load train and test data frame
+            train_df, val_df = mytools.get_train_and_test_ds(theAirport, use_cols=_features_using)
+
+            # X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+            X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+
+            y_pred = numpy.concatenate((y_pred, _model.predict(X_test).ravel()))
+            y_real = numpy.concatenate((y_real, val_df[TARGET_LABEL].to_numpy()))
+
+        print("Result:", mean_absolute_error(y_real, y_pred))
