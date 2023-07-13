@@ -15,7 +15,7 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
-from constants import AIRLINES, ALL_AIRPORTS, CATEGORICAL_STR_CATEGORIES
+from .constants import *
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder  # type: ignore
 
@@ -28,43 +28,6 @@ _ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..", "..
 _USE_ONE_HOT: Final[bool] = False
 # dev mode
 _IS_DEV_MODE: Final[bool] = True
-
-_INT16_COLUMNS: tuple[str, ...] = (
-    "minutes_until_pushback",
-    "minutes_until_etd",
-    "deps_3hr",
-    "deps_30hr",
-    "arrs_3hr",
-    "arrs_30hr",
-    "deps_taxiing",
-    "arrs_taxiing",
-    "exp_deps_15min",
-    "exp_deps_30min",
-    "temperature",
-    "wind_direction",
-    "wind_speed",
-    "wind_gust",
-    "cloud_ceiling",
-    "visibility",
-    "gufi_timestamp_until_etd",
-    "feat_5_gufi",
-    "feat_5_estdep_next_30min",
-    "feat_5_estdep_next_60min",
-    "feat_5_estdep_next_180min",
-    "feat_5_estdep_next_360min",
-)
-
-_FLOAT32_COLUMNS: tuple[str, ...] = (
-    "delay_30hr",
-    "standtime_30hr",
-    "dep_taxi_30hr",
-    "arr_taxi_30hr",
-    "delay_3hr",
-    "standtime_3hr",
-    "dep_taxi_3hr",
-    "arr_taxi_3hr",
-    "1h_ETDP",
-)
 
 _PRIVATE_CATEGORICAL_STR_COLUMNS: list[str] = ["aircraft_engine_class", "major_carrier", "flight_type", "aircraft_type"]
 
@@ -82,15 +45,6 @@ _CATEGORICAL_STR_COLUMNS: list[str] = [
 
 ENCODED_STR_COLUMNS: list[str] = deepcopy(_CATEGORICAL_STR_COLUMNS)
 
-_CATEGORICAL_INT8_COLUMNS: list[str] = [
-    "cloud_ceiling",
-    "visibility",
-    "month",
-    "day",
-    "hour",
-    "minute",
-    "weekday",
-]
 
 _FEATURES_IGNORE: list[str] = [
     "gufi",
@@ -131,11 +85,11 @@ def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) 
 
 def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None) -> pd.DataFrame:
     unknown_dtype: dict = {"precip": str, "airline": str, "arrival_runways": str, "year": str}
-    for _col in _FLOAT32_COLUMNS:
+    for _col in FLOAT32_COLUMNS:
         unknown_dtype[_col] = "float32"
-    for _col in _INT16_COLUMNS:
+    for _col in INT16_COLUMNS:
         unknown_dtype[_col] = "int16"
-    for _col in _CATEGORICAL_INT8_COLUMNS:
+    for _col in CATEGORICAL_INT8_COLUMNS:
         unknown_dtype[_col] = "int8"
     _df: pd.DataFrame
     if "ALL_" not in _path:
@@ -313,15 +267,15 @@ def log_importance(model, low_score_threshold: int = 2000) -> None:
 
 def get_clean_categorical_columns() -> list[str]:
     ignore_categorical_features(_FEATURES_IGNORE)
-    return ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS
+    return ENCODED_STR_COLUMNS + CATEGORICAL_INT8_COLUMNS
 
 
 def ignore_categorical_features(features_ignore: list[str]) -> None:
     for _ignore in features_ignore:
         if _ignore in ENCODED_STR_COLUMNS:
             ENCODED_STR_COLUMNS.remove(_ignore)
-        if _ignore in _CATEGORICAL_INT8_COLUMNS:
-            _CATEGORICAL_INT8_COLUMNS.remove(_ignore)
+        if _ignore in CATEGORICAL_INT8_COLUMNS:
+            CATEGORICAL_INT8_COLUMNS.remove(_ignore)
 
 
 ignore_categorical_features(_FEATURES_IGNORE)
@@ -427,7 +381,7 @@ def get_train_and_test_ds(_airport: str, _airline: str = "PUBLIC") -> tuple[pd.D
                 train_df = pd.concat([train_df, _ENCODER[col].transform(train_df[[col]])], axis=1).drop([col], axis=1)
                 val_df = pd.concat([val_df, _ENCODER[col].transform(val_df[[col]])], axis=1).drop([col], axis=1)
 
-    for col in ENCODED_STR_COLUMNS + _CATEGORICAL_INT8_COLUMNS:
+    for col in ENCODED_STR_COLUMNS + CATEGORICAL_INT8_COLUMNS:
         if col in train_df.columns:
             train_df[col] = train_df[col].astype("int8")
             val_df[col] = val_df[col].astype("int8")

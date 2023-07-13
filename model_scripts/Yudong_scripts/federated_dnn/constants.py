@@ -1851,3 +1851,50 @@ CATEGORICAL_STR_CATEGORIES: Final[dict[str, list[str]]] = {
         "DH8D",
     ],
 }
+
+INT16_COLUMNS: tuple[str, ...] = (
+    "minutes_until_pushback",
+    "minutes_until_etd",
+    "deps_3hr",
+    "deps_30hr",
+    "arrs_3hr",
+    "arrs_30hr",
+    "deps_taxiing",
+    "arrs_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "gufi_timestamp_until_etd",
+    "feat_5_gufi",
+    "feat_5_estdep_next_30min",
+    "feat_5_estdep_next_60min",
+    "feat_5_estdep_next_180min",
+    "feat_5_estdep_next_360min",
+)
+
+FLOAT32_COLUMNS: tuple[str, ...] = (
+    "delay_30hr",
+    "standtime_30hr",
+    "dep_taxi_30hr",
+    "arr_taxi_30hr",
+    "delay_3hr",
+    "standtime_3hr",
+    "dep_taxi_3hr",
+    "arr_taxi_3hr",
+    "1h_ETDP",
+)
+
+CATEGORICAL_INT8_COLUMNS: list[str] = [
+    "cloud_ceiling",
+    "visibility",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "weekday",
+]

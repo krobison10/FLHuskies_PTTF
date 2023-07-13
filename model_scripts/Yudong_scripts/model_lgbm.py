@@ -9,9 +9,9 @@ from datetime import datetime
 import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import xgboost  # type: ignore
-import mytools
+from federated_dnn import mytools
 import pandas as pd
-from constants import ALL_AIRPORTS, TARGET_LABEL
+from federated_dnn.constants import ALL_AIRPORTS, TARGET_LABEL
 from sklearn.metrics import mean_absolute_error  # type: ignore
 
 # mytools.ModelRecords.display_best()
