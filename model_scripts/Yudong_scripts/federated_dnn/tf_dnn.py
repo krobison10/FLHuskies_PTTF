@@ -57,7 +57,7 @@ class MyTensorflowDNN:
         normalizers: dict[str, MinMaxScaler] | None = mytools.get_normalizer() if using_a_normalizer is True else None
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport)
+        train_df, val_df = mytools.get_train_and_test_ds(_airport, "PRIVATE_ALL")
 
         if normalizers is not None:
             for _col in train_df.columns:
@@ -65,8 +65,8 @@ class MyTensorflowDNN:
                     train_df[[_col]] = normalizers[_col].transform(train_df[[_col]])
                     val_df[[_col]] = normalizers[_col].transform(val_df[[_col]])
 
-        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
-        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32 if normalizers is not None else None)
+        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32 if normalizers is not None else None)
         y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
         y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 

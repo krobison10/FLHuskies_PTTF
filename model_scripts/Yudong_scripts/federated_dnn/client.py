@@ -36,8 +36,6 @@ class CifarClient(flwr.client.NumPyClient):
 if __name__ == "__main__":
     import argparse
 
-    import flwr
-
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("-p", help="airport")

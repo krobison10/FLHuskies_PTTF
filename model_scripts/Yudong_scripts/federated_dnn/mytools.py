@@ -56,8 +56,8 @@ _FEATURES_IGNORE: list[str] = [
     "departure_runways",
     "arrival_runways",
     "gufi_flight_destination_airport",
-    "minute",
-    "year",
+    # "minute",
+    # "year",
 ]
 
 
