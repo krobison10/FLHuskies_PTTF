@@ -8,8 +8,8 @@ import os
 
 import mytools
 import tensorflow as tf  # type: ignore
-from constants import TARGET_LABEL, ALL_AIRPORTS
-
+from constants import ALL_AIRPORTS, TARGET_LABEL
+from sklearn.preprocessing import MinMaxScaler  # type: ignore
 
 # allow gpu memory growth
 physical_devices = tf.config.list_physical_devices("GPU")
@@ -25,7 +25,7 @@ class MyTensorflowDNN:
 
     @classmethod
     def get_model(
-        cls, _airport: str, _normalizer: tf.keras.layers.Normalization | tuple[int, ...], load_if_exists: bool = True
+        cls, _airport: str, _shape: tuple[int, ...], load_if_exists: bool = True
     ) -> tf.keras.models.Sequential:
         _model: tf.keras.models.Sequential
         model_path: str = cls.__get_model_path(_airport)
@@ -34,15 +34,12 @@ class MyTensorflowDNN:
             print("Creating new model.")
             print("----------------------------------------")
             _layers: list[tf.keras.layers.Dense] = [
+                tf.keras.layers.Input(_shape),
                 tf.keras.layers.Dense(32, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
                 tf.keras.layers.Dense(1),
             ]
-            if isinstance(_normalizer, tuple):
-                _layers.insert(0, tf.keras.layers.Input(_normalizer))
-            else:
-                _layers.insert(0, _normalizer)
             _model = tf.keras.models.Sequential(_layers)
             _model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam())
         else:
@@ -57,22 +54,24 @@ class MyTensorflowDNN:
     def train(
         cls, _airport: str, using_a_normalizer: bool = True, load_if_exists: bool = True
     ) -> tf.keras.models.Sequential:
+        normalizers: dict[str, MinMaxScaler] | None = mytools.get_normalizer() if using_a_normalizer is True else None
+
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(_airport)
+
+        if normalizers is not None:
+            for _col in train_df.columns:
+                if _col != TARGET_LABEL and _col in normalizers:
+                    train_df[[_col]] = normalizers[_col].transform(train_df[[_col]])
+                    val_df[[_col]] = normalizers[_col].transform(val_df[[_col]])
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
         y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
         y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 
-        normalizer: tf.keras.layers.Normalization | tuple[int, ...] = (X_train.get_shape()[1],)
-        if using_a_normalizer is True:
-            normalizer = tf.keras.layers.Normalization(axis=-1)
-            normalizer.adapt(X_test)
-            normalizer.adapt(X_train)
-
         # load model
-        model: tf.keras.models.Sequential = cls.get_model(_airport, normalizer, load_if_exists)
+        model: tf.keras.models.Sequential = cls.get_model(_airport, (X_train.get_shape()[1],), load_if_exists)
 
         # show model info
         if cls.DEV_MODE is True:

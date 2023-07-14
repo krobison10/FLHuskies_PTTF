@@ -4,6 +4,7 @@
 # A set of useful tools
 #
 
+import gc
 import json
 import os
 import pickle
@@ -15,9 +16,9 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
-from .constants import *
+from constants import *
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder  # type: ignore
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder  # type: ignore
 
 """
 arguments and constants
@@ -319,6 +320,29 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
         with open(get_model_path("encoders.pickle"), "wb") as handle:
             pickle.dump(_encoder, handle, protocol=pickle.HIGHEST_PROTOCOL)
         return _encoder
+
+
+def get_normalizer() -> dict[str, MinMaxScaler]:
+    # generate encoders if not exists
+    if os.path.exists(get_model_path("normalizers.pickle")):
+        with open(get_model_path("normalizers.pickle"), "rb") as handle:
+            return pickle.load(handle)
+    else:
+        _normalizers: dict[str, MinMaxScaler] = {}
+        print(f"No normalizers is found, will generate one right now.")
+        _df: pd.DataFrame = pd.concat(get_train_and_test_ds("ALL"), ignore_index=True)
+        # need to make provisions for handling unknown values
+        for _col in _df.columns:
+            if _col != TARGET_LABEL:
+                _normalizers[_col] = MinMaxScaler().fit(_df[[_col]])
+        # save the encoder
+        with open(get_model_path("normalizers.pickle"), "wb") as handle:
+            pickle.dump(_normalizers, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # clear cache
+        del _df
+        gc.collect()
+        # return result
+        return _normalizers
 
 
 def get_model(_airport: str) -> lightgbm.Booster:
