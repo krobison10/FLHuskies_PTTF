@@ -11,8 +11,8 @@ import tensorflow as tf  # type: ignore
 from constants import ALL_AIRPORTS, TARGET_LABEL
 
 # allow gpu memory growth
-physical_devices = tf.config.list_physical_devices("GPU")
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+# physical_devices = tf.config.list_physical_devices("GPU")
+# tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 
 class MyTensorflowDNN:
@@ -53,9 +53,10 @@ class MyTensorflowDNN:
             _model = tf.keras.models.Sequential(_layers)
             _model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam())
         else:
-            print("----------------------------------------")
-            print("A existing model has been found and will be loaded.")
-            print("----------------------------------------")
+            if cls.DEV_MODE:
+                print("----------------------------------------")
+                print("A existing model has been found and will be loaded.")
+                print("----------------------------------------")
             _model = tf.keras.models.load_model(model_path)
 
         return _model

@@ -375,6 +375,10 @@ def save_model(_airport: str, _model: lightgbm.Booster) -> None:
         pickle.dump(_models, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def any_ds_exists(_airline: str) -> bool:
+    return len(glob(os.path.join(_ROOT_PATH, "full_tables", "*", f"{_airline}_full.csv"))) > 0
+
+
 # get the train and test dataset
 def get_train_and_test_ds(_airport: str, _airline: str = "PUBLIC") -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
@@ -409,8 +413,10 @@ def get_train_and_test_ds(_airport: str, _airline: str = "PUBLIC") -> tuple[pd.D
     for col in ENCODED_STR_COLUMNS:
         if col in train_df.columns:
             if isinstance(_ENCODER[col], OrdinalEncoder):
-                train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
-                val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
+                if len(train_df[col]) > 0:
+                    train_df[[col]] = _ENCODER[col].transform(train_df[[col]])
+                if len(val_df[col]) > 0:
+                    val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
             else:
                 train_df = pd.concat([train_df, _ENCODER[col].transform(train_df[[col]])], axis=1).drop([col], axis=1)
                 val_df = pd.concat([val_df, _ENCODER[col].transform(val_df[[col]])], axis=1).drop([col], axis=1)

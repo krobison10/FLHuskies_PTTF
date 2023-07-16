@@ -1,15 +1,12 @@
 import flwr
-import mytools
 import tensorflow as tf  # type: ignore
 from constants import TARGET_LABEL
-from tf_dnn import MyTensorflowDNN
+import pandas as pd
 
 
-class CifarClient(flwr.client.NumPyClient):
-    def __init__(self, _airport: str, _airline: str) -> None:
+class FlowerClient(flwr.client.NumPyClient):
+    def __init__(self, model, train_df: pd.DataFrame, val_df: pd.DataFrame):
         super().__init__()
-
-        train_df, val_df = mytools.get_train_and_test_ds(_airport, _airline)
 
         self.__X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         self.__X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
@@ -17,7 +14,7 @@ class CifarClient(flwr.client.NumPyClient):
         self.__y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
         self.__y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
-        self.__model = MyTensorflowDNN.get_model(_airport)
+        self.__model = model
 
     def get_parameters(self, config):
         return self.__model.get_weights()
@@ -45,7 +42,7 @@ if __name__ == "__main__":
 
     flwr.client.start_numpy_client(
         server_address=str(args.i).lower() if args.i is not None else "[::]:8080",
-        client=CifarClient(
+        client=FlowerClient(
             str(args.p).upper() if args.p is not None else "ALL",
             str(args.l).upper() if args.l is not None else "PRIVATE_ALL",
         ),
