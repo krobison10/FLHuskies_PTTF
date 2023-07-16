@@ -17,7 +17,7 @@ class CifarClient(flwr.client.NumPyClient):
         self.__y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL])
         self.__y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL])
 
-        self.__model = MyTensorflowDNN.get_model(_airport, (self.__X_train.get_shape()[1],), load_if_exists=False)
+        self.__model = MyTensorflowDNN.get_model(_airport)
 
     def get_parameters(self, config):
         return self.__model.get_weights()

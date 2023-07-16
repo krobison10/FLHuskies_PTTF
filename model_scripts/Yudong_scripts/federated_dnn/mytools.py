@@ -16,6 +16,7 @@ import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from constants import *
 from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder  # type: ignore
@@ -25,10 +26,10 @@ arguments and constants
 """
 # the path to root
 _ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+# path to model and encoder
+_MODEL_SAVE_TO: Final[str] = os.path.join(os.path.dirname(__file__), "models")
 # if use one hot encoder
 _USE_ONE_HOT: Final[bool] = False
-# dev mode
-_IS_DEV_MODE: Final[bool] = True
 
 _PRIVATE_CATEGORICAL_STR_COLUMNS: list[str] = ["aircraft_engine_class", "major_carrier", "flight_type", "aircraft_type"]
 
@@ -213,10 +214,9 @@ def encodeStrFeatures(_data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols
 
 
 def get_model_path(_fileName: str | None) -> str:
-    _dir: str = os.path.join(_ROOT_PATH, "models", "yudong_models") if _IS_DEV_MODE else "."
-    if not os.path.exists(_dir):
-        os.mkdir(_dir)
-    return os.path.join(_dir, _fileName) if _fileName is not None else _dir
+    if not os.path.exists(_MODEL_SAVE_TO):
+        os.mkdir(_MODEL_SAVE_TO)
+    return os.path.join(_MODEL_SAVE_TO, _fileName) if _fileName is not None else _MODEL_SAVE_TO
 
 
 def log_importance(model, low_score_threshold: int = 2000) -> None:
@@ -343,6 +343,16 @@ def get_normalizer() -> dict[str, MinMaxScaler]:
         gc.collect()
         # return result
         return _normalizers
+
+
+def generate_normalization_layer() -> None:
+    train_df, val_df = get_train_and_test_ds("ALL", "PRIVATE_ALL")
+    normalizer: tf.keras.layers.Normalization = tf.keras.layers.Normalization(axis=-1)
+    X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+    X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+    normalizer.adapt(X_test)
+    normalizer.adapt(X_train)
+    return normalizer
 
 
 def get_model(_airport: str) -> lightgbm.Booster:

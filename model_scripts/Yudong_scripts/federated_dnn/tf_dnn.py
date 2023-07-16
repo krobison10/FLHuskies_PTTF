@@ -9,7 +9,6 @@ import os
 import mytools
 import tensorflow as tf  # type: ignore
 from constants import ALL_AIRPORTS, TARGET_LABEL
-from sklearn.preprocessing import MinMaxScaler  # type: ignore
 
 # allow gpu memory growth
 physical_devices = tf.config.list_physical_devices("GPU")
@@ -18,23 +17,34 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 class MyTensorflowDNN:
     DEV_MODE: bool = False
+    FEDERATED_MODE: bool = True
 
     @classmethod
-    def __get_model_path(cls, _airport: str) -> str:
-        return mytools.get_model_path(f"tf_dnn_{_airport}_model")
+    def create_clean_mode(cls) -> None:
+        # temporary disable FEDERATED_MODE
+        cls.FEDERATED_MODE = False
+        model = cls.get_model("ALL")
+        # now enable FEDERATED_MODE
+        cls.FEDERATED_MODE = True
+        model.save(cls.get_model_path(""))
 
     @classmethod
-    def get_model(
-        cls, _airport: str, _shape: tuple[int, ...], load_if_exists: bool = True
-    ) -> tf.keras.models.Sequential:
+    def get_model_path(cls, _airport: str) -> str:
+        return mytools.get_model_path("tf_dnn_model" if cls.FEDERATED_MODE else f"tf_dnn_{_airport}_model")
+
+    @classmethod
+    def get_model(cls, _airport: str, load_if_exists: bool = True) -> tf.keras.models.Sequential:
         _model: tf.keras.models.Sequential
-        model_path: str = cls.__get_model_path(_airport)
+        model_path: str = cls.get_model_path(_airport)
         if load_if_exists is False or not os.path.exists(model_path):
+            # under FEDERATED_MODE, a clean model will be distribute across
+            if cls.FEDERATED_MODE is True:
+                raise FileNotFoundError("The clean model should is missing!")
             print("----------------------------------------")
             print("Creating new model.")
             print("----------------------------------------")
             _layers: list[tf.keras.layers.Dense] = [
-                tf.keras.layers.Input(_shape),
+                mytools.generate_normalization_layer(),
                 tf.keras.layers.Dense(32, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
@@ -51,27 +61,17 @@ class MyTensorflowDNN:
         return _model
 
     @classmethod
-    def train(
-        cls, _airport: str, using_a_normalizer: bool = True, load_if_exists: bool = True
-    ) -> tf.keras.models.Sequential:
-        normalizers: dict[str, MinMaxScaler] | None = mytools.get_normalizer() if using_a_normalizer is True else None
+    def train(cls, _airport: str, load_if_exists: bool = True) -> tf.keras.models.Sequential:
+        # load model
+        model: tf.keras.models.Sequential = cls.get_model(_airport, load_if_exists)
 
         # load train and test data frame
         train_df, val_df = mytools.get_train_and_test_ds(_airport, "PRIVATE_ALL")
 
-        if normalizers is not None:
-            for _col in train_df.columns:
-                if _col != TARGET_LABEL and _col in normalizers:
-                    train_df[[_col]] = normalizers[_col].transform(train_df[[_col]])
-                    val_df[[_col]] = normalizers[_col].transform(val_df[[_col]])
-
-        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32 if normalizers is not None else None)
-        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]), dtype=tf.float32 if normalizers is not None else None)
+        X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+        X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
         y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
         y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
-
-        # load model
-        model: tf.keras.models.Sequential = cls.get_model(_airport, (X_train.get_shape()[1],), load_if_exists)
 
         # show model info
         if cls.DEV_MODE is True:
@@ -79,7 +79,7 @@ class MyTensorflowDNN:
 
         # Model Checkpoint
         check_pointer: tf.keras.callbacks.ModelCheckpoint = tf.keras.callbacks.ModelCheckpoint(
-            cls.__get_model_path(_airport),
+            cls.get_model_path(_airport),
             monitor="val_loss",
             verbose=1,
             save_best_only=True,
@@ -117,7 +117,7 @@ class MyTensorflowDNN:
 
     @classmethod
     def evaluate_global(cls) -> None:
-        _model = tf.keras.models.load_model(cls.__get_model_path("ALL"))
+        _model = tf.keras.models.load_model(cls.get_model_path("ALL"))
 
         for theAirport in ALL_AIRPORTS:
             # load train and test data frame
