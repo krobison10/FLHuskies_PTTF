@@ -55,7 +55,7 @@ from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 
 
-def main():
+def train():
     maes = pd.DataFrame(columns=["airport", "global", "federated"], index=["airport"])
 
     start = timeit.default_timer()
@@ -147,4 +147,4 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 
 if __name__ == "__main__":
-    main()
+    train()
