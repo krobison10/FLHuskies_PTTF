@@ -6,13 +6,10 @@
 
 import os
 
-import mytools
+from .mytools import *
 import tensorflow as tf  # type: ignore
-from constants import ALL_AIRPORTS, TARGET_LABEL
 
-# allow gpu memory growth
-# physical_devices = tf.config.list_physical_devices("GPU")
-# tf.config.experimental.set_memory_growth(physical_devices[0], True)
+from .constants import ALL_AIRPORTS, TARGET_LABEL
 
 
 class MyTensorflowDNN:
@@ -30,7 +27,7 @@ class MyTensorflowDNN:
 
     @classmethod
     def get_model_path(cls, _airport: str) -> str:
-        return mytools.get_model_path(
+        return get_model_path(
             "tf_dnn_model" if cls.FEDERATED_MODE else f"tf_dnn_{_airport}_model"
         )
 
@@ -48,7 +45,7 @@ class MyTensorflowDNN:
             print("Creating new model.")
             print("----------------------------------------")
             _layers: list[tf.keras.layers.Dense] = [
-                mytools.generate_normalization_layer(),
+                generate_normalization_layer(),
                 tf.keras.layers.Dense(32, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
@@ -75,7 +72,7 @@ class MyTensorflowDNN:
         model: tf.keras.models.Sequential = cls.get_model(_airport, load_if_exists)
 
         # load train and test data frame
-        train_df, val_df = mytools.get_train_and_test_ds(_airport, "PRIVATE_ALL")
+        train_df, val_df = get_train_and_test_ds(_airport, "PRIVATE_ALL")
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
@@ -120,13 +117,11 @@ class MyTensorflowDNN:
             # show params
             print(result.params)
             # update database name
-            mytools.ModelRecords.set_name("tf_dnn_model_records")
+            ModelRecords.set_name("tf_dnn_model_records")
             # save loss history image
-            mytools.plot_history(
-                _airport, result.history, f"tf_dnn_{_airport}_info.png"
-            )
+            plot_history(_airport, result.history, f"tf_dnn_{_airport}_info.png")
             # save loss history as json
-            mytools.ModelRecords.update(_airport, "history", result.history, True)
+            ModelRecords.update(_airport, "history", result.history, True)
 
         return model
 
@@ -136,7 +131,7 @@ class MyTensorflowDNN:
 
         for theAirport in ALL_AIRPORTS:
             # load train and test data frame
-            train_df, val_df = mytools.get_train_and_test_ds(theAirport)
+            train_df, val_df = get_train_and_test_ds(theAirport)
 
             X_train: tf.Tensor = tf.convert_to_tensor(
                 train_df.drop(columns=[TARGET_LABEL])

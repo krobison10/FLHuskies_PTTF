@@ -4,7 +4,6 @@
 # A set of useful tools
 #
 
-import gc
 import json
 import os
 import pickle
@@ -12,14 +11,12 @@ from copy import deepcopy
 from glob import glob
 from typing import Any, Final
 
-import lightgbm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
-import numpy as np
 import pandas as pd
-import tensorflow as tf
-from constants import *
-from sklearn.feature_selection import SelectKBest, f_regression  # type: ignore
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, OrdinalEncoder  # type: ignore
+import tensorflow as tf  # type: ignore
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder  # type: ignore
+
+from .constants import *
 
 """
 arguments and constants
@@ -67,29 +64,6 @@ _FEATURES_IGNORE: list[str] = [
     # "minute",
     # "year",
 ]
-
-
-def plot_loss(history):
-    plt.plot(history.history["loss"], label="loss")
-    plt.plot(history.history["val_loss"], label="val_loss")
-    plt.ylim([0, 10])
-    plt.xlabel("Epoch")
-    plt.ylabel("Error [MPG]")
-    plt.legend()
-    plt.grid(True)
-
-
-def evaluate_numerical_features(_data: pd.DataFrame, features: tuple[str, ...]) -> None:
-    X_train = np.asarray([_data[_col] for _col in features])
-    X_train = np.reshape(X_train, (X_train.shape[1], X_train.shape[0]))
-    y_train = np.asarray(_data["minutes_until_pushback"])
-
-    fs = SelectKBest(score_func=f_regression)
-    fit = fs.fit(X_train, y_train)
-
-    features_scores = pd.DataFrame({"Selected_columns": features, "Score": fit.scores_})
-
-    print(features_scores.sort_values("Score"))
 
 
 def _get_tables(
@@ -170,15 +144,6 @@ def get_train_tables(
     )
 
 
-def get_preprocessed_train_tables(
-    _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
-) -> pd.DataFrame:
-    return _get_tables(
-        get_train_tables_path(_airport, airline).replace(".csv", "_xgboost.csv"),
-        remove_duplicate_gufi,
-    )
-
-
 def get_validation_tables_path(_airport: str, _airline: str) -> str:
     return os.path.join(
         _ROOT_PATH, "validation_tables", _airport, f"{_airline}_validation.csv"
@@ -220,15 +185,6 @@ def get_validation_tables(
     )
 
 
-def get_preprocessed_validation_tables(
-    _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
-) -> pd.DataFrame:
-    return _get_tables(
-        get_validation_tables_path(_airport, airline).replace(".csv", "_xgboost.csv"),
-        remove_duplicate_gufi,
-    )
-
-
 def get_private_master_tables(
     remove_duplicate_gufi: bool = False, use_cols: list[str] | None = None
 ) -> pd.DataFrame:
@@ -243,25 +199,6 @@ def get_private_master_tables(
     )
 
 
-def _encodeFeatures(
-    _data_train: pd.DataFrame,
-    _data_test: pd.DataFrame,
-    cols: tuple[str, ...],
-    encoder: OrdinalEncoder,
-) -> None:
-    _data_full: pd.DataFrame = pd.concat((_data_train, _data_test))
-    for _col in cols:
-        encoder.fit(_data_full[[_col]])
-        _data_train[_col] = encoder.transform(_data_train[[_col]])
-        _data_test[_col] = encoder.transform(_data_test[[_col]])
-
-
-def encodeStrFeatures(
-    _data_train: pd.DataFrame, _data_test: pd.DataFrame, *cols: str
-) -> None:
-    _encodeFeatures(_data_train, _data_test, cols, OrdinalEncoder())
-
-
 def get_model_path(_fileName: str | None) -> str:
     if not os.path.exists(_MODEL_SAVE_TO):
         os.mkdir(_MODEL_SAVE_TO)
@@ -270,69 +207,6 @@ def get_model_path(_fileName: str | None) -> str:
         if _fileName is not None
         else _MODEL_SAVE_TO
     )
-
-
-def log_importance(model, low_score_threshold: int = 2000) -> None:
-    _div: str = "--------------------------------------------------"
-    with open(get_model_path("report.txt"), "a", encoding="utf-8") as f:
-        # --- log gain information -----
-        feature_importance_table: dict[str, int] = dict(
-            zip(model.feature_name(), model.feature_importance("gain").tolist())
-        )
-        f.write("feature importance table (gain):\n")
-        _keys: list[str] = sorted(
-            feature_importance_table, key=lambda k: feature_importance_table[k]
-        )
-        for key in _keys:
-            f.write(f" - {key}: {feature_importance_table[key]}\n")
-        f.write(_div + "\n")
-        for key in _keys:
-            if feature_importance_table[key] <= low_score_threshold:
-                msg = (
-                    f"feature {key} has a low score of {feature_importance_table[key]}"
-                )
-                print(msg)
-                f.write(msg + "\n")
-        print(_div)
-        f.write(_div + "\n")
-        for key in feature_importance_table:
-            if (
-                key.startswith("feat_lamp_")
-                and feature_importance_table[key] > low_score_threshold
-            ):
-                msg = f"find useful global lamp feature {key} has a score of {feature_importance_table[key]}"
-                print(msg)
-                f.write(msg + "\n")
-        # ----- log split information -----
-        print(_div)
-        f.write(_div + "\n")
-        feature_importance_table = dict(
-            zip(model.feature_name(), model.feature_importance("split").tolist())
-        )
-        f.write("feature importance table (split):\n")
-        _keys = sorted(
-            feature_importance_table, key=lambda k: feature_importance_table[k]
-        )
-        for key in _keys:
-            f.write(f" - {key}: {feature_importance_table[key]}\n")
-        f.write(_div + "\n")
-        for key in _keys:
-            if feature_importance_table[key] <= low_score_threshold:
-                msg = (
-                    f"feature {key} has a low score of {feature_importance_table[key]}"
-                )
-                print(msg)
-                f.write(msg + "\n")
-        print(_div)
-        f.write(_div + "\n")
-        for key in feature_importance_table:
-            if (
-                key.startswith("feat_lamp_")
-                and feature_importance_table[key] > low_score_threshold
-            ):
-                msg = f"find useful global lamp feature {key} has a score of {feature_importance_table[key]}"
-                print(msg)
-                f.write(msg + "\n")
 
 
 def get_clean_categorical_columns() -> list[str]:
@@ -395,30 +269,7 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
         return _encoder
 
 
-def get_normalizer() -> dict[str, MinMaxScaler]:
-    # generate encoders if not exists
-    if os.path.exists(get_model_path("normalizers.pickle")):
-        with open(get_model_path("normalizers.pickle"), "rb") as handle:
-            return pickle.load(handle)
-    else:
-        _normalizers: dict[str, MinMaxScaler] = {}
-        print(f"No normalizers is found, will generate one right now.")
-        _df: pd.DataFrame = pd.concat(get_train_and_test_ds("ALL"), ignore_index=True)
-        # need to make provisions for handling unknown values
-        for _col in _df.columns:
-            if _col != TARGET_LABEL:
-                _normalizers[_col] = MinMaxScaler().fit(_df[[_col]])
-        # save the encoder
-        with open(get_model_path("normalizers.pickle"), "wb") as handle:
-            pickle.dump(_normalizers, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        # clear cache
-        del _df
-        gc.collect()
-        # return result
-        return _normalizers
-
-
-def generate_normalization_layer() -> None:
+def generate_normalization_layer() -> tf.keras.layers.Normalization:
     train_df, val_df = get_train_and_test_ds("ALL", "PRIVATE_ALL")
     normalizer: tf.keras.layers.Normalization = tf.keras.layers.Normalization(axis=-1)
     X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
@@ -426,26 +277,6 @@ def generate_normalization_layer() -> None:
     normalizer.adapt(X_test)
     normalizer.adapt(X_train)
     return normalizer
-
-
-def get_model(_airport: str) -> lightgbm.Booster:
-    if not os.path.exists(get_model_path("models.lightgbm.pickle")):
-        raise FileNotFoundError("The model does not exist!")
-    _models: dict[str, lightgbm.Booster] = {}
-    with open(get_model_path("models.lightgbm.pickle"), "rb") as handle:
-        _models = pickle.load(handle)
-    return _models[_airport]
-
-
-def save_model(_airport: str, _model: lightgbm.Booster) -> None:
-    _models: dict[str, lightgbm.Booster] = {}
-    if os.path.exists(get_model_path("models.lightgbm.pickle")):
-        with open(get_model_path("models.lightgbm.pickle"), "rb") as handle:
-            _models = pickle.load(handle)
-    _models[_airport] = _model
-    # save the model
-    with open(get_model_path("models.lightgbm.pickle"), "wb") as handle:
-        pickle.dump(_models, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def any_ds_exists(_airline: str) -> bool:

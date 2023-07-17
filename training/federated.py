@@ -36,7 +36,7 @@ from train_test import *
 from flwr.common.typing import NDArray, NDArrays, Parameters, Scalar, Optional
 from load_data import load_airports, load_all_airports
 import numpy as np
-
+import argparse
 
 from flwr.common import (
     EvaluateIns,
@@ -147,4 +147,16 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 
 if __name__ == "__main__":
-    main()
+    # using argparse to parse the argument from command line
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-s", help="switch between pytorch implementation and tensorflow implementation"
+    )
+    args: argparse.Namespace = parser.parse_args()
+    # default is pt
+    if args.s is None or args.s == "pt":
+        main()
+    else:
+        from tf_client.federated import main
+
+        main()

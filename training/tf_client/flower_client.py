@@ -1,7 +1,8 @@
 import flwr
-import tensorflow as tf  # type: ignore
-from constants import TARGET_LABEL
 import pandas as pd
+import tensorflow as tf  # type: ignore
+
+from .constants import TARGET_LABEL
 
 
 class FlowerClient(flwr.client.NumPyClient):
