@@ -4,8 +4,6 @@ import pandas as pd
 import pickle
 import numpy as np
 from pathlib import Path
-from lightgbm import LGBMRegressor, Dataset
-import lightgbm as lgb
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt

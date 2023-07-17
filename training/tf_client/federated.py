@@ -22,10 +22,10 @@ def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:
 def train():
     # maes = pd.DataFrame(columns=["airport", "global", "federated"], index=["airport"])
 
-    client_resources = None
-    physical_devices = tf.config.list_physical_devices("GPU")
-    if len(physical_devices) > 0:
-        client_resources = {"num_gpus": 1}
+    # client_resources = None
+    # physical_devices = tf.config.list_physical_devices("GPU")
+    # if len(physical_devices) > 0:
+    #    client_resources = {"num_gpus": 1}
     start = timeit.default_timer()
 
     # Load ALL airports, modified for training to include all data in train_loaders
@@ -55,9 +55,8 @@ def train():
     hist = fl.simulation.start_simulation(
         client_fn=lambda x: client_fn(x, train_loaders, test_loaders),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=5),
+        config=fl.server.ServerConfig(num_rounds=100),
         strategy=strategy,
-        client_resources=client_resources,
     )
 
     print(hist)
@@ -76,8 +75,8 @@ def fit_config(server_round: int):
 
 def weighted_average(metrics: list[tuple[int, Metrics]]) -> Metrics:
     # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["accuracy"] for num_examples, m in metrics]
+    accuracies = [num_examples * m["loss"] for num_examples, m in metrics]
     examples = [num_examples for num_examples, _ in metrics]
 
     # Aggregate and return custom metric (weighted average)
-    return {"accuracy": sum(accuracies) / sum(examples)}
+    return {"loss": sum(accuracies) / sum(examples)}
