@@ -9,11 +9,8 @@ import lightgbm as lgb
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt
-import seaborn as sns
 from datetime import timedelta
 from pandarallel import pandarallel
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
 import multiprocessing as mp
 from collections import defaultdict
 from collections import OrderedDict
@@ -156,7 +153,7 @@ if __name__ == "__main__":
     # default is pt
     if args.s is None or args.s == "pt":
         train()
-    else:
+    elif args.s == "tf":
         from tf_client.federated import train
 
         train()
