@@ -1,4 +1,4 @@
-#from utils import *
+# from utils import *
 import os
 import pandas as pd
 import pickle
@@ -54,6 +54,7 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 
+
 def main():
     maes = pd.DataFrame(columns=["airport", "global", "federated"], index=["airport"])
 
@@ -78,22 +79,22 @@ def main():
         min_evaluate_clients=num_clients,
         min_available_clients=num_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
-	    #evaluate_fn=get_evaluate_fn(server_model, test_loaders),
+        # evaluate_fn=get_evaluate_fn(server_model, test_loaders),
         initial_parameters=fl.common.ndarrays_to_parameters(params),
         on_fit_config_fn=fit_config,
     )
-
 
     hist = fl.simulation.start_simulation(
         client_fn=lambda x: client_fn(x, train_loaders, test_loaders),
         num_clients=num_clients,
         config=fl.server.ServerConfig(num_rounds=5),
         strategy=strategy,
-	client_resources=client_resources,
+        client_resources=client_resources,
     )
 
-    #torch.save(server_model, "model.pt")
-    #print("Saved server model")
+    # torch.save(server_model, "model.pt")
+    # print("Saved server model")
+
 
 def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:
     net = Net().to(DEVICE)
@@ -110,24 +111,23 @@ def get_evaluate_fn(model, test_loaders):
     def evaluate(
         server_round: int, parameters: NDArrays, config: Dict[str, Scalar]
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-        model=Net().to(DEVICE)
+        model = Net().to(DEVICE)
         set_parameters(model, parameters)  # Update model with the latest parameters
-        losses=0
-        accuracies=0
+        losses = 0
+        accuracies = 0
 
         for i in range(len(test_loaders)):
             losses = losses + test(model, test_loaders[i])
 
-        loss = losses/len(test_loaders)
+        loss = losses / len(test_loaders)
         print(f"Server-side evaluation loss {loss} / accuracy {loss}")
-        torch.save(model,f"model_{server_round}.pt")
-
+        torch.save(model, f"model_{server_round}.pt")
 
         print(f"Saved the model, round {server_round}")
         return float(loss), {"accuracy": float(loss)}
 
-
     return evaluate
+
 
 def fit_config(server_round: int):
     config = {
@@ -135,6 +135,7 @@ def fit_config(server_round: int):
         "local_epochs": 5 if server_round < 3 else 6,  #
     }
     return config
+
 
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     # Multiply accuracy of each client by number of examples used

@@ -13,7 +13,6 @@ class Net(nn.Module):
         self.dropout2 = nn.Dropout(0.2)
         self.fc3 = nn.Linear(100, 1)
 
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = F.relu(self.fc1(x))
         x = self.dropout1(x)
@@ -21,6 +20,7 @@ class Net(nn.Module):
         x = self.dropout2(x)
         x = self.fc3(x)
         return x
+
 
 # class Net(nn.Module):
 #     def __init__(self) -> None:

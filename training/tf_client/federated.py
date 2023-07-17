@@ -6,6 +6,7 @@ import pandas as pd
 from flower_client import FlowerClient
 from load_data import load_data
 from tf_dnn import ALL_AIRPORTS, MyTensorflowDNN
+from flwr.common.typing import NDArrays, Scalar
 
 
 def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:
@@ -49,7 +50,10 @@ def main() -> None:
 
     local_loss = hist.losses_distributed[-1][1]
 
-    local_maes = pd.DataFrame({"airport": "ALL", "global": global_loss, "federated": local_loss}, index=["airport"])
+    local_maes = pd.DataFrame(
+        {"airport": "ALL", "global": global_loss, "federated": local_loss},
+        index=["airport"],
+    )
 
     maes = pd.concat([maes, local_maes])
 

@@ -12,16 +12,13 @@ class FlowerClient(fl.client.NumPyClient):
         self.trainloader = trainloader
         self.valloader = valloader
 
-
     def get_parameters(self, config):
         return get_parameters(self.net)
-
 
     def fit(self, parameters, config):
         set_parameters(self.net, parameters)
         train(self.net, self.trainloader, epochs=5, verbose=True)
         return get_parameters(self.net), len(self.trainloader), {}
-
 
     def evaluate(self, parameters, config):
         set_parameters(self.net, parameters)

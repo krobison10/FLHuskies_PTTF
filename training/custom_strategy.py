@@ -154,4 +154,3 @@ class FedCustom(fl.server.strategy.Strategy):
         """Use a fraction of available clients for evaluation."""
         num_clients = int(num_available_clients * self.fraction_evaluate)
         return max(num_clients, self.min_evaluate_clients), self.min_available_clients
-
