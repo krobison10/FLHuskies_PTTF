@@ -58,7 +58,7 @@ if __name__ == "__main__":
     import psutil
     from table_dtype import TableDtype
     from table_generation import generate_table
-    from utils import train_test_split
+    from utils import *
 
     p = psutil.Process(os.getpid())
     p.nice(psutil.HIGH_PRIORITY_CLASS)
