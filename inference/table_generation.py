@@ -89,7 +89,7 @@ def generate_table(_airport: str, data_dir: str, submission_format: pd.DataFrame
 
     pandarallel.initialize(verbose=1, progress_bar=True)
 
-    _df = full_df.loc[submission_format.airport == _airport]
+    _df = submission_format.loc[submission_format.airport == _airport]
 
     # if you want to select only a certain amount of row
     if max_rows > 0:

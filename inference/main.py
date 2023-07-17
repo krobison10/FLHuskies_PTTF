@@ -8,6 +8,7 @@
 #
 import torch
 import pickle
+import pandas as pd
 
 def predict(model, df):
     tensor = torch.from_numpy(df.values).float()
@@ -22,15 +23,14 @@ def predict(model, df):
 
     return df
 
-def load_model(assets_directory: Path) -> Any:
+def load_model(assets_directory):
     """Load all model assets from disk."""
     model = None
     encoder = None
-    with (assets_directory / "model_5.pt").open("rb") as fp:
-        model = torch.load(fp)
-
-    with (assets_directory / "encoder.pickle").open("rb") as fp:
+    with open(assets_directory + "/encoder.pickle", 'rb') as fp:
         encoder = pickle.load(fp)
+    with open(assets_directory + "/model_5.pt", 'rb') as fp:
+        model = torch.load(fp, map_location ='cpu')
 
     return model, encoder
 
@@ -52,13 +52,11 @@ if __name__ == "__main__":
     import zipfile
     from datetime import datetime
     from glob import glob
-    import pandas as pd
-    
-    import pandas as pd
     import psutil
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import *
+    import sys
 
     p = psutil.Process(os.getpid())
     p.nice(psutil.HIGH_PRIORITY_CLASS)
@@ -68,6 +66,7 @@ if __name__ == "__main__":
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument("-s", help="save")
     parser.add_argument("-a", help="airport")
     parser.add_argument("-m", help="first m rows")
     args: argparse.Namespace = parser.parse_args()
@@ -96,10 +95,13 @@ if __name__ == "__main__":
     # the path to the directory where data files are stored
     DATA_DIR: str = os.path.join(_ROOT, "_data")
     ASSETS_DIR: str = os.path.join(_ROOT, "assets")
+    TRAIN_DIR: str = os.path.join(_ROOT, "training")
+    sys.path.append(TRAIN_DIR)
+    from federated import train
 
     model, encoder = load_model(ASSETS_DIR)
     predictions = []
-    submission_format = pd.read_csv("submission_format.csv")
+    submission_format = pd.read_csv(f"{ASSETS_DIR}/submission_format.csv")
 
     our_dirs: dict[str, str] = {}
 
@@ -146,7 +148,10 @@ if __name__ == "__main__":
             # split
             if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
                 train_test_split(table[k], _ROOT, our_dirs, airport, k)
-
+        
+        # If have not been run before, run the training. 
+        if not os.listdir(ASSETS_DIR):
+            train()
         _df = encode_df(table, encoded_columns, encoder)
 
         #evaluating model
