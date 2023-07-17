@@ -8,6 +8,7 @@ from flwr.common import Metrics
 from .flower_client import FlowerClient
 from .load_data import load_all_airports
 from .tf_dnn import MyTensorflowDNN
+from .mytools import get_model_path
 
 
 def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:
@@ -18,7 +19,7 @@ def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:
     return FlowerClient(net, trainloader, valloader)
 
 
-def main():
+def train():
     # maes = pd.DataFrame(columns=["airport", "global", "federated"], index=["airport"])
 
     client_resources = None
@@ -35,6 +36,9 @@ def main():
     stop = timeit.default_timer()
     print(f"Finished Processing {num_clients} Airlines in {int(stop-start)} seconds")
 
+    server_model = MyTensorflowDNN.get_model("ALL")
+    params = server_model.get_weights()
+
     # FedAvg
     strategy = fl.server.strategy.FedMedian(
         fraction_fit=1.0,
@@ -44,7 +48,7 @@ def main():
         min_available_clients=num_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
         # evaluate_fn=get_evaluate_fn(server_model, test_loaders),
-        # initial_parameters=fl.common.ndarrays_to_parameters(params),
+        initial_parameters=fl.common.ndarrays_to_parameters(params),
         on_fit_config_fn=fit_config,
     )
 
@@ -57,6 +61,9 @@ def main():
     )
 
     print(hist)
+
+    server_model.save(get_model_path("tf_dnn_global_model"))
+    print("Saved server model")
 
 
 def fit_config(server_round: int):
@@ -74,7 +81,3 @@ def weighted_average(metrics: list[tuple[int, Metrics]]) -> Metrics:
 
     # Aggregate and return custom metric (weighted average)
     return {"accuracy": sum(accuracies) / sum(examples)}
-
-
-if __name__ == "__main__":
-    main()

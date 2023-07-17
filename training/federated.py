@@ -155,8 +155,8 @@ if __name__ == "__main__":
     args: argparse.Namespace = parser.parse_args()
     # default is pt
     if args.s is None or args.s == "pt":
-        main()
+        train()
     else:
-        from tf_client.federated import main
+        from tf_client.federated import train
 
-        main()
+        train()
