@@ -96,12 +96,12 @@ if __name__ == "__main__":
     DATA_DIR: str = os.path.join(_ROOT, "_data")
     ASSETS_DIR: str = os.path.join(_ROOT, "assets")
     TRAIN_DIR: str = os.path.join(_ROOT, "training")
+
     sys.path.append(TRAIN_DIR)
     from federated import train
 
-    model, encoder = load_model(ASSETS_DIR)
     predictions = []
-    submission_format = pd.read_csv(f"{ASSETS_DIR}/submission_format.csv")
+    submission_format = pd.read_csv(f"{ASSETS_DIR}/submission_format.csv", parse_dates=['timestamp'])
 
     our_dirs: dict[str, str] = {}
 
@@ -152,6 +152,7 @@ if __name__ == "__main__":
         # If have not been run before, run the training. 
         if not os.listdir(ASSETS_DIR):
             train()
+        model, encoder = load_model(ASSETS_DIR)
         _df = encode_df(table, encoded_columns, encoder)
 
         #evaluating model
