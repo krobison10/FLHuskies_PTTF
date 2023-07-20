@@ -1,7 +1,7 @@
 pydantic==1.10.11
 flwr==1.4.0
 matplotlib==3.7.1
-numpy==1.24.2
+numpy==1.23.5
 pandarallel==1.6.4
 pandas==1.5.3
 scikit_learn==1.2.2
