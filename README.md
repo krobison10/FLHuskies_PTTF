@@ -56,15 +56,9 @@ _data
 │   │   ├── <airport>_tbfm.csv
 │   │   └── <airport>_tfm.csv
 │   ├── ...
-│   ├── train_labels_open
-│   │   ├── train_labels_<airport>.csv
-│   │   └── ...
-│   ├── train_labels_prescreened
-│   │   ├── prescreened_train_labels_<airport>.csv
-│   │   └── ...
-│   ├── train_labels_phase2
-│   │   ├── phase2_train_labels_<airport>.csv
-│   │   └── ...
+├── train_labels_phase2
+│   ├── phase2_train_labels_<airport>.csv
+│   └── ...
 └── submission_format.csv
 ```
 
@@ -92,15 +86,9 @@ _data
 │   │   ├── <airport>_tbfm.csv.bz2
 │   │   └── <airport>_tfm.csv.bz2
 │   ├── ...
-│   ├── train_labels_open
-│   │   ├── train_labels_<airport>.csv.bz2
-│   │   └── ...
-│   ├── train_labels_prescreened
-│   │   ├── prescreened_train_labels_<airport>.csv.bz2
-│   │   └── ...
-│   ├── train_labels_phase2
-│   │   ├── phase2_train_labels_<airport>.csv.bz2
-│   │   └── ...
+├── train_labels_phase2
+│   ├── phase2_train_labels_<airport>.csv.bz2
+│   └── ...
 └── submission_format.csv.bz2
 ```
 
@@ -112,7 +100,7 @@ Some scripts are built to automatically use the compressed files if no uncompres
 
 All raw .csv files in the entire project are excluded by .gitignore, except for compressed (.csv.bz2) files.
 
- 
+
 # Solution - Pushback to the Future
 ## Setup
 
@@ -120,7 +108,7 @@ All raw .csv files in the entire project are excluded by .gitignore, except for 
 likely to run on other operating systems as well.
 2. Install Python 3.10.9
 3. Install the following packages manually with pip:
-    
+   
    - `pandas==1.5.3`
    - `lightgbm==3.3.5`
    - `numpy==1.24.2`
@@ -139,7 +127,7 @@ likely to run on other operating systems as well.
 4. Ensure that the "data" directory is located and formatted as specified in data/README.md
 
 ## Download Pretrained Models
-The pretrained models and encoders should be placed in the assets folder. The default implementatoin with PyTorch model is provided in the assets, however can be substituted for an alternative TensorFlow model.
+The pretrained models and encoders should be placed in the assets folder. The default implementation with PyTorch model is provided in the assets, however can be substituted for an alternative TensorFlow model.
 
 ## Run Training
 Run the script `inference/main.py`, it will likely take many hours to complete, 
