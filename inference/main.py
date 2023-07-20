@@ -100,7 +100,7 @@ if __name__ == "__main__":
     sys.path.append(TRAIN_DIR)
     from federated import train
 
-    predictions = []
+    tables = []
     submission_format = pd.read_csv(f"{ASSETS_DIR}/submission_format.csv", parse_dates=['timestamp'])
 
     our_dirs: dict[str, str] = {}
@@ -148,21 +148,24 @@ if __name__ == "__main__":
             # split
             if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
                 train_test_split(table[k], _ROOT, our_dirs, airport, k)
-        
-        # If have not been run before, run the training. 
-        if not os.listdir(ASSETS_DIR):
-            train()
-        model, encoder = load_model(ASSETS_DIR)
-        _df = encode_df(table, encoded_columns, encoder)
-
-        #evaluating model
-        airport_predictions = predict(model, _df[features])
-        predictions.append(airline_predictions)
-        del _df
-        print("Finished evaluation", airport)
-        print("------------------------------")
+        tables.append(table)
 
         gc.collect()
+    
+    full_table = pd.concat(tables, axis=0)
+    del tables
+
+    # If have not been run before, run the training. 
+    if not os.listdir(ASSETS_DIR):
+        train()
+    model, encoder = load_model(ASSETS_DIR)
+    _df = encode_df(full_table, encoded_columns, encoder)
+
+    #evaluating model
+    predictions = predict(model, _df[features])
+    del _df
+    print("Finished evaluation", airport)
+    print("------------------------------")
 
     # zip all generated csv files
     if save_table_as == "zip":
@@ -178,6 +181,5 @@ if __name__ == "__main__":
                 zip_file.write(csv_file, csv_file[csv_file.index(tables_dir) :])
         zip_file.close()
 
-    predictions = pd.concat(predictions, axis=0)
     predictions = predictions.loc[submission_format.index]
     predictions.to_csv("submission.csv")
