@@ -156,20 +156,6 @@ if __name__ == "__main__":
         # extract features for given airport
         table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, submission_format, False, -1 if args.m is None else int(args.m))
         
-        # remove old csv
-        our_dirs = {
-            "train_tables": os.path.join(_ROOT, "train_tables", airport),
-            "validation_tables": os.path.join(_ROOT, "validation_tables", airport),
-            "full_tables": os.path.join(_ROOT, "full_tables", airport),
-        }
-
-        for _out_path in our_dirs.values():
-            # remove old csv
-            if os.path.exists(_out_path):
-                shutil.rmtree(_out_path)
-            # and create new folder
-            os.mkdir(_out_path)
-
         for k in table:
             # some int features may be missing due to a lack of information
             table[k] = TableDtype.fix_potential_missing_int_features(table[k])
@@ -185,18 +171,7 @@ if __name__ == "__main__":
             # fill null
             table[k].fillna("UNK", inplace=True)
 
-            # -- save data ---
-            # full
-            if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-                table[k].sort_values(["gufi", "timestamp"]).to_csv(
-                    os.path.join(our_dirs["full_tables"], f"{k}_full.csv"), index=False
-                )
-            # split
-            if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
-                train_test_split(table[k], _ROOT, our_dirs, airport, k)
         tables.append(table)
-
-        gc.collect()
     
     full_table = pd.concat(tables, axis=0)
     del tables
@@ -209,6 +184,9 @@ if __name__ == "__main__":
     del _df
     print("Finished evaluation")
     print("------------------------------")
+
+    predictions = predictions.loc[submission_format.index]
+    predictions.to_csv("submission.csv")
 
     # zip all generated csv files
     if save_table_as == "zip":
@@ -223,6 +201,3 @@ if __name__ == "__main__":
             ):
                 zip_file.write(csv_file, csv_file[csv_file.index(tables_dir) :])
         zip_file.close()
-
-    predictions = predictions.loc[submission_format.index]
-    predictions.to_csv("submission.csv")
