@@ -27,7 +27,7 @@ def load_model(assets_directory):
     """Load all model assets from disk."""
     model = None
     encoder = None
-    with open(assets_directory + "/encoder.pickle", 'rb') as fp:
+    with open(assets_directory + "/encoders.pickle", 'rb') as fp:
         encoder = pickle.load(fp)
     with open(assets_directory + "/model_5.pt", 'rb') as fp:
         model = torch.load(fp, map_location ='cpu')

@@ -139,7 +139,7 @@ likely to run on other operating systems as well.
 4. Ensure that the "data" directory is located and formatted as specified in data/README.md
 
 ## Download Pretrained Models
-The pretrained models and encoders can be downloaded [here](https://www.dropbox.com/scl/fo/6nparyuy3vo10j6cpho8e/h?dl=0&rlkey=eo93lv5m16q5vyyve2pqjyukk) and should be placed in the assets folder. The default implementatoin with PyTorch model is provided in the assets, however can be substituted for an alternative TensorFlow model.
+The pretrained models and encoders should be placed in the assets folder. The default implementatoin with PyTorch model is provided in the assets, however can be substituted for an alternative TensorFlow model.
 
 ## Run Training
 Run the script `inference/main.py`, it will likely take many hours to complete, 
