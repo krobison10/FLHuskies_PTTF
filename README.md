@@ -111,3 +111,52 @@ Some scripts are built to automatically use the compressed files if no uncompres
 ## CSV Files
 
 All raw .csv files in the entire project are excluded by .gitignore, except for compressed (.csv.bz2) files.
+
+ 
+# Solution - Pushback to the Future
+## Setup
+
+1. This solution with the following steps is guaranteed to run on x64 Ubuntu Server 20.04. Although it is very 
+likely to run on other operating systems as well.
+2. Install Python 3.10.9
+3. Install the following packages manually with pip:
+    
+   - `pandas==1.5.3`
+   - `lightgbm==3.3.5`
+   - `numpy==1.24.2`
+   - `pandarallel==1.6.4`
+   - `tqdm==4.65.0`
+   - `scikit-learn==1.2.2`
+   - `pydantic==1.10.11`
+   - `flwr==1.4.0`
+   - `matplotlib==3.7.1`
+   - `torch==2.0.0`
+   - `seaborn==0.12.2`
+   - `tensorflow==2.12.0`
+
+   or use `pip install -r requirements.txt`
+
+4. Ensure that the "data" directory is located and formatted as specified in data/README.md
+
+## Download Pretrained Models
+The pretrained models and encoders can be downloaded [here](https://www.dropbox.com/scl/fo/6nparyuy3vo10j6cpho8e/h?dl=0&rlkey=eo93lv5m16q5vyyve2pqjyukk) and should be placed in the assets folder. The default implementatoin with PyTorch model is provided in the assets, however can be substituted for an alternative TensorFlow model.
+
+## Run Training
+Run the script `inference/main.py`, it will likely take many hours to complete, 
+but will execute the entire pipeline, from raw data to the models.
+
+It will output multiple files, `model_{n}.pt` and `encoder.pickle`. These will take about 500mb of storage. In the process, the train tables will also be generated and saved, these will take about 25 gb of storage. The guiding assumption with the models_n is that the best model would be chosen to continue inference, based on the values outputted by the server.
+
+## Run Inference
+1. Obtain a variable that contains the result of the `load_model()` function in `main.py`, by default this function is assumed to be the assets folder.
+2. The function to make a prediction is `main()` in `inference/main.py`. It makes predictions for any number of flights,
+but for only one timestamp and airport at a time. 
+3. `main()` requires, among other things:
+   - `models`: the tuple of models and encoders obtained in step 1
+   - the raw data tables filtered by timestamp between the prediction time and 30 hours prior
+   - `submission_format`: a dataframe of the flights and timestamps to make predictions for
+4. Call the function with the required inputs and what will be returned is the `submission.csv` csv file
+with the predictions in the `minutes_until_pushback` column.
+
+
+

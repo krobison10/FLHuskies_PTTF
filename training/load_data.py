@@ -240,7 +240,7 @@ def load_all_airports():
         )
         test_loaders.append(DataLoader(test_data, batch_size=BATCH_SIZE))
 
-        file = open("encoder.pickle", "wb")
+        file = open(f"{ASSETS_DIR}/encoders.pickle", "wb")
         pickle.dump(encoders, file, protocol=pickle.HIGHEST_PROTOCOL)
         file.close()
 

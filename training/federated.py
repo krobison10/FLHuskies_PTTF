@@ -116,7 +116,7 @@ def get_evaluate_fn(model, test_loaders):
 
         loss = losses / len(test_loaders)
         print(f"Server-side evaluation loss {loss} / accuracy {loss}")
-        torch.save(model, f"model_{server_round}.pt")
+        torch.save(model, f"{ASSETS_DIR}/model_{server_round}.pt")
 
         print(f"Saved the model, round {server_round}")
         return float(loss), {"accuracy": float(loss)}
