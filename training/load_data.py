@@ -141,10 +141,16 @@ def load_all_airports():
         for airline in AIRLINES:
             try:
                 dfs = pd.read_csv(
-                    f"{_ROOT}/full_tables/{airport}/{airline}_full.csv",
+                    f"{_ROOT}/train_tables/{airport}/{airline}_full.csv",
                     parse_dates=["timestamp"],
                 )
                 dfs["precip"] = str(dfs["precip"])
+                dfs_val = pd.read_csv(
+                    f"{_ROOT}/validation_tables/{airport}/{airline}_full.csv",
+                    parse_dates=["timestamp"],
+                )
+                dfs_val["precip"] = str(dfs_val["precip"])
+
             except FileNotFoundError:
                 continue
 
@@ -161,7 +167,7 @@ def load_all_airports():
                 # Modified for the submission inference script to train for full df with the full training data
                 # train_dfs = dfs.iloc[train_indices]
                 train_dfs = dfs
-                test_dfs = dfs.iloc[test_indices]
+                test_dfs = dfs_val
 
             except ValueError:
                 continue
