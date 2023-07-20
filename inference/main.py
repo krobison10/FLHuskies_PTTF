@@ -171,7 +171,7 @@ if __name__ == "__main__":
             # fill null
             table[k].fillna("UNK", inplace=True)
 
-        tables.append(table)
+        tables.extend(table.values())
     
     full_table = pd.concat(tables, axis=0)
     del tables
