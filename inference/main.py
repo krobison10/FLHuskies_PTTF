@@ -66,6 +66,7 @@ if __name__ == "__main__":
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument("-t", help="training")
     parser.add_argument("-s", help="save")
     parser.add_argument("-a", help="airport")
     parser.add_argument("-m", help="first m rows")
@@ -76,12 +77,7 @@ if __name__ == "__main__":
     # I want both (default) - both
     # I want both split and full tables that are saved in a zipped folder - zip
     save_table_as: str = "both" if args.s is None else str(args.s)
-
-    # using argparse to parse the argument from command line
-    parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument("-a", help="airport")
-    parser.add_argument("-m", help="first m rows")
-    args: argparse.Namespace = parser.parse_args()
+    training: bool = False if args.t is None else True
 
     # airports evaluated for
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
@@ -100,15 +96,69 @@ if __name__ == "__main__":
     sys.path.append(TRAIN_DIR)
     from federated import train
 
+    # If have not been run before, run the training. 
+    if not os.listdir(ASSETS_DIR):
+        training = True
+
     tables = []
     submission_format = pd.read_csv(f"{ASSETS_DIR}/submission_format.csv", parse_dates=['timestamp'])
 
     our_dirs: dict[str, str] = {}
+    if training:
+        # Run and save training files first
+        for airport in airports:
+            print("Processing, Training", airport)
+            # extract features for given airport
+            table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, None, training, -1 if args.m is None else int(args.m))
+            
+            # remove old csv
+            our_dirs = {
+                "train_tables": os.path.join(_ROOT, "train_tables", airport),
+                "validation_tables": os.path.join(_ROOT, "validation_tables", airport),
+                "full_tables": os.path.join(_ROOT, "full_tables", airport),
+            }
 
+            for _out_path in our_dirs.values():
+                # remove old csv
+                if os.path.exists(_out_path):
+                    shutil.rmtree(_out_path)
+                # and create new folder
+                os.mkdir(_out_path)
+
+            for k in table:
+                # some int features may be missing due to a lack of information
+                table[k] = TableDtype.fix_potential_missing_int_features(table[k])
+
+                # fix index issue
+                table[k].reset_index(drop=True, inplace=True)
+
+                # fill the result missing spot with UNK
+                for _col in table[k].select_dtypes(include=["category"]).columns:
+                    table[k][_col] = table[k][_col].cat.add_categories("UNK")
+                    table[k][_col] = table[k][_col].fillna("UNK").astype(str)
+
+                # fill null
+                table[k].fillna("UNK", inplace=True)
+
+                # -- save data ---
+                # full
+                if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
+                    table[k].sort_values(["gufi", "timestamp"]).to_csv(
+                        os.path.join(our_dirs["full_tables"], f"{k}_full.csv"), index=False
+                    )
+                # split
+                if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
+                    train_test_split(table[k], _ROOT, our_dirs, airport, k)
+
+            gc.collect()
+        # If have not been run before, run the training. 
+        train()
+
+    # Validation run
     for airport in airports:
-        print("Processing", airport)
+        print("Processing, Inference", airport)
         # extract features for given airport
-        table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, submission_format, -1 if args.m is None else int(args.m))
+        table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, submission_format, False, -1 if args.m is None else int(args.m))
         
         # remove old csv
         our_dirs = {
@@ -155,16 +205,13 @@ if __name__ == "__main__":
     full_table = pd.concat(tables, axis=0)
     del tables
 
-    # If have not been run before, run the training. 
-    if not os.listdir(ASSETS_DIR):
-        train()
     model, encoder = load_model(ASSETS_DIR)
     _df = encode_df(full_table, encoded_columns, encoder)
 
     #evaluating model
     predictions = predict(model, _df[features])
     del _df
-    print("Finished evaluation", airport)
+    print("Finished evaluation")
     print("------------------------------")
 
     # zip all generated csv files

@@ -84,12 +84,19 @@ def filter_mfs(mfs: pd.DataFrame, standtimes: pd.DataFrame) -> pd.DataFrame:
     return mfs.loc[mfs["gufi"].isin(standtimes["gufi"])]
 
 
-def generate_table(_airport: str, data_dir: str, submission_format: pd.DataFrame, max_rows: int = -1) -> dict[str, pd.DataFrame]:
+def generate_table(_airport: str, data_dir: str, submission_format: pd.DataFrame, training: bool, max_rows: int = -1) -> dict[str, pd.DataFrame]:
     from pandarallel import pandarallel  # type: ignore
-
     pandarallel.initialize(verbose=1, progress_bar=True)
 
-    _df = submission_format.loc[submission_format.airport == _airport]
+    if training:
+        # read train labels for given airport
+        _df: pd.DataFrame = pd.read_csv(
+            get_csv_path(data_dir, "train_labels_phase2", f"phase2_train_labels_{_airport}.csv"),
+            parse_dates=["timestamp"],
+        )
+    else:
+        # read validation submission format
+        _df = submission_format.loc[submission_format.airport == _airport]
 
     # if you want to select only a certain amount of row
     if max_rows > 0:
