@@ -60,7 +60,7 @@ def get_public_feature_tables(data_dir: str, _airport: str) -> dict[str, pd.Data
                 "visibility": "int8",
                 "cloud": "category",
                 "lightning_prob": "category",
-                "precip": bool,
+                "precip": "category",
             },
         )
         .set_index("timestamp", drop=False)
