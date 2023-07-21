@@ -191,6 +191,7 @@ def load_all_airports():
                 [data[airline].get("y_test", pd.DataFrame()), y_test]
             )
             df_list.append(dfs)
+            df_list.append(dfs_val)
 
     full_df = pd.concat(df_list)
     for column in encoded_columns:

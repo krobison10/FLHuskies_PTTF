@@ -9,19 +9,26 @@
 import torch
 import pickle
 import pandas as pd
+import numpy as np 
 
 def predict(model, df):
-    tensor = torch.from_numpy(df.values).float()
-    model.eval()
+    numeric_df = df.apply(pd.to_numeric, errors='coerce')
 
+    # Create a new NumPy array with correct numeric data types
+    numeric_np_array = numeric_df.values.astype(np.float32)
+
+    # Convert the new NumPy array to a PyTorch tensor
+    tensor = torch.from_numpy(numeric_np_array)
+
+    # Make predictions using the model
     with torch.no_grad():
+        model.eval()  # Set the model to evaluation mode
         predictions = model(tensor)
 
-    predictions = predictions.numpy()
+    # Convert the predictions back to a pandas DataFrame
+    df_output = pd.DataFrame(predictions.numpy(), columns=['minutes_until_pushback'])
 
-    df['minutes_until_pushback'] = predictions
-
-    return df
+    return df_output
 
 def load_model(assets_directory):
     """Load all model assets from disk."""
@@ -41,7 +48,6 @@ def encode_df(_df: pd.DataFrame, encoded_columns: list, encoders) -> pd.DataFram
         except Exception as e:
             print(e)
             print(column)
-            exit()
     return _df
 
 if __name__ == "__main__":

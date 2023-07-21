@@ -51,6 +51,7 @@ from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 
 
 def train():
+    print("Training the federated model")
     maes = pd.DataFrame(columns=["airport", "global", "federated"], index=["airport"])
 
     start = timeit.default_timer()
@@ -153,5 +154,4 @@ if __name__ == "__main__":
         train()
     elif args.s == "tf":
         from tf_client.federated import train
-
         train()
