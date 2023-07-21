@@ -147,7 +147,8 @@ if __name__ == "__main__":
                     train_test_split(table[k], _ROOT, our_dirs, airport, k)
 
             gc.collect()
-        # If have not been run before, run the training. 
+        # If have not been run before, run the training method. 
+        print("Training the model")
         train()
 
     # Validation run
@@ -171,7 +172,7 @@ if __name__ == "__main__":
             # fill null
             table[k].fillna("UNK", inplace=True)
 
-        tables.append(table)
+        tables.extend(table.values())
     
     full_table = pd.concat(tables, axis=0)
     del tables

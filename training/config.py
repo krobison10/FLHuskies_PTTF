@@ -82,11 +82,11 @@ encoded_columns = [
     "aircraft_type",
     "major_carrier",
     "flight_type",
-    "airport",
+    #"airport",
 ]
 
 features = [
-    "airport",
+    #"airport",
     # "gufi_flight_major_carrier",
     "deps_3hr",
     "deps_30hr",
