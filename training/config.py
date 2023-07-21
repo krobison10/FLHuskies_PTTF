@@ -1,14 +1,10 @@
 import torch
-from pathlib import Path
 import os
 
-_ROOT: str = os.path.join(os.path.dirname(__file__), "..")
-DATA_DIR: str = os.path.join(_ROOT, "_data")
-ASSETS_DIR: str = os.path.join(_ROOT, "assets")
+ROOT: str = os.path.join(os.path.dirname(__file__), "..")
+DATA_DIR: str = os.path.join(ROOT, "_data")
+ASSETS_DIR: str = os.path.join(ROOT, "assets")
 
-DATA_DIRECTORY = Path("data_apr16/tables/full_tables/")
-ROOT1 = Path("/home/ydlin/FLHuskies_PTTF/")
-ROOT = Path("/home/ttomlin/FLHuskies_PTTF")
 BATCH_SIZE = 32
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 client_resources = None

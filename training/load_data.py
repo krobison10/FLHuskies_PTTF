@@ -29,7 +29,7 @@ def load_airports(airport: str):
     for airline in AIRLINES:
         try:
             dfs = pd.read_csv(
-                f"{_ROOT}/full_tables/{airport}/{airline}_full.csv",
+                f"{ROOT}/full_tables/{airport}/{airline}_full.csv",
                 parse_dates=["timestamp"],
             )
         except FileNotFoundError:
@@ -141,12 +141,12 @@ def load_all_airports():
         for airline in AIRLINES:
             try:
                 dfs = pd.read_csv(
-                    f"{_ROOT}/train_tables/{airport}/{airline}_full.csv",
+                    f"{ROOT}/train_tables/{airport}/{airline}_train.csv",
                     parse_dates=["timestamp"],
                 )
                 dfs["precip"] = str(dfs["precip"])
                 dfs_val = pd.read_csv(
-                    f"{_ROOT}/validation_tables/{airport}/{airline}_full.csv",
+                    f"{ROOT}/validation_tables/{airport}/{airline}_validation.csv",
                     parse_dates=["timestamp"],
                 )
                 dfs_val["precip"] = str(dfs_val["precip"])
