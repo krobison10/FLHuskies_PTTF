@@ -14,11 +14,6 @@ def load_airports(airport: str):
     train_loaders = []
     test_loaders = []
 
-    labels = pd.read_csv(
-        f"{DATA_DIR}/train_labels_phase2/phase2_train_labels_{airport}.csv.bz2",
-        parse_dates=["timestamp"],
-    )
-
     data = defaultdict()
 
     encoder = partial(
@@ -143,13 +138,13 @@ def load_all_airports():
                 dfs = pd.read_csv(
                     f"{ROOT}/train_tables/{airport}/{airline}_train.csv",
                     parse_dates=["timestamp"],
+                    dtype={"precip": str},
                 )
-                dfs["precip"] = str(dfs["precip"])
                 dfs_val = pd.read_csv(
                     f"{ROOT}/validation_tables/{airport}/{airline}_validation.csv",
                     parse_dates=["timestamp"],
+                    dtype={"precip": str},
                 )
-                dfs_val["precip"] = str(dfs_val["precip"])
 
             except FileNotFoundError:
                 continue
