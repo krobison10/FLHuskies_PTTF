@@ -158,12 +158,6 @@ def load_all_airports():
                 continue
 
             try:
-                gufi_groups = dfs["gufi"]
-
-                splitter = GroupShuffleSplit(test_size=0.2, random_state=42)
-                train_indices, test_indices = next(
-                    splitter.split(dfs, groups=gufi_groups)
-                )
                 # Modified for the submission inference script to train for full df with the full training data
                 # train_dfs = dfs.iloc[train_indices]
                 train_dfs = dfs

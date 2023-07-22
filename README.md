@@ -128,7 +128,8 @@ likely to run on other operating systems as well.
 
 ## Download Pretrained Models
 The pretrained models and encoders should be placed in the assets folder. The default implementation with PyTorch model is provided in the assets, however can be substituted for an alternative TensorFlow model.
-
+ 
+ 
 ## Run Training
 Run the script `inference/federated.py` if csv data was already compiled in train_tables and validation_tables and you need to re-train the model with different parameters, or `inference/main.py -t T` option, which will likely take many hours to complete, but will execute the entire pipeline, from raw data to the models, re-training the model, if needed, on the data not present in the submission.csv, but present in the _data directory
 
