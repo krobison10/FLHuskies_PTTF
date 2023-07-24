@@ -83,7 +83,7 @@ def train():
     hist = fl.simulation.start_simulation(
         client_fn=lambda x: client_fn(x, train_loaders, test_loaders),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=5),
+        config=fl.server.ServerConfig(num_rounds=15),
         strategy=strategy,
         client_resources=client_resources,
     )

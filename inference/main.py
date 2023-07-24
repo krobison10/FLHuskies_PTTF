@@ -36,7 +36,7 @@ def load_model(assets_directory):
     encoder = None
     with open(assets_directory + "/encoders.pickle", 'rb') as fp:
         encoder = pickle.load(fp)
-    with open(assets_directory + "/model_5.pt", 'rb') as fp:
+    with open(assets_directory + "/model_15.pt", 'rb') as fp:
         model = torch.load(fp, map_location ='cpu')
 
     return model, encoder
