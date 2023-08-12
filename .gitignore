@@ -2,12 +2,14 @@
 
 # Ignore _data directory
 _data/
+data/
 
 # Ignore _data directory
 catboost_info/
 
 # Ignore all CSV files
 *.csv
+*.pt
 
 # Ignore all zip files
 *.zip

@@ -129,7 +129,7 @@ The pretrained models and encoders should be placed in the assets folder. The de
 ## Run Training
 Run the script `inference/federated.py` if csv data was already compiled in train_tables and validation_tables and you need to re-train the model with different parameters, or `inference/main.py -t T` option, which will likely take many hours to complete, but will execute the entire pipeline, from raw data to the models, re-training the model, if needed, on the data not present in the submission.csv, but present in the _data directory. If any error encountered while running the training method during the main.py pipeline, which appeared to happen on certain enviroments, we recommend simply running the federated.py after appropraite intermediate csv files were already generated, which will train a model and then proceeding with `inference/main.py` command for an appropraite inference of the files contained in submission.csv
 
-It will output multiple files, `model_{n}.pt` and `encoders.pickle` in the default assets directory. These will take about 500mb of storage. In the process, the train tables will also be generated and saved, these will take about 25 gb of storage. The guiding assumption with the models_n is that the best model would be chosen to continue inference, based on the values outputted by the server, however the detault model is model 15, because of 15 rounds of training, found to be sufficient to produce an MLP model of certain approximately comparable accuracy to lightgbm.
+It will output multiple files, `model_{n}.pt` and `encoders.pickle` in the default assets directory. These will take about 500mb of storage. In the process, the train tables will also be generated and saved, these will take about 25 gb of storage. The guiding assumption with the models_n is that the best model would be chosen to continue inference, based on the values outputted by the server, however the detault model is model_5.pt pyTorch file model, because of 5 rounds of training, found to be sufficient to produce an MLP model of certain approximately comparable accuracy to lightgbm.
 
 ## Run Inference
 1. Obtain a variable that contains the result of the `load_model()` function in `main.py`, by default this function is assumed to be the assets folder.
@@ -139,7 +139,7 @@ but for only one timestamp and airport at a time.
    - `models`: the tuple of models and encoders obtained in step 1
    - the raw data tables filtered by timestamp between the prediction time and 30 hours prior
    - `submission_format`: a dataframe of the flights and timestamps to make predictions for
-4. Call the function with the required inputs and what will be returned is the `submission.csv` csv file
+4. Call the function with the required inputs and what will be returned is the `submission.csv` csv file in the primary assets folder
 with the predictions in the `minutes_until_pushback` column.
 
 

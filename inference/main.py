@@ -30,13 +30,13 @@ def predict(model, df):
 
     return df_output
 
-def load_model(assets_directory):
+def load_model(assets_directory, n = 5):
     """Load all model assets from disk."""
     model = None
     encoder = None
     with open(assets_directory + "/encoders.pickle", 'rb') as fp:
         encoder = pickle.load(fp)
-    with open(assets_directory + "/model_15.pt", 'rb') as fp:
+    with open(assets_directory + f"/model_{n}.pt", 'rb') as fp:
         model = torch.load(fp, map_location ='cpu')
 
     return model, encoder
@@ -181,19 +181,26 @@ if __name__ == "__main__":
         tables.extend(table.values())
     
     full_table = pd.concat(tables, axis=0)
+    full_table = full_table.drop_duplicates(subset=['gufi', 'timestamp', 'airport'], keep='last')
     del tables
-
+    full_table = pd.merge(submission_format, full_table, on=['gufi', 'timestamp', 'airport'], how='inner')
     model, encoder = load_model(ASSETS_DIR)
     _df = encode_df(full_table, encoded_columns, encoder)
 
     #evaluating model
     predictions = predict(model, _df[features])
+
+    #print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
+    output_df = _df[['gufi', 'timestamp', 'airport']]
+    output_df['minutes_until_pushback'] = predictions.values
+
     del _df
+    
     print("Finished evaluation")
     print("------------------------------")
 
-    predictions = predictions.loc[submission_format.index]
-    predictions.to_csv("submission.csv")
+    output_df = output_df.loc[submission_format.index]
+    output_df.to_csv(f"{ASSETS_DIR}/submission.csv")
 
     # zip all generated csv files
     if save_table_as == "zip":
