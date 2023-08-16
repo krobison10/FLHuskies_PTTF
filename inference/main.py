@@ -9,7 +9,22 @@
 import torch
 import pickle
 import pandas as pd
-import numpy as np 
+import numpy as np
+import sys
+import os
+
+_ROOT: str = os.path.join(os.path.dirname(__file__), "..")
+
+# the path to the directory where data files are stored
+DATA_DIR: str = os.path.join(_ROOT, "data")
+ASSETS_DIR: str = os.path.join(_ROOT, "assets")
+TRAIN_DIR: str = os.path.join(_ROOT, "training")
+
+sys.path.append(TRAIN_DIR)
+from federated import train
+from net import *
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def predict(model, df):
     numeric_df = df.apply(pd.to_numeric, errors='coerce')
@@ -18,7 +33,7 @@ def predict(model, df):
     numeric_np_array = numeric_df.values.astype(np.float32)
 
     # Convert the new NumPy array to a PyTorch tensor
-    tensor = torch.from_numpy(numeric_np_array)
+    tensor = torch.from_numpy(numeric_np_array).to(DEVICE)
 
     # Make predictions using the model
     with torch.no_grad():
@@ -26,45 +41,52 @@ def predict(model, df):
         predictions = model(tensor)
 
     # Convert the predictions back to a pandas DataFrame
-    df_output = pd.DataFrame(predictions.numpy(), columns=['minutes_until_pushback'])
+    df_output = pd.DataFrame(predictions.cpu().numpy(), columns=['minutes_until_pushback'])
 
     return df_output
 
-def load_model(assets_directory, n = 5):
+def load_model(assets_directory, num):
     """Load all model assets from disk."""
     model = None
     encoder = None
     with open(assets_directory + "/encoders.pickle", 'rb') as fp:
         encoder = pickle.load(fp)
-    with open(assets_directory + f"/model_{n}.pt", 'rb') as fp:
-        model = torch.load(fp, map_location ='cpu')
+    #with open(f"models_new/model_{num}.pt", 'rb') as fp:
+    #    model = torch.load(fp)
+    with open(assets_directory + '/model.pkl', 'rb') as f:
+         model = pickle.load(f)
+    #model.to('cuda')
 
     return model, encoder
 
-def encode_df(_df: pd.DataFrame, encoded_columns: list, encoders) -> pd.DataFrame:
+
+def encode_df(_df: pd.DataFrame, encoded_columns: list, int_columns: list, encoders) -> pd.DataFrame:
     for column in encoded_columns:
         try:
             _df[column] = encoders[column].transform(_df[[column]])
         except Exception as e:
             print(e)
             print(column)
+            print(_df.shape)
+    for column in int_columns:
+        try:
+            _df[column] = _df[column].astype('int')
+        except Exception as e:
+            print(e)
+            print(column)
     return _df
+
 
 if __name__ == "__main__":
     import argparse
     import gc
-    import os
     import shutil
     import zipfile
     from datetime import datetime
     from glob import glob
     from table_dtype import TableDtype
-    from table_generation import generate_table
+    from table_generation_4 import generate_table
     from utils import *
-    import sys
-
-    # the path for root folder
-    _ROOT: str = os.path.join(os.path.dirname(__file__), "..")
 
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -72,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", help="save")
     parser.add_argument("-a", help="airport")
     parser.add_argument("-m", help="first m rows")
+    parser.add_argument("-n", help="model version")
     args: argparse.Namespace = parser.parse_args()
 
     # save only a full table - full
@@ -80,6 +103,7 @@ if __name__ == "__main__":
     # I want both split and full tables that are saved in a zipped folder - zip
     save_table_as: str = "both" if args.s is None else str(args.s)
     training: bool = False if args.t is None else True
+    model_version: int = 5 if args.n is None else int(args.n)
 
     # airports evaluated for
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
@@ -90,21 +114,13 @@ if __name__ == "__main__":
         else:
             raise NameError(f"Unknown airport name {airports}!")
 
-    # the path to the directory where data files are stored
-    DATA_DIR: str = os.path.join(_ROOT, "_data")
-    ASSETS_DIR: str = os.path.join(_ROOT, "assets")
-    TRAIN_DIR: str = os.path.join(_ROOT, "training")
-
-    sys.path.append(TRAIN_DIR)
-    from federated import train
-
-    # If have not been run before, run the training. 
+    # If have not been run before, run the training.
     if not os.listdir(ASSETS_DIR):
         training = True
 
     tables = []
-    submission_format = pd.read_csv(f"{ASSETS_DIR}/submission_format.csv", parse_dates=['timestamp'])
-
+    submission_format = pd.read_csv(f"data/submission_format.csv", parse_dates=['timestamp'])
+    #submission_format = pd.read_csv(f'data/', parse_dates = ['timestamp'])
     our_dirs: dict[str, str] = {}
     if training:
         # Run and save training files first
@@ -112,7 +128,7 @@ if __name__ == "__main__":
             print("Processing, Training", airport)
             # extract features for given airport
             table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, None, training, -1 if args.m is None else int(args.m))
-            
+
             # remove old csv
             our_dirs = {
                 "train_tables": os.path.join(_ROOT, "train_tables", airport),
@@ -153,7 +169,7 @@ if __name__ == "__main__":
                     train_test_split(table[k], _ROOT, our_dirs, airport, k)
 
             gc.collect()
-        # If have not been run before, run the training method. 
+        # If have not been run before, run the training method.
         print("Training the model")
         train()
 
@@ -162,7 +178,7 @@ if __name__ == "__main__":
         print("Processing, Inference", airport)
         # extract features for given airport
         table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, submission_format, False, -1 if args.m is None else int(args.m))
-        
+
         for k in table:
             # some int features may be missing due to a lack of information
             table[k] = TableDtype.fix_potential_missing_int_features(table[k])
@@ -177,30 +193,35 @@ if __name__ == "__main__":
 
             # fill null
             table[k].fillna("UNK", inplace=True)
-
+            if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
+                    table[k].sort_values(["gufi", "timestamp"]).to_csv(
+                        os.path.join(f"submission_tables/{airport}", f"{k}_full.csv"), index=False
+                    )
         tables.extend(table.values())
-    
+
     full_table = pd.concat(tables, axis=0)
     full_table = full_table.drop_duplicates(subset=['gufi', 'timestamp', 'airport'], keep='last')
     del tables
     full_table = pd.merge(submission_format, full_table, on=['gufi', 'timestamp', 'airport'], how='inner')
-    model, encoder = load_model(ASSETS_DIR)
-    _df = encode_df(full_table, encoded_columns, encoder)
+    model, encoder = load_model(ASSETS_DIR, model_version)
+    _df = encode_df(full_table, encoded_columns, int_columns, encoder)
 
-    #evaluating model
-    predictions = predict(model, _df[features])
+    #evaluating the output
+    #predictions = predict(model, _df[features])
+    predictions = model.predict(_df[features])
 
     #print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
+
     output_df = _df[['gufi', 'timestamp', 'airport']]
-    output_df['minutes_until_pushback'] = predictions.values
+    output_df['minutes_until_pushback'] = predictions #.values
 
     del _df
-    
+
     print("Finished evaluation")
     print("------------------------------")
 
     output_df = output_df.loc[submission_format.index]
-    output_df.to_csv(f"{ASSETS_DIR}/submission.csv")
+    output_df.to_csv(f"submission.csv")
 
     # zip all generated csv files
     if save_table_as == "zip":
