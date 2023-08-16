@@ -8,63 +8,46 @@
 #
 # It can easily be changed.
 #
+import gc
+import os
+import shutil
 
-if __name__ == "__main__":
-    import argparse
-    import gc
-    import os
-    import shutil
+import pandas as pd
+from table_dtype import TableDtype
+from table_generation import generate_table
+from utils import train_test_split
 
-    import pandas as pd
-    from table_dtype import TableDtype
-    from table_generation import generate_table
-    from utils import train_test_split
 
-    # the path for root folder
-    _ROOT: str = os.path.join(os.path.dirname(__file__), "..")
-
-    # using argparse to parse the argument from command line
-    parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument("-s", help="how to save the table")
-    parser.add_argument("-a", help="airport")
-    parser.add_argument("-m", help="first m rows")
-    args: argparse.Namespace = parser.parse_args()
-
-    # save only a full table - full
-    # split the full table into a train table and a validation table and then save these two tables - split
-    # I want both (default) - both
-    # I want both split and full tables that are saved in a zipped folder - zip
-    save_table_as: str = "both" if args.s is None else str(args.s)
-
-    # airports need to process
-    airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
-    if args.a is not None:
-        airport_selected: str = str(args.a).upper()
-        if airport_selected in airports:
-            airports = (airport_selected,)
-        else:
-            raise NameError(f"Unknown airport name {airports}!")
-
+# _airports - a list of airports which you want to process. EX: ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
+# _ROOT - the root
+# outputCsvToDir - the path to the directory where you want your csv files to be saved to, using _ROOT by default
+def generate(
+    _airports: list[str],
+    _ROOT: str,
+    outputCsvToDir: str | None = None,
+    submission_format: pd.DataFrame | None = None,
+    max_rows: int = -1,
+) -> None:
     # the path to the directory where data files are stored
     DATA_DIR: str = os.path.join(_ROOT, "_data")
 
-    our_dirs: dict[str, str] = {}
+    # if outputCsvToDir is not given, then use ROOT
+    if outputCsvToDir is None:
+        outputCsvToDir = _ROOT
 
-    for airport in airports:
+    for airport in _airports:
         print("Processing", airport)
 
         # extract features for give airport
-        table: dict[str, pd.DataFrame] = generate_table(
-            airport, DATA_DIR, max_rows=-1 if args.m is None else int(args.m)
-        )
+        table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, submission_format, max_rows)
 
         # remove old csv
-        our_dirs = {
-            "train_tables": os.path.join(_ROOT, "train_tables", airport),
-            "validation_tables": os.path.join(_ROOT, "validation_tables", airport),
-            "full_tables": os.path.join(_ROOT, "full_tables", airport),
+        out_dirs: dict[str, str] = {
+            "train_tables": os.path.join(outputCsvToDir, "train_tables", airport),
+            "validation_tables": os.path.join(outputCsvToDir, "validation_tables", airport),
+            "full_tables": os.path.join(outputCsvToDir, "full_tables", airport),
         }
-        for _out_path in our_dirs.values():
+        for _out_path in out_dirs.values():
             # remove old csv
             if os.path.exists(_out_path):
                 shutil.rmtree(_out_path)
@@ -88,13 +71,11 @@ if __name__ == "__main__":
 
             # -- save data ---
             # full
-            if save_table_as == "full" or save_table_as == "both":
-                table[k].sort_values(["gufi", "timestamp"]).to_csv(
-                    os.path.join(our_dirs["full_tables"], f"{k}_full.csv"), index=False
-                )
+            table[k].sort_values(["gufi", "timestamp"]).to_csv(
+                os.path.join(out_dirs["full_tables"], f"{k}_full.csv"), index=False
+            )
             # split
-            if save_table_as == "split" or save_table_as == "both":
-                train_test_split(table[k], _ROOT, our_dirs, airport, k)
+            train_test_split(table[k], _ROOT, out_dirs, airport, k)
 
         print("Finished processing", airport)
         print("------------------------------")
@@ -102,3 +83,26 @@ if __name__ == "__main__":
         gc.collect()
 
     print("Done")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    # using argparse to parse the argument from command line
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument("-a", help="airport")
+    parser.add_argument("-m", help="first m rows")
+    args: argparse.Namespace = parser.parse_args()
+
+    # airports need to process
+    allAirports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
+    if args.a is not None:
+        airport_selected: str = str(args.a).upper()
+        if airport_selected in allAirports:
+            allAirports = (airport_selected,)
+        else:
+            raise NameError(f"Unknown airport name {airport_selected}!")
+
+    _ROOT = os.path.join(os.path.dirname(__file__), "..")
+
+    generate(allAirports, _ROOT, max_rows=-1 if args.m is None else int(args.m))
