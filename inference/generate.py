@@ -14,18 +14,11 @@ if __name__ == "__main__":
     import gc
     import os
     import shutil
-    import zipfile
-    from datetime import datetime
-    from glob import glob
 
     import pandas as pd
-    import psutil
     from table_dtype import TableDtype
     from table_generation import generate_table
     from utils import train_test_split
-
-    p = psutil.Process(os.getpid())
-    p.nice(psutil.HIGH_PRIORITY_CLASS)
 
     # the path for root folder
     _ROOT: str = os.path.join(os.path.dirname(__file__), "..")
@@ -95,53 +88,17 @@ if __name__ == "__main__":
 
             # -- save data ---
             # full
-            if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
+            if save_table_as == "full" or save_table_as == "both":
                 table[k].sort_values(["gufi", "timestamp"]).to_csv(
                     os.path.join(our_dirs["full_tables"], f"{k}_full.csv"), index=False
                 )
             # split
-            if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
+            if save_table_as == "split" or save_table_as == "both":
                 train_test_split(table[k], _ROOT, our_dirs, airport, k)
 
         print("Finished processing", airport)
         print("------------------------------")
 
         gc.collect()
-
-    # put together big table and save properly according to other arguments
-    """
-    if args.a is None:
-        public_master_table: pd.DataFrame = pd.concat(
-            [
-                pd.read_csv(individual_table, dtype={"precip": str})
-                for individual_table in glob(os.path.join(_ROOT, "full_tables", "*", "PUBLIC_full.csv"))
-            ],
-            ignore_index=True,
-        ).sort_values(["gufi", "timestamp"])
-        our_dirs = {
-            "train_tables": os.path.join(_ROOT, "train_tables"),
-            "validation_tables": os.path.join(_ROOT, "validation_tables"),
-            "full_tables": os.path.join(_ROOT, "full_tables"),
-        }
-        if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-            public_master_table.to_csv(os.path.join(our_dirs["full_tables"], "PUBLIC_all.csv"), index=False)
-        if save_table_as == "split" or save_table_as == "both" or save_table_as == "zip":
-            train_test_split(public_master_table, _ROOT, our_dirs, "ALL", "PUBLIC")
-        del public_master_table
-    """
-
-    # zip all generated csv files
-    if save_table_as == "zip":
-        current_timestamp: str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        zip_file_path: str = os.path.join(_ROOT, f"all_tables_{current_timestamp}.zip")
-        if os.path.exists(zip_file_path):
-            os.remove(zip_file_path)
-        zip_file: zipfile.ZipFile = zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6)
-        for tables_dir in ("train_tables", "validation_tables", "full_tables"):
-            for csv_file in glob(os.path.join(_ROOT, tables_dir, "*", "*.csv")) + glob(
-                os.path.join(_ROOT, tables_dir, "*.csv")
-            ):
-                zip_file.write(csv_file, csv_file[csv_file.index(tables_dir) :])
-        zip_file.close()
 
     print("Done")
