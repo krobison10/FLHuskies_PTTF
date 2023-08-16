@@ -41,33 +41,34 @@ def train_test_split(table: pd.DataFrame, ROOT: str, dirs: dict[str, str], airpo
         os.path.join(dirs["validation_tables"], f"{_k}_validation.csv"), index=False
     )
 
+
 encoded_columns = [
     "cloud",
     "lightning_prob",
     "precip",
-    #"gufi_flight_major_carrier",
+    # "gufi_flight_major_carrier",
     "gufi_flight_destination_airport",
     "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
     "flight_type",
-    #"airport"
+    # "airport"
 ]
 
 features = [
-    #"airport",
-    #"gufi_flight_major_carrier",
+    # "airport",
+    # "gufi_flight_major_carrier",
     "deps_3hr",
     "deps_30hr",
-    #"arrs_3hr",
-    #"arrs_30hr",
+    # "arrs_3hr",
+    # "arrs_30hr",
     "deps_taxiing",
-    #"arrs_taxiing",
+    # "arrs_taxiing",
     "exp_deps_15min",
     "exp_deps_30min",
     "standtime_30hr",
     "dep_taxi_30hr",
-    #"arr_taxi_30hr",
+    # "arr_taxi_30hr",
     "minute",
     "gufi_flight_destination_airport",
     "month",

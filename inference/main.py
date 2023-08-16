@@ -26,8 +26,9 @@ from net import *
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def predict(model, df):
-    numeric_df = df.apply(pd.to_numeric, errors='coerce')
+    numeric_df = df.apply(pd.to_numeric, errors="coerce")
 
     # Create a new NumPy array with correct numeric data types
     numeric_np_array = numeric_df.values.astype(np.float32)
@@ -41,21 +42,22 @@ def predict(model, df):
         predictions = model(tensor)
 
     # Convert the predictions back to a pandas DataFrame
-    df_output = pd.DataFrame(predictions.cpu().numpy(), columns=['minutes_until_pushback'])
+    df_output = pd.DataFrame(predictions.cpu().numpy(), columns=["minutes_until_pushback"])
 
     return df_output
+
 
 def load_model(assets_directory, num):
     """Load all model assets from disk."""
     model = None
     encoder = None
-    with open(assets_directory + "/encoders.pickle", 'rb') as fp:
+    with open(assets_directory + "/encoders.pickle", "rb") as fp:
         encoder = pickle.load(fp)
-    #with open(f"models_new/model_{num}.pt", 'rb') as fp:
+    # with open(f"models_new/model_{num}.pt", 'rb') as fp:
     #    model = torch.load(fp)
-    with open(assets_directory + '/model.pkl', 'rb') as f:
-         model = pickle.load(f)
-    #model.to('cuda')
+    with open(assets_directory + "/model.pkl", "rb") as f:
+        model = pickle.load(f)
+    # model.to('cuda')
 
     return model, encoder
 
@@ -70,7 +72,7 @@ def encode_df(_df: pd.DataFrame, encoded_columns: list, int_columns: list, encod
             print(_df.shape)
     for column in int_columns:
         try:
-            _df[column] = _df[column].astype('int')
+            _df[column] = _df[column].astype("int")
         except Exception as e:
             print(e)
             print(column)
@@ -85,7 +87,8 @@ if __name__ == "__main__":
     from datetime import datetime
     from glob import glob
     from table_dtype import TableDtype
-    from table_generation_4 import generate_table
+
+    # from table_generation_4 import generate_table
     from utils import *
 
     # using argparse to parse the argument from command line
@@ -119,15 +122,17 @@ if __name__ == "__main__":
         training = True
 
     tables = []
-    submission_format = pd.read_csv(f"data/submission_format.csv", parse_dates=['timestamp'])
-    #submission_format = pd.read_csv(f'data/', parse_dates = ['timestamp'])
+    submission_format = pd.read_csv(f"data/submission_format.csv", parse_dates=["timestamp"])
+    # submission_format = pd.read_csv(f'data/', parse_dates = ['timestamp'])
     our_dirs: dict[str, str] = {}
     if training:
         # Run and save training files first
         for airport in airports:
             print("Processing, Training", airport)
             # extract features for given airport
-            table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, None, training, -1 if args.m is None else int(args.m))
+            table: dict[str, pd.DataFrame] = generate_table(
+                airport, DATA_DIR, max_rows=-1 if args.m is None else int(args.m)
+            )
 
             # remove old csv
             our_dirs = {
@@ -177,7 +182,9 @@ if __name__ == "__main__":
     for airport in airports:
         print("Processing, Inference", airport)
         # extract features for given airport
-        table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, submission_format, False, -1 if args.m is None else int(args.m))
+        table: dict[str, pd.DataFrame] = generate_table(
+            airport, DATA_DIR, submission_format, -1 if args.m is None else int(args.m)
+        )
 
         for k in table:
             # some int features may be missing due to a lack of information
@@ -194,26 +201,26 @@ if __name__ == "__main__":
             # fill null
             table[k].fillna("UNK", inplace=True)
             if save_table_as == "full" or save_table_as == "both" or save_table_as == "zip":
-                    table[k].sort_values(["gufi", "timestamp"]).to_csv(
-                        os.path.join(f"submission_tables/{airport}", f"{k}_full.csv"), index=False
-                    )
+                table[k].sort_values(["gufi", "timestamp"]).to_csv(
+                    os.path.join(f"submission_tables/{airport}", f"{k}_full.csv"), index=False
+                )
         tables.extend(table.values())
 
     full_table = pd.concat(tables, axis=0)
-    full_table = full_table.drop_duplicates(subset=['gufi', 'timestamp', 'airport'], keep='last')
+    full_table = full_table.drop_duplicates(subset=["gufi", "timestamp", "airport"], keep="last")
     del tables
-    full_table = pd.merge(submission_format, full_table, on=['gufi', 'timestamp', 'airport'], how='inner')
+    full_table = pd.merge(submission_format, full_table, on=["gufi", "timestamp", "airport"], how="inner")
     model, encoder = load_model(ASSETS_DIR, model_version)
     _df = encode_df(full_table, encoded_columns, int_columns, encoder)
 
-    #evaluating the output
-    #predictions = predict(model, _df[features])
+    # evaluating the output
+    # predictions = predict(model, _df[features])
     predictions = model.predict(_df[features])
 
-    #print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
+    # print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
 
-    output_df = _df[['gufi', 'timestamp', 'airport']]
-    output_df['minutes_until_pushback'] = predictions #.values
+    output_df = _df[["gufi", "timestamp", "airport"]]
+    output_df["minutes_until_pushback"] = predictions  # .values
 
     del _df
 
