@@ -61,7 +61,9 @@ if __name__ == "__main__":
         print("Processing", airport)
 
         # extract features for give airport
-        table: dict[str, pd.DataFrame] = generate_table(airport, DATA_DIR, -1 if args.m is None else int(args.m))
+        table: dict[str, pd.DataFrame] = generate_table(
+            airport, DATA_DIR, max_rows=-1 if args.m is None else int(args.m)
+        )
 
         # remove old csv
         our_dirs = {
