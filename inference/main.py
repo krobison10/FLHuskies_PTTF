@@ -53,7 +53,7 @@ def load_model(assets_directory, num):
     encoder = None
     with open(assets_directory + "/encoders.pickle", "rb") as fp:
         encoder = pickle.load(fp)
-    with open(f"models_new/model_{num}.pt", "rb") as fp:
+    with open(os.path.join(_ROOT, "assets", f"model_{num}.pt"), "rb") as fp:
         model = torch.load(fp)
     # with open(assets_directory + "/model.pkl", "rb") as f:
     #    model = pickle.load(f)
