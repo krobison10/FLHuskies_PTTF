@@ -44,37 +44,42 @@ def train_test_split(table: pd.DataFrame, DATA_DIR: str, dirs: dict[str, str], a
 
 # read the data from all airports and return a unified total table
 def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) -> pd.DataFrame:
-    all_airlines_val = []
+    all_airlines_val: list[pd.DataFrame] = []
     # Iterate over each possible airports per airline
     for airline in airlines:
-        airline_valdf = []
+        airline_val_dfs: list[pd.DataFrame] = []
         for airport in airports:
-            try:
-                airport_val = pd.read_csv(
-                    f"{DATA_DIR}/validation_tables/{airport}/{airline}_validation.csv",
-                    parse_dates=["timestamp"],
-                    dtype={"precip": str},
+            _csv_path: str = os.path.join(DATA_DIR, "validation_tables", airport, f"{airline}_validation.csv")
+            if os.path.exists(_csv_path):
+                airline_val_dfs.append(
+                    pd.read_csv(
+                        f"{DATA_DIR}/validation_tables/{airport}/{airline}_validation.csv",
+                        parse_dates=["timestamp"],
+                        dtype={"precip": str},
+                    )
                 )
-            except FileNotFoundError:
-                continue
-            airline_valdf.append(airport_val)
-        if len(airline_valdf) == 0:
+            else:
+                print(f"Skip validation {airport}-{airline} because {_csv_path} does not exist")
+        if len(airline_val_dfs) == 0:
             # if no data for an airine present, skip
+            print(f"Warning: validation data for {airline} does not exists in any validation data!")
+            print("This could be intensional. If not, please double check!")
             continue
+
         # Create an airline level df
-        airline_df = pd.concat(airline_valdf)
+        airline_df: pd.DataFrame = pd.concat(airline_val_dfs)
 
         if airline_df.shape[0] == 0:
-            # if no data for an airine present, skip
+            print("************************************************************")
+            print(f"Warning: validation data frame for {airline} is empty!")
+            print("This is very likely not intensional. Please double check!")
+            print("************************************************************")
             continue
         # Add all airlines into one total list
         all_airlines_val.append(airline_df)
 
     # Concat all airlines into one dataframe
-    val_df = pd.concat(all_airlines_val)
-    del all_airlines_val
-
-    return val_df
+    return pd.concat(all_airlines_val)
 
 
 encoded_columns = [

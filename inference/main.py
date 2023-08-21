@@ -169,12 +169,10 @@ if __name__ == "__main__":
         print("Preparing the data, Inference")
         generate(airports, _ROOT, INFERENCE_DATA_DIR, INFERENCE_DATA_DIR, submission_format)
 
-    full_table = get_inference_data(INFERENCE_DATA_DIR, airlines, airports)
+    full_val_table = get_inference_data(INFERENCE_DATA_DIR, airlines, airports)
 
-    full_table = full_table.drop_duplicates(subset=["gufi", "timestamp", "airport"], keep="last")
-    full_table = pd.merge(submission_format, full_table, on=["gufi", "timestamp", "airport"], how="inner")
     model, encoder = load_model(ASSETS_DIR, model_version)
-    _df = encode_df(full_table, encoded_columns, int_columns, encoder)
+    _df = encode_df(full_val_table, encoded_columns, int_columns, encoder)
 
     # evaluating the output
     predictions = predict(model, _df[features])
