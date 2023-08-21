@@ -3,6 +3,9 @@
 # Ignore _data directory
 _data/
 data/
+full_tables/
+validation_tables/
+train_tables/
 
 # Ignore _data directory
 catboost_info/

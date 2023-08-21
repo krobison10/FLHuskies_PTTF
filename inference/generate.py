@@ -24,12 +24,14 @@ from utils import train_test_split
 def generate(
     _airports: list[str],
     _ROOT: str,
+    DATA_DIR: str | None = None, 
     outputCsvToDir: str | None = None,
     submission_format: pd.DataFrame | None = None,
     max_rows: int = -1,
 ) -> None:
     # the path to the directory where data files are stored
-    DATA_DIR: str = os.path.join(_ROOT, "_data")
+    if DATA_DIR is None:
+        DATA_DIR: str = os.path.join(_ROOT, "_data")
 
     # if outputCsvToDir is not given, then use ROOT
     if outputCsvToDir is None:
@@ -75,7 +77,7 @@ def generate(
                 os.path.join(out_dirs["full_tables"], f"{k}_full.csv"), index=False
             )
             # split
-            train_test_split(table[k], _ROOT, out_dirs, airport, k)
+            train_test_split(table[k], DATA_DIR, out_dirs, airport, k)
 
         print("Finished processing", airport)
         print("------------------------------")
