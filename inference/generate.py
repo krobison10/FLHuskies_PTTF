@@ -24,7 +24,7 @@ from utils import train_test_split
 def generate(
     _airports: list[str],
     _ROOT: str,
-    DATA_DIR: str | None = None, 
+    DATA_DIR: str | None = None,
     outputCsvToDir: str | None = None,
     submission_format: pd.DataFrame | None = None,
     max_rows: int = -1,

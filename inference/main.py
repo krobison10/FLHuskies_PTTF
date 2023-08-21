@@ -26,6 +26,7 @@ from net import *
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def predict(model, df):
     numeric_df = df.apply(pd.to_numeric, errors="coerce")
 
@@ -52,9 +53,9 @@ def load_model(assets_directory, num):
     encoder = None
     with open(assets_directory + "/encoders.pickle", "rb") as fp:
         encoder = pickle.load(fp)
-    with open(f"models_new/model_{num}.pt", 'rb') as fp:
+    with open(f"models_new/model_{num}.pt", "rb") as fp:
         model = torch.load(fp)
-    #with open(assets_directory + "/model.pkl", "rb") as f:
+    # with open(assets_directory + "/model.pkl", "rb") as f:
     #    model = pickle.load(f)
     # model.to('cuda')
 
@@ -101,15 +102,40 @@ if __name__ == "__main__":
     args: argparse.Namespace = parser.parse_args()
 
     training: bool = False if args.t is None else True
-    INFERENCE_DATA_DIR: str = os.path.join(_ROOT, "data") if args.d is None else os.path.join(_ROOT, str(args.d))
+    INFERENCE_DATA_DIR: str = os.path.join(_ROOT, "_data") if args.d is None else os.path.join(_ROOT, str(args.d))
     inference_data_preprocessing: bool = True if args.i is None else False
     model_version: int = 15 if args.n is None else int(args.n)
 
     # airports evaluated for
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
 
-    airlines: list[str] = ["AAL", "AJT", "ASA", "ASH", "AWI", "DAL", "EDV", "EJA", "ENY", "FDX", "FFT", "GJS",
-                       "GTI", "JBU", "JIA", "NKS", "PDT", "QXE", "RPA", "SKW", "SWA", "SWQ", "TPA", "UAL", "UPS"]
+    airlines: list[str] = [
+        "AAL",
+        "AJT",
+        "ASA",
+        "ASH",
+        "AWI",
+        "DAL",
+        "EDV",
+        "EJA",
+        "ENY",
+        "FDX",
+        "FFT",
+        "GJS",
+        "GTI",
+        "JBU",
+        "JIA",
+        "NKS",
+        "PDT",
+        "QXE",
+        "RPA",
+        "SKW",
+        "SWA",
+        "SWQ",
+        "TPA",
+        "UAL",
+        "UPS",
+    ]
 
     if args.a is not None:
         airport_selected: str = str(args.a).upper()
@@ -119,11 +145,11 @@ if __name__ == "__main__":
             raise NameError(f"Unknown airport name {airports}!")
 
     # If have not been run before, run the training.
-    if not os.listdir(ASSETS_DIR):
+    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0:
         training = True
 
     # If have not been run before, run the inference data preprocessing.
-    if not os.listdir(f"{INFERENCE_DATA_DIR}/validation_tables"):
+    if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
         inference_data_preprocessing = True
 
     tables = []
@@ -131,7 +157,7 @@ if __name__ == "__main__":
 
     our_dirs: dict[str, str] = {}
 
-    #Training run
+    # Training run
     if training:
         print("Preparing the data, Training")
         generate(airports, _ROOT)
@@ -152,7 +178,7 @@ if __name__ == "__main__":
 
     # evaluating the output
     predictions = predict(model, _df[features])
-    #predictions = model.predict(_df[features])
+    # predictions = model.predict(_df[features])
 
     # print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
 

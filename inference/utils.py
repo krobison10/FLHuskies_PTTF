@@ -51,10 +51,10 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
         for airport in airports:
             try:
                 airport_val = pd.read_csv(
-                        f"{DATA_DIR}/validation_tables/{airport}/{airline}_validation.csv",
-                        parse_dates=["timestamp"],
-                        dtype={"precip": str},
-                    )
+                    f"{DATA_DIR}/validation_tables/{airport}/{airline}_validation.csv",
+                    parse_dates=["timestamp"],
+                    dtype={"precip": str},
+                )
             except FileNotFoundError:
                 continue
             airline_valdf.append(airport_val)
@@ -70,7 +70,7 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
         # Add all airlines into one total list
         all_airlines_val.append(airline_df)
 
-    #Concat all airlines into one dataframe
+    # Concat all airlines into one dataframe
     val_df = pd.concat(all_airlines_val)
     del all_airlines_val
 
@@ -81,29 +81,29 @@ encoded_columns = [
     "cloud",
     "lightning_prob",
     "precip",
-    #"gufi_flight_major_carrier",
+    # "gufi_flight_major_carrier",
     "gufi_flight_destination_airport",
     "aircraft_engine_class",
     "aircraft_type",
     "major_carrier",
     "flight_type",
-    #"airport"
+    # "airport"
 ]
 
 features = [
-    #"airport",
-    #"gufi_flight_major_carrier",
+    # "airport",
+    # "gufi_flight_major_carrier",
     "deps_3hr",
     "deps_30hr",
-    #"arrs_3hr",
-    #"arrs_30hr",
+    # "arrs_3hr",
+    # "arrs_30hr",
     "deps_taxiing",
-    #"arrs_taxiing",
+    # "arrs_taxiing",
     "exp_deps_15min",
     "exp_deps_30min",
     "standtime_30hr",
     "dep_taxi_30hr",
-    #"arr_taxi_30hr",
+    # "arr_taxi_30hr",
     "minute",
     "gufi_flight_destination_airport",
     "month",
@@ -128,23 +128,24 @@ features = [
 ]
 
 
-int_columns = [ 'deps_3hr',
-    'deps_30hr',
-    'deps_taxiing',
-    'exp_deps_15min',
-    'exp_deps_30min',
-    'minute',
-    'month',
-    'day',
-    'hour',
-    'year',
-    'weekday',
-    'minutes_until_etd',
-    'temperature',
-    'wind_direction',
-    'wind_speed',
-    'wind_gust',
-    'cloud_ceiling',
-    'visibility',
-    'gufi_timestamp_until_etd'
+int_columns = [
+    "deps_3hr",
+    "deps_30hr",
+    "deps_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "minute",
+    "month",
+    "day",
+    "hour",
+    "year",
+    "weekday",
+    "minutes_until_etd",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "gufi_timestamp_until_etd",
 ]
