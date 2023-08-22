@@ -26,7 +26,7 @@ from torch.utils.data import Dataset
 from config import *
 from flower_client import *
 from airline_dataset import *
-from net import *
+from net_1 import *
 from train_test import *
 from flwr.common.typing import NDArray, NDArrays, Parameters, Scalar, Optional
 from load_data import load_airports, load_all_airports
