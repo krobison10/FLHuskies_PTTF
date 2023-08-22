@@ -35,7 +35,7 @@ def generate(
 
     # if outputCsvToDir is not given, then use ROOT
     if outputCsvToDir is None:
-        outputCsvToDir = _ROOT
+        outputCsvToDir = DATA_DIR
 
     for airport in _airports:
         print("Processing", airport)

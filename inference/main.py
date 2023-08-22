@@ -109,33 +109,6 @@ if __name__ == "__main__":
     # airports evaluated for
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
 
-    airlines: list[str] = [
-        "AAL",
-        "AJT",
-        "ASA",
-        "ASH",
-        "AWI",
-        "DAL",
-        "EDV",
-        "EJA",
-        "ENY",
-        "FDX",
-        "FFT",
-        "GJS",
-        "GTI",
-        "JBU",
-        "JIA",
-        "NKS",
-        "PDT",
-        "QXE",
-        "RPA",
-        "SKW",
-        "SWA",
-        "SWQ",
-        "TPA",
-        "UAL",
-        "UPS",
-    ]
 
     if args.a is not None:
         airport_selected: str = str(args.a).upper()
@@ -178,7 +151,7 @@ if __name__ == "__main__":
     predictions = predict(model, _df[features])
 
     output_df = _df[["gufi", "timestamp", "airport"]]
-    output_df["minutes_until_pushback"] = predictions  # .values
+    output_df["minutes_until_pushback"] = predictions
 
     del _df
 

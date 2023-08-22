@@ -63,7 +63,7 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
         if len(airline_val_dfs) == 0:
             # if no data for an airine present, skip
             print(f"Warning: validation data for {airline} does not exists in any validation data!")
-            print("This could be intensional. If not, please double check!")
+            print("This could be intentional. If not, please double check!")
             continue
 
         # Create an airline level df
@@ -72,7 +72,7 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
         if airline_df.shape[0] == 0:
             print("************************************************************")
             print(f"Warning: validation data frame for {airline} is empty!")
-            print("This is very likely not intensional. Please double check!")
+            print("This may not be intentional. Please double check!")
             print("************************************************************")
             continue
         # Add all airlines into one total list
@@ -81,40 +81,48 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
     # Concat all airlines into one dataframe
     return pd.concat(all_airlines_val)
 
-
-encoded_columns = [
-    "cloud",
-    "lightning_prob",
-    "precip",
-    # "gufi_flight_major_carrier",
-    "gufi_flight_destination_airport",
-    "aircraft_engine_class",
-    "aircraft_type",
-    "major_carrier",
-    "flight_type",
-    # "airport"
+airlines: list[str] = [
+    "AAL",
+    "AJT",
+    "ASA",
+    "ASH",
+    "AWI",
+    "DAL",
+    "EDV",
+    "EJA",
+    "ENY",
+    "FDX",
+    "FFT",
+    "GJS",
+    "GTI",
+    "JBU",
+    "JIA",
+    "NKS",
+    "PDT",
+    "QXE",
+    "RPA",
+    "SKW",
+    "SWA",
+    "SWQ",
+    "TPA",
+    "UAL",
+    "UPS",
 ]
 
 features = [
-    # "airport",
-    # "gufi_flight_major_carrier",
+    "airline",
+    "airport",
     "deps_3hr",
     "deps_30hr",
-    # "arrs_3hr",
-    # "arrs_30hr",
     "deps_taxiing",
-    # "arrs_taxiing",
     "exp_deps_15min",
     "exp_deps_30min",
     "standtime_30hr",
     "dep_taxi_30hr",
-    # "arr_taxi_30hr",
-    "minute",
+    "1h_ETDP",
     "gufi_flight_destination_airport",
     "month",
     "day",
-    "hour",
-    "year",
     "weekday",
     "minutes_until_etd",
     "aircraft_engine_class",
@@ -126,12 +134,22 @@ features = [
     "wind_speed",
     "wind_gust",
     "cloud_ceiling",
-    "visibility",
     "cloud",
     "lightning_prob",
-    "precip",
+    "gufi_timestamp_until_etd",
 ]
 
+encoded_columns = [
+    "cloud",
+    "lightning_prob",
+    "gufi_flight_destination_airport",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    "airport",
+    "airline",
+]
 
 int_columns = [
     "deps_3hr",

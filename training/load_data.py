@@ -211,26 +211,22 @@ def load_all_airports():
 
         for column in X_train.columns:
             if column not in encoded_columns:
-                # train_std = X_train[
-                #     column
-                # ].std()
-                
-                # if train_std == 0:
-                #     train_std = 1
-                
-                # test_std = X_test[
-                #     column
-                # ].std()
-
-                # if test_std == 0:
-                #     test_std = 1
-
-                X_train[column] = (X_train[column] - X_train[column].mean()) / X_train[
+                train_std = X_train[
                     column
                 ].std()
-                X_test[column] = (X_test[column] - X_test[column].mean()) / X_test[
+
+                if train_std == 0:
+                    train_std = 1
+
+                test_std = X_test[
                     column
                 ].std()
+
+                if test_std == 0:
+                    test_std = 1
+
+                X_train[column] = (X_train[column] - X_train[column].mean()) / train_std
+                X_test[column] = (X_test[column] - X_test[column].mean()) / test_std
 
         X_train = X_train.to_numpy(dtype=np.float32, copy=True)
         X_test = X_test.to_numpy(dtype=np.float32, copy=True)
@@ -250,8 +246,8 @@ def load_all_airports():
         )
         test_loaders.append(DataLoader(test_data, batch_size=BATCH_SIZE))
 
-        file = open(f"{ASSETS_DIR}/encoders.pickle", "wb")
-        pickle.dump(encoders, file, protocol=pickle.HIGHEST_PROTOCOL)
-        file.close()
+    file = open(f"{ASSETS_DIR}/encoders.pickle", "wb")
+    pickle.dump(encoders, file)
+    file.close()
 
     return train_loaders, test_loaders
