@@ -93,7 +93,11 @@ if __name__ == "__main__":
     parser.add_argument("-n", help="model version")
     args: argparse.Namespace = parser.parse_args()
 
-    training: bool = True if args.t is None else bool(args.t)
+    training: bool = False
+    # If have not been run before, run the training.
+    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0 or str(args.n).lower().startswith("t"):
+        training = True
+
     INFERENCE_DATA_DIR: str = os.path.join(_ROOT, "_data") if args.d is None else os.path.join(_ROOT, str(args.d))
     model_version: int = 15 if args.n is None else int(args.n)
 
