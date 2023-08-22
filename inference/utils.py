@@ -59,7 +59,7 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
                     )
                 )
             else:
-                print(f"Skip validation {airport}-{airline} because {_csv_path} does not exist")
+                print(f"Skip validation {airport}-{airline} because csv file does not exist")
         if len(airline_val_dfs) == 0:
             # if no data for an airine present, skip
             print(f"Warning: validation data for {airline} does not exists in any validation data!")

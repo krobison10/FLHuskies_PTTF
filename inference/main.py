@@ -81,12 +81,7 @@ def encode_df(_df: pd.DataFrame, encoded_columns: list, int_columns: list, encod
 
 if __name__ == "__main__":
     import argparse
-    import gc
-    import shutil
-    import zipfile
-    from datetime import datetime
     from glob import glob
-    from table_dtype import TableDtype
     from generate import generate
     from utils import *
 
@@ -170,7 +165,7 @@ if __name__ == "__main__":
         generate(airports, _ROOT, INFERENCE_DATA_DIR, INFERENCE_DATA_DIR, submission_format)
 
     full_val_table = get_inference_data(INFERENCE_DATA_DIR, airlines, airports)
-
+    # full_val_table.to_csv("out.csv")
     model, encoder = load_model(ASSETS_DIR, model_version)
     _df = encode_df(full_val_table, encoded_columns, int_columns, encoder)
 
@@ -180,10 +175,10 @@ if __name__ == "__main__":
     output_df = _df[["gufi", "timestamp", "airport"]]
     output_df["minutes_until_pushback"] = predictions  # .values
 
-    del _df
-
     print("Finished evaluation")
     print("------------------------------")
 
-    output_df = output_df.loc[submission_format.index]
-    output_df.to_csv(f"submission.csv")
+    submission_format.drop(columns=["minutes_until_pushback"], inplace=True)
+    submission_format.merge(output_df, "left", on=["gufi", "timestamp", "airport"]).to_csv(
+        "submission.csv", index=False
+    )
