@@ -51,7 +51,7 @@ def load_model(assets_directory, num):
     """Load all model assets from disk."""
     model = None
     encoder = None
-    with open(assets_directory + "/encoders.pickle", "rb") as fp:
+    with open(os.path.join(_ROOT, "assets", "encoders.pickle"), "rb") as fp:
         encoder = pickle.load(fp)
     with open(os.path.join(_ROOT, "assets", f"model_{num}.pt"), "rb") as fp:
         model = torch.load(fp)
@@ -148,10 +148,6 @@ if __name__ == "__main__":
     if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0:
         training = True
 
-    # If have not been run before, run the inference data preprocessing.
-    if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
-        inference_data_preprocessing = True
-
     tables = []
     submission_format = pd.read_csv(f"{INFERENCE_DATA_DIR}/submission_format.csv", parse_dates=["timestamp"])
 
@@ -163,6 +159,10 @@ if __name__ == "__main__":
         generate(airports, _ROOT)
         print("Training the model")
         train()
+
+    # If have not been run before, run the inference data preprocessing.
+    if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
+        inference_data_preprocessing = True
 
     # Validation run
     if inference_data_preprocessing:
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     # evaluating the output
     predictions = predict(model, _df[features])
     # predictions = model.predict(_df[features])
-
+    exit()
     # print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
 
     output_df = _df[["gufi", "timestamp", "airport"]]
