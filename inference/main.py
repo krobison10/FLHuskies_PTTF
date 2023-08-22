@@ -120,13 +120,13 @@ if __name__ == "__main__":
         generate(airports, _ROOT)
         print("Training the model")
         train()
+
     # If have not been run before, run the inference data preprocessing.
     if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
         print("Preparing the data, Inference")
         generate(airports, _ROOT, INFERENCE_DATA_DIR, INFERENCE_DATA_DIR, submission_format)
 
     full_val_table = get_inference_data(INFERENCE_DATA_DIR, airlines, airports)
-    # full_val_table.to_csv("out.csv")
     model, encoder = load_model(ASSETS_DIR, model_version)
     _df = encode_df(full_val_table, encoded_columns, int_columns, encoder)
 
