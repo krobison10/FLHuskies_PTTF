@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     training: bool = False
     # If have not been run before, run the training.
-    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0 or str(args.n).lower().startswith("t"):
+    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0 or str(args.t).lower().startswith("t"):
         training = True
 
     INFERENCE_DATA_DIR: str = os.path.join(_ROOT, "_data") if args.d is None else os.path.join(_ROOT, str(args.d))
