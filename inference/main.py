@@ -176,9 +176,6 @@ if __name__ == "__main__":
 
     # evaluating the output
     predictions = predict(model, _df[features])
-    # predictions = model.predict(_df[features])
-    exit()
-    # print(f"Regression tree train error for ALL:", mean_absolute_error(_df["minutes_until_pushback"], predictions))
 
     output_df = _df[["gufi", "timestamp", "airport"]]
     output_df["minutes_until_pushback"] = predictions  # .values
