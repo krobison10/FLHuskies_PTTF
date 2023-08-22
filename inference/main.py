@@ -81,12 +81,7 @@ def encode_df(_df: pd.DataFrame, encoded_columns: list, int_columns: list, encod
 
 if __name__ == "__main__":
     import argparse
-    import gc
-    import shutil
-    import zipfile
-    from datetime import datetime
     from glob import glob
-    from table_dtype import TableDtype
     from generate import generate
     from utils import *
 
@@ -94,16 +89,16 @@ if __name__ == "__main__":
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("-t", help="training the model")
     parser.add_argument("-d", help="directory where inference data is located")
-    parser.add_argument("-i", help="inference only, no data preprocessing")
-    parser.add_argument("-s", help="save")
     parser.add_argument("-a", help="airport")
-    parser.add_argument("-m", help="first m rows")
     parser.add_argument("-n", help="model version")
     args: argparse.Namespace = parser.parse_args()
 
-    training: bool = False if args.t is None else True
+    training: bool = False
+    # If have not been run before, run the training.
+    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0 or str(args.n).lower().startswith("t"):
+        training = True
+
     INFERENCE_DATA_DIR: str = os.path.join(_ROOT, "_data") if args.d is None else os.path.join(_ROOT, str(args.d))
-    inference_data_preprocessing: bool = True if args.i is None else False
     model_version: int = 15 if args.n is None else int(args.n)
 
     # airports evaluated for
@@ -117,14 +112,7 @@ if __name__ == "__main__":
         else:
             raise NameError(f"Unknown airport name {airports}!")
 
-    # If have not been run before, run the training.
-    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0:
-        training = True
-
-    tables = []
     submission_format = pd.read_csv(f"{INFERENCE_DATA_DIR}/submission_format.csv", parse_dates=["timestamp"])
-
-    our_dirs: dict[str, str] = {}
 
     # Training run
     if training:
@@ -132,18 +120,13 @@ if __name__ == "__main__":
         generate(airports, _ROOT)
         print("Training the model")
         train()
-
     # If have not been run before, run the inference data preprocessing.
     if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
-        inference_data_preprocessing = True
-
-    # Validation run
-    if inference_data_preprocessing:
         print("Preparing the data, Inference")
         generate(airports, _ROOT, INFERENCE_DATA_DIR, INFERENCE_DATA_DIR, submission_format)
 
     full_val_table = get_inference_data(INFERENCE_DATA_DIR, airlines, airports)
-
+    # full_val_table.to_csv("out.csv")
     model, encoder = load_model(ASSETS_DIR, model_version)
     _df = encode_df(full_val_table, encoded_columns, int_columns, encoder)
 
@@ -153,10 +136,10 @@ if __name__ == "__main__":
     output_df = _df[["gufi", "timestamp", "airport"]]
     output_df["minutes_until_pushback"] = predictions
 
-    del _df
-
     print("Finished evaluation")
     print("------------------------------")
 
-    output_df = output_df.loc[submission_format.index]
-    output_df.to_csv(f"submission.csv")
+    submission_format.drop(columns=["minutes_until_pushback"], inplace=True)
+    submission_format.merge(output_df, "left", on=["gufi", "timestamp", "airport"]).to_csv(
+        "submission.csv", index=False
+    )
