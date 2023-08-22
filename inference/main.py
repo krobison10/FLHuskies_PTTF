@@ -104,7 +104,6 @@ if __name__ == "__main__":
     # airports evaluated for
     airports: tuple[str, ...] = ("KATL", "KCLT", "KDEN", "KDFW", "KJFK", "KMEM", "KMIA", "KORD", "KPHX", "KSEA")
 
-
     if args.a is not None:
         airport_selected: str = str(args.a).upper()
         if airport_selected in airports:
@@ -133,13 +132,11 @@ if __name__ == "__main__":
     # evaluating the output
     predictions = predict(model, _df[features])
 
-    output_df = _df[["gufi", "timestamp", "airport"]]
+    output_df = _df[["gufi", "timestamp"]]
     output_df["minutes_until_pushback"] = predictions
 
     print("Finished evaluation")
     print("------------------------------")
 
     submission_format.drop(columns=["minutes_until_pushback"], inplace=True)
-    submission_format.merge(output_df, "left", on=["gufi", "timestamp", "airport"]).to_csv(
-        "submission.csv", index=False
-    )
+    submission_format.merge(output_df, on=["gufi", "timestamp"]).to_csv("submission.csv", index=False)

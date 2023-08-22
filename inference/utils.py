@@ -81,6 +81,7 @@ def get_inference_data(DATA_DIR: str, airlines: list[str], airports: list[str]) 
     # Concat all airlines into one dataframe
     return pd.concat(all_airlines_val)
 
+
 airlines: list[str] = [
     "AAL",
     "AJT",
