@@ -11,4 +11,4 @@
 
 
 ### New MAE results
-New MAE was much lower (21), however appeared to be more consistent with model's true performance on unseen data
+New MAE was much lower (21), however appeared to be more consistent with model's true performance on unseen data. However, the bad generalization still presist [in both centralized and federated approaches, more pronounced in federated approach]. When the tree-based learning was utilized, the accuracy was much better. The conclusion we have is that due to a stochastic nature of stochastic gradient descent, the model cannot generalize well. 
