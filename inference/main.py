@@ -22,7 +22,7 @@ TRAIN_DIR: str = os.path.join(_ROOT, "training")
 
 sys.path.append(TRAIN_DIR)
 from federated import train
-from net import *
+from net_1 import *
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

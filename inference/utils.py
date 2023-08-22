@@ -109,21 +109,6 @@ airlines: list[str] = [
     "UPS",
 ]
 
-encoded_columns = [
-    "cloud",
-    "lightning_prob",
-    "gufi_flight_destination_airport",
-    "aircraft_engine_class",
-    "aircraft_type",
-    "major_carrier",
-    "flight_type",
-    "airport",
-    "airline",
-    "departure_runways",
-    "arrival_runways",
-
-]
-
 features = [
     "airline",
     "airport",
@@ -135,12 +120,9 @@ features = [
     "standtime_30hr",
     "dep_taxi_30hr",
     "1h_ETDP",
-    "minute",
     "gufi_flight_destination_airport",
     "month",
     "day",
-    "hour",
-    "year",
     "weekday",
     "minutes_until_etd",
     "aircraft_engine_class",
@@ -152,14 +134,21 @@ features = [
     "wind_speed",
     "wind_gust",
     "cloud_ceiling",
-    "visibility",
     "cloud",
     "lightning_prob",
     "gufi_timestamp_until_etd",
-    "departure_runways",
-    "arrival_runways",
-    "delay_30hr",
-    "delay_3hr"
+]
+
+encoded_columns = [
+    "cloud",
+    "lightning_prob",
+    "gufi_flight_destination_airport",
+    "aircraft_engine_class",
+    "aircraft_type",
+    "major_carrier",
+    "flight_type",
+    "airport",
+    "airline",
 ]
 
 int_columns = [
