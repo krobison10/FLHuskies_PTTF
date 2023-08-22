@@ -75,7 +75,7 @@ def train():
         min_evaluate_clients=num_clients,
         min_available_clients=num_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
-        evaluate_fn=get_evaluate_fn(server_model, test_loaders),
+        # evaluate_fn=get_evaluate_fn(server_model, test_loaders),
         initial_parameters=fl.common.ndarrays_to_parameters(params),
         on_fit_config_fn=fit_config,
     )

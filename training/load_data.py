@@ -61,7 +61,6 @@ def load_airports(airport: str):
             except Exception as e:
                 print(e)
                 print(column)
-                exit()
 
     for airline in data.keys():
         X_train = data[airline]["X_train"]
@@ -76,7 +75,6 @@ def load_airports(airport: str):
             except Exception as e:
                 print(e)
                 print(column)
-                exit()
 
         for column in X_train.columns:
             if column not in encoded_columns:
@@ -136,12 +134,12 @@ def load_all_airports():
         for airline in AIRLINES:
             try:
                 dfs = pd.read_csv(
-                    f"{ROOT}/train_tables/{airport}/{airline}_train.csv",
+                    f"{DATA_DIR}/train_tables/{airport}/{airline}_train.csv",
                     parse_dates=["timestamp"],
                     dtype={"precip": str},
                 )
                 dfs_val = pd.read_csv(
-                    f"{ROOT}/validation_tables/{airport}/{airline}_validation.csv",
+                    f"{DATA_DIR}/validation_tables/{airport}/{airline}_validation.csv",
                     parse_dates=["timestamp"],
                     dtype={"precip": str},
                 )
@@ -189,10 +187,6 @@ def load_all_airports():
         except Exception as e:
             print(e)
             print(column)
-            exit()
-
-    # print(data["AAL"]["X_train"]["airport"])
-    # exit()
 
     for airline in data.keys():
         X_train = data[airline]["X_train"]
@@ -207,7 +201,6 @@ def load_all_airports():
             except Exception as e:
                 print(e)
                 print(column)
-                exit()
 
         for column in X_train.columns:
             if column not in encoded_columns:
