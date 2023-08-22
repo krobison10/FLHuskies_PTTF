@@ -89,16 +89,12 @@ if __name__ == "__main__":
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("-t", help="training the model")
     parser.add_argument("-d", help="directory where inference data is located")
-    parser.add_argument("-i", help="inference only, no data preprocessing")
-    parser.add_argument("-s", help="save")
     parser.add_argument("-a", help="airport")
-    parser.add_argument("-m", help="first m rows")
     parser.add_argument("-n", help="model version")
     args: argparse.Namespace = parser.parse_args()
 
-    training: bool = False if args.t is None else True
+    training: bool = True if args.t is None else bool(args.t)
     INFERENCE_DATA_DIR: str = os.path.join(_ROOT, "_data") if args.d is None else os.path.join(_ROOT, str(args.d))
-    inference_data_preprocessing: bool = True if args.i is None else False
     model_version: int = 15 if args.n is None else int(args.n)
 
     # airports evaluated for
@@ -139,14 +135,7 @@ if __name__ == "__main__":
         else:
             raise NameError(f"Unknown airport name {airports}!")
 
-    # If have not been run before, run the training.
-    if len(glob(os.path.join(ASSETS_DIR, "*"))) == 0:
-        training = True
-
-    tables = []
     submission_format = pd.read_csv(f"{INFERENCE_DATA_DIR}/submission_format.csv", parse_dates=["timestamp"])
-
-    our_dirs: dict[str, str] = {}
 
     # Training run
     if training:
@@ -154,13 +143,8 @@ if __name__ == "__main__":
         generate(airports, _ROOT)
         print("Training the model")
         train()
-
     # If have not been run before, run the inference data preprocessing.
-    if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
-        inference_data_preprocessing = True
-
-    # Validation run
-    if inference_data_preprocessing:
+    elif len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
         print("Preparing the data, Inference")
         generate(airports, _ROOT, INFERENCE_DATA_DIR, INFERENCE_DATA_DIR, submission_format)
 
