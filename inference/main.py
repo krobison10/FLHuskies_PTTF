@@ -144,7 +144,7 @@ if __name__ == "__main__":
         print("Training the model")
         train()
     # If have not been run before, run the inference data preprocessing.
-    elif len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
+    if len(glob(os.path.join(INFERENCE_DATA_DIR, "validation_tables", "*"))) == 0:
         print("Preparing the data, Inference")
         generate(airports, _ROOT, INFERENCE_DATA_DIR, INFERENCE_DATA_DIR, submission_format)
 
