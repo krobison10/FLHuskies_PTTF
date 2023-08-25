@@ -24,9 +24,7 @@ arguments and constants
 # the path to root
 _ROOT_PATH: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..")
 # path to model and encoder
-_MODEL_SAVE_TO: Final[str] = os.path.join(
-    os.path.dirname(__file__), "..", "..", "assets"
-)
+_MODEL_SAVE_TO: Final[str] = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "yudong")
 # if use one hot encoder
 _USE_ONE_HOT: Final[bool] = False
 
@@ -66,9 +64,7 @@ _FEATURES_IGNORE: list[str] = [
 ]
 
 
-def _get_tables(
-    _path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None
-) -> pd.DataFrame:
+def _get_tables(_path: str, remove_duplicate_gufi: bool, use_cols: list[str] | None = None) -> pd.DataFrame:
     unknown_dtype: dict = {
         "precip": str,
         "airline": str,
@@ -92,17 +88,11 @@ def _get_tables(
         _df = pd.concat(
             [
                 (
-                    pd.read_csv(
-                        each_csv_path, parse_dates=["timestamp"], dtype=unknown_dtype
-                    )
+                    pd.read_csv(each_csv_path, parse_dates=["timestamp"], dtype=unknown_dtype)
                     if use_cols is None
-                    else pd.read_csv(
-                        each_csv_path, dtype=unknown_dtype, usecols=use_cols
-                    )
+                    else pd.read_csv(each_csv_path, dtype=unknown_dtype, usecols=use_cols)
                 )
-                for each_csv_path in glob(
-                    os.path.join(os.path.dirname(os.path.dirname(_path)), "*", "*.csv")
-                )
+                for each_csv_path in glob(os.path.join(os.path.dirname(os.path.dirname(_path)), "*", "*.csv"))
             ],
             ignore_index=True,
         )
@@ -112,23 +102,19 @@ def _get_tables(
 
 
 def get_train_tables_path(_airport: str, _airline: str) -> str:
-    return os.path.join(_ROOT_PATH, "train_tables", _airport, f"{_airline}_train.csv")
+    return os.path.join(_ROOT_PATH, "_data", "train_tables", _airport, f"{_airline}_train.csv")
 
 
 def get_all_train_tables(airline: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
     return pd.concat(
         [
             _get_tables(pd_path, remove_duplicate_gufi)
-            for pd_path in glob(
-                os.path.join(_ROOT_PATH, "train_tables", "*", f"{airline}_train.csv")
-            )
+            for pd_path in glob(os.path.join(_ROOT_PATH, "_data", "train_tables", "*", f"{airline}_train.csv"))
         ]
         if airline != "ALL"
         else [
             _get_tables(pd_path, remove_duplicate_gufi)
-            for pd_path in glob(
-                os.path.join(_ROOT_PATH, "train_tables", "*", f"*_train.csv")
-            )
+            for pd_path in glob(os.path.join(_ROOT_PATH, "_data", "train_tables", "*", f"*_train.csv"))
             if "PUBLIC_" not in pd_path
         ]
     )
@@ -145,29 +131,21 @@ def get_train_tables(
 
 
 def get_validation_tables_path(_airport: str, _airline: str) -> str:
-    return os.path.join(
-        _ROOT_PATH, "validation_tables", _airport, f"{_airline}_validation.csv"
-    )
+    return os.path.join(_ROOT_PATH, "_data", "validation_tables", _airport, f"{_airline}_validation.csv")
 
 
-def get_all_validation_tables(
-    airline: str, remove_duplicate_gufi: bool
-) -> pd.DataFrame:
+def get_all_validation_tables(airline: str, remove_duplicate_gufi: bool) -> pd.DataFrame:
     return pd.concat(
         [
             _get_tables(pd_path, remove_duplicate_gufi)
             for pd_path in glob(
-                os.path.join(
-                    _ROOT_PATH, "validation_tables", "*", f"{airline}_validation.csv"
-                )
+                os.path.join(_ROOT_PATH, "_data", "validation_tables", "*", f"{airline}_validation.csv")
             )
         ]
         if airline != "ALL"
         else [
             _get_tables(pd_path, remove_duplicate_gufi)
-            for pd_path in glob(
-                os.path.join(_ROOT_PATH, "validation_tables", "*", f"*_validation.csv")
-            )
+            for pd_path in glob(os.path.join(_ROOT_PATH, "_data", "validation_tables", "*", f"*_validation.csv"))
             if "PUBLIC_" not in pd_path
         ]
     )
@@ -177,23 +155,17 @@ def get_validation_tables(
     _airport: str = "KSEA", airline: str = "PUBLIC", remove_duplicate_gufi: bool = True
 ) -> pd.DataFrame:
     return (
-        _get_tables(
-            get_validation_tables_path(_airport, airline), remove_duplicate_gufi
-        )
+        _get_tables(get_validation_tables_path(_airport, airline), remove_duplicate_gufi)
         if _airport != "ALL"
         else get_all_validation_tables(airline, remove_duplicate_gufi)
     )
 
 
-def get_private_master_tables(
-    remove_duplicate_gufi: bool = False, use_cols: list[str] | None = None
-) -> pd.DataFrame:
+def get_private_master_tables(remove_duplicate_gufi: bool = False, use_cols: list[str] | None = None) -> pd.DataFrame:
     return pd.concat(
         [
             _get_tables(pd_path, remove_duplicate_gufi, use_cols)
-            for pd_path in glob(
-                os.path.join(_ROOT_PATH, "full_tables", "*", "*_full.csv")
-            )
+            for pd_path in glob(os.path.join(_ROOT_PATH, "_data", "full_tables", "*", "*_full.csv"))
             if "PUBLIC_" not in pd_path
         ]
     )
@@ -202,11 +174,7 @@ def get_private_master_tables(
 def get_model_path(_fileName: str | None) -> str:
     if not os.path.exists(_MODEL_SAVE_TO):
         os.mkdir(_MODEL_SAVE_TO)
-    return (
-        os.path.join(_MODEL_SAVE_TO, _fileName)
-        if _fileName is not None
-        else _MODEL_SAVE_TO
-    )
+    return os.path.join(_MODEL_SAVE_TO, _fileName) if _fileName is not None else _MODEL_SAVE_TO
 
 
 def get_clean_categorical_columns() -> list[str]:
@@ -253,13 +221,9 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
             ).fit(_df[[_col]])
             """
             _encoder[_col] = (
-                OneHotEncoder(
-                    handle_unknown="infrequent_if_exist", sparse_output=False
-                ).set_output(transform="pandas")
+                OneHotEncoder(handle_unknown="infrequent_if_exist", sparse_output=False).set_output(transform="pandas")
                 if _USE_ONE_HOT
-                else OrdinalEncoder(
-                    handle_unknown="use_encoded_value", unknown_value=-1
-                )
+                else OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
             ).fit(pd.DataFrame({_col: CATEGORICAL_STR_CATEGORIES[_col]})[[_col]])
             # _encoder["_UNIQUE"][_col] = _df[_col].unique().tolist()
         # print(_encoder["_UNIQUE"])
@@ -280,16 +244,11 @@ def generate_normalization_layer() -> tf.keras.layers.Normalization:
 
 
 def any_ds_exists(_airline: str) -> bool:
-    return (
-        len(glob(os.path.join(_ROOT_PATH, "full_tables", "*", f"{_airline}_full.csv")))
-        > 0
-    )
+    return len(glob(os.path.join(_ROOT_PATH, "_data", "full_tables", "*", f"{_airline}_full.csv"))) > 0
 
 
 # get the train and test dataset
-def get_train_and_test_ds(
-    _airport: str, _airline: str = "PUBLIC"
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+def get_train_and_test_ds(_airport: str, _airline: str = "PUBLIC") -> tuple[pd.DataFrame, pd.DataFrame]:
     # load data
     train_df: pd.DataFrame
     val_df: pd.DataFrame
@@ -306,9 +265,7 @@ def get_train_and_test_ds(
         )
         val_df = pd.concat(
             [
-                get_validation_tables(
-                    _airport, each_airline, remove_duplicate_gufi=False
-                )
+                get_validation_tables(_airport, each_airline, remove_duplicate_gufi=False)
                 for each_airline in AIRLINES
                 if os.path.exists(get_validation_tables_path(_airport, each_airline))
             ]
@@ -329,12 +286,8 @@ def get_train_and_test_ds(
                 if len(val_df[col]) > 0:
                     val_df[[col]] = _ENCODER[col].transform(val_df[[col]])
             else:
-                train_df = pd.concat(
-                    [train_df, _ENCODER[col].transform(train_df[[col]])], axis=1
-                ).drop([col], axis=1)
-                val_df = pd.concat(
-                    [val_df, _ENCODER[col].transform(val_df[[col]])], axis=1
-                ).drop([col], axis=1)
+                train_df = pd.concat([train_df, _ENCODER[col].transform(train_df[[col]])], axis=1).drop([col], axis=1)
+                val_df = pd.concat([val_df, _ENCODER[col].transform(val_df[[col]])], axis=1).drop([col], axis=1)
 
     for col in ENCODED_STR_COLUMNS + CATEGORICAL_INT8_COLUMNS:
         if col in train_df.columns:
@@ -342,12 +295,8 @@ def get_train_and_test_ds(
             val_df[col] = val_df[col].astype("int8")
 
     # drop useless columns
-    train_df.drop(
-        columns=(_col for _col in _FEATURES_IGNORE if _col in train_df), inplace=True
-    )
-    val_df.drop(
-        columns=(_col for _col in _FEATURES_IGNORE if _col in val_df), inplace=True
-    )
+    train_df.drop(columns=(_col for _col in _FEATURES_IGNORE if _col in train_df), inplace=True)
+    val_df.drop(columns=(_col for _col in _FEATURES_IGNORE if _col in val_df), inplace=True)
 
     return train_df, val_df
 
@@ -411,9 +360,7 @@ class ModelRecords:
                 print("val mae:", _best["val_mae"])
 
 
-def plot_history(
-    _airport: str, history: dict[str, list], saveAsFileName: str | None = None
-) -> None:
+def plot_history(_airport: str, history: dict[str, list], saveAsFileName: str | None = None) -> None:
     plt.clf()
     plt.plot(history["loss"], label="loss")
     plt.plot(history["val_loss"], label="val_loss")

@@ -27,14 +27,10 @@ class MyTensorflowDNN:
 
     @classmethod
     def get_model_path(cls, _airport: str) -> str:
-        return get_model_path(
-            "tf_dnn_model" if cls.FEDERATED_MODE else f"tf_dnn_{_airport}_model"
-        )
+        return get_model_path("tf_dnn_model" if cls.FEDERATED_MODE else f"tf_dnn_{_airport}_model")
 
     @classmethod
-    def get_model(
-        cls, _airport: str, load_if_exists: bool = True
-    ) -> tf.keras.models.Sequential:
+    def get_model(cls, _airport: str, load_if_exists: bool = True) -> tf.keras.models.Sequential:
         _model: tf.keras.models.Sequential
         model_path: str = cls.get_model_path(_airport)
         if load_if_exists is False or not os.path.exists(model_path):
@@ -52,9 +48,7 @@ class MyTensorflowDNN:
                 tf.keras.layers.Dense(1),
             ]
             _model = tf.keras.models.Sequential(_layers)
-            _model.compile(
-                loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam()
-            )
+            _model.compile(loss="mean_absolute_error", optimizer=tf.keras.optimizers.Adam())
         else:
             if cls.DEV_MODE:
                 print("----------------------------------------")
@@ -65,9 +59,7 @@ class MyTensorflowDNN:
         return _model
 
     @classmethod
-    def train(
-        cls, _airport: str, load_if_exists: bool = True
-    ) -> tf.keras.models.Sequential:
+    def train(cls, _airport: str, load_if_exists: bool = True) -> tf.keras.models.Sequential:
         # load model
         model: tf.keras.models.Sequential = cls.get_model(_airport, load_if_exists)
 
@@ -76,9 +68,7 @@ class MyTensorflowDNN:
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
-        y_train: tf.Tensor = tf.convert_to_tensor(
-            train_df[TARGET_LABEL], dtype=tf.int16
-        )
+        y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
         y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 
         # show model info
@@ -86,20 +76,18 @@ class MyTensorflowDNN:
             model.summary()
 
         # Model Checkpoint
-        check_pointer: tf.keras.callbacks.ModelCheckpoint = (
-            tf.keras.callbacks.ModelCheckpoint(
-                cls.get_model_path(_airport),
-                monitor="val_loss",
-                verbose=1,
-                save_best_only=True,
-                save_weights_only=False,
-                mode="auto",
-                save_freq="epoch",
-            )
+        check_pointer: tf.keras.callbacks.ModelCheckpoint = tf.keras.callbacks.ModelCheckpoint(
+            cls.get_model_path(_airport),
+            monitor="val_loss",
+            verbose=1,
+            save_best_only=True,
+            save_weights_only=False,
+            mode="auto",
+            save_freq="epoch",
         )
         # Model Early Stopping Rules
-        early_stopping: tf.keras.callbacks.EarlyStopping = (
-            tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
+        early_stopping: tf.keras.callbacks.EarlyStopping = tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss", patience=10
         )
 
         result = model.fit(
@@ -133,18 +121,10 @@ class MyTensorflowDNN:
             # load train and test data frame
             train_df, val_df = get_train_and_test_ds(theAirport)
 
-            X_train: tf.Tensor = tf.convert_to_tensor(
-                train_df.drop(columns=[TARGET_LABEL])
-            )
-            X_test: tf.Tensor = tf.convert_to_tensor(
-                val_df.drop(columns=[TARGET_LABEL])
-            )
-            y_train: tf.Tensor = tf.convert_to_tensor(
-                train_df[TARGET_LABEL], dtype=tf.int16
-            )
-            y_test: tf.Tensor = tf.convert_to_tensor(
-                val_df[TARGET_LABEL], dtype=tf.int16
-            )
+            X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+            X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+            y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
+            y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 
             print(theAirport, ":")
             # _model.evaluate(X_train, y_train)
