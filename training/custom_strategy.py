@@ -45,9 +45,7 @@ class FedCustom(fl.server.strategy.Strategy):
     def __repr__(self) -> str:
         return "FedCustom"
 
-    def initialize_parameters(
-        self, client_manager: ClientManager
-    ) -> Optional[Parameters]:
+    def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
         """Initialize global model parameters."""
         net = Net()
         ndarrays = get_parameters(net)
@@ -59,12 +57,8 @@ class FedCustom(fl.server.strategy.Strategy):
         """Configure the next round of training."""
 
         # Sample clients
-        sample_size, min_num_clients = self.num_fit_clients(
-            client_manager.num_available()
-        )
-        clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
-        )
+        sample_size, min_num_clients = self.num_fit_clients(client_manager.num_available())
+        clients = client_manager.sample(num_clients=sample_size, min_num_clients=min_num_clients)
 
         # Create custom configs
         n_clients = len(clients)
@@ -76,9 +70,7 @@ class FedCustom(fl.server.strategy.Strategy):
             if idx < half_clients:
                 fit_configurations.append((client, FitIns(parameters, standard_config)))
             else:
-                fit_configurations.append(
-                    (client, FitIns(parameters, higher_lr_config))
-                )
+                fit_configurations.append((client, FitIns(parameters, higher_lr_config)))
         return fit_configurations
 
     def aggregate_fit(
@@ -89,10 +81,7 @@ class FedCustom(fl.server.strategy.Strategy):
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         """Aggregate fit results using weighted average."""
 
-        weights_results = [
-            (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
-            for _, fit_res in results
-        ]
+        weights_results = [(parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples) for _, fit_res in results]
         parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))
         metrics_aggregated = {}
         return parameters_aggregated, metrics_aggregated
@@ -107,12 +96,8 @@ class FedCustom(fl.server.strategy.Strategy):
         evaluate_ins = EvaluateIns(parameters, config)
 
         # Sample clients
-        sample_size, min_num_clients = self.num_evaluation_clients(
-            client_manager.num_available()
-        )
-        clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
-        )
+        sample_size, min_num_clients = self.num_evaluation_clients(client_manager.num_available())
+        clients = client_manager.sample(num_clients=sample_size, min_num_clients=min_num_clients)
 
         # Return client/config pairs
         return [(client, evaluate_ins) for client in clients]
@@ -129,17 +114,12 @@ class FedCustom(fl.server.strategy.Strategy):
             return None, {}
 
         loss_aggregated = weighted_loss_avg(
-            [
-                (evaluate_res.num_examples, evaluate_res.loss)
-                for _, evaluate_res in results
-            ]
+            [(evaluate_res.num_examples, evaluate_res.loss) for _, evaluate_res in results]
         )
         metrics_aggregated = {}
         return loss_aggregated, metrics_aggregated
 
-    def evaluate(
-        self, server_round: int, parameters: Parameters
-    ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
+    def evaluate(self, server_round: int, parameters: Parameters) -> Optional[Tuple[float, Dict[str, Scalar]]]:
         """Evaluate global model parameters using an evaluation function."""
 
         # Let's assume we won't perform the global model evaluation on the server side.

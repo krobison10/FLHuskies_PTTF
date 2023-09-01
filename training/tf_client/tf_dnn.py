@@ -6,10 +6,10 @@
 
 import os
 
-from .mytools import *
 import tensorflow as tf  # type: ignore
 
 from .constants import ALL_AIRPORTS, TARGET_LABEL
+from .mytools import *
 
 
 class MyTensorflowDNN:
@@ -30,7 +30,9 @@ class MyTensorflowDNN:
         return get_model_path("tf_dnn_model" if cls.FEDERATED_MODE else f"tf_dnn_{_airport}_model")
 
     @classmethod
-    def get_model(cls, _airport: str, load_if_exists: bool = True) -> tf.keras.models.Sequential:
+    def get_model(
+        cls, _airport: str, load_if_exists: bool = True, airline: str = "PRIVATE_ALL"
+    ) -> tf.keras.models.Sequential:
         _model: tf.keras.models.Sequential
         model_path: str = cls.get_model_path(_airport)
         if load_if_exists is False or not os.path.exists(model_path):
@@ -41,7 +43,7 @@ class MyTensorflowDNN:
             print("Creating new model.")
             print("----------------------------------------")
             _layers: list[tf.keras.layers.Dense] = [
-                generate_normalization_layer(),
+                generate_normalization_layer(airline),
                 tf.keras.layers.Dense(32, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
                 tf.keras.layers.Dense(64, activation="relu"),
@@ -59,12 +61,14 @@ class MyTensorflowDNN:
         return _model
 
     @classmethod
-    def train(cls, _airport: str, load_if_exists: bool = True) -> tf.keras.models.Sequential:
+    def train(
+        cls, _airport: str, load_if_exists: bool = True, airline: str = "PRIVATE_ALL"
+    ) -> tf.keras.models.Sequential:
         # load model
-        model: tf.keras.models.Sequential = cls.get_model(_airport, load_if_exists)
+        model: tf.keras.models.Sequential = cls.get_model(_airport, load_if_exists, airline)
 
         # load train and test data frame
-        train_df, val_df = get_train_and_test_ds(_airport, "PRIVATE_ALL")
+        train_df, val_df = get_train_and_test_ds(_airport, airline)
 
         X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
         X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
@@ -117,7 +121,7 @@ class MyTensorflowDNN:
     def evaluate_global(cls) -> None:
         _model = tf.keras.models.load_model(cls.get_model_path("ALL"))
 
-        for theAirport in ALL_AIRPORTS:
+        for theAirport in [*ALL_AIRPORTS, "ALL"]:
             # load train and test data frame
             train_df, val_df = get_train_and_test_ds(theAirport)
 
@@ -127,5 +131,22 @@ class MyTensorflowDNN:
             y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
 
             print(theAirport, ":")
-            # _model.evaluate(X_train, y_train)
+            _model.evaluate(X_train, y_train)
             _model.evaluate(X_test, y_test)
+
+    @classmethod
+    def evaluate_global_fed(cls) -> None:
+        _model = tf.keras.models.load_model(get_model_path("tf_dnn_global_model"))
+
+        for theAirport in [*ALL_AIRPORTS, "ALL"]:
+            # load train and test data frame
+            train_df, val_df = get_train_and_test_ds(theAirport, "PRIVATE_ALL")
+
+            X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
+            X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
+            y_train: tf.Tensor = tf.convert_to_tensor(train_df[TARGET_LABEL], dtype=tf.int16)
+            y_test: tf.Tensor = tf.convert_to_tensor(val_df[TARGET_LABEL], dtype=tf.int16)
+
+            print(theAirport, ":")
+            _model.evaluate(X_train, y_train)
+            # _model.evaluate(X_test, y_test)

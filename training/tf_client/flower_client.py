@@ -27,5 +27,9 @@ class FlowerClient(flwr.client.NumPyClient):
 
     def evaluate(self, parameters, config):
         self.__model.set_weights(parameters)
-        loss = self.__model.evaluate(self.__X_test, self.__y_test)
-        return loss, len(self.__X_test), {"loss": loss}
+        val_loss = self.__model.evaluate(self.__X_test, self.__y_test)
+        return (
+            val_loss,
+            len(self.__X_test),
+            {"loss": self.__model.evaluate(self.__X_train, self.__y_train), "val_loss": val_loss},
+        )

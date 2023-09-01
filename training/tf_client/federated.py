@@ -2,13 +2,14 @@
 import timeit
 
 import flwr as fl
-import tensorflow as tf  # type: ignore
+import numpy
 from flwr.common import Metrics
+from matplotlib.pylab import plt
 
 from .flower_client import FlowerClient
 from .load_data import load_all_airports
-from .tf_dnn import MyTensorflowDNN
 from .mytools import get_model_path
+from .tf_dnn import MyTensorflowDNN
 
 
 def client_fn(cid: str, train_loaders, test_loaders) -> FlowerClient:
@@ -52,7 +53,7 @@ def train():
         on_fit_config_fn=fit_config,
     )
 
-    hist = fl.simulation.start_simulation(
+    hist: fl.server.history = fl.simulation.start_simulation(
         client_fn=lambda x: client_fn(x, train_loaders, test_loaders),
         num_clients=num_clients,
         config=fl.server.ServerConfig(num_rounds=100),
@@ -61,7 +62,20 @@ def train():
 
     print(hist)
 
+    # Plot and label the training and validation loss values
+    plt.plot(numpy.transpose(hist.losses_distributed)[1], label="losses distributed")
+    plt.plot(numpy.transpose(hist.metrics_distributed["loss"])[1], label="metrics distributed")
+    plt.legend(loc="lower right")
+
+    # Add in a title and axes labels
+    plt.title("Flower Training and Validation Loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+
+    # save model
     server_model.save(get_model_path("tf_dnn_global_model"))
+    # save loss image
+    plt.savefig(get_model_path("tf_dnn_global_loss.png"))
     print("Saved server model")
 
 

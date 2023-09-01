@@ -145,13 +145,12 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 if __name__ == "__main__":
     # using argparse to parse the argument from command line
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-s", help="switch between pytorch implementation and tensorflow implementation"
-    )
+    parser.add_argument("-s", help="switch between pytorch implementation and tensorflow implementation")
     args: argparse.Namespace = parser.parse_args()
     # default is pt
     if args.s is None or args.s == "pt":
         train()
     elif args.s == "tf":
         from tf_client.federated import train
+
         train()

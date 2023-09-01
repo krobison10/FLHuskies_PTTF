@@ -1,4 +1,3 @@
-
 #
 # Daniil Filienko
 #
@@ -20,19 +19,22 @@ from sklearn.metrics import mean_absolute_error
 # ---------------------------------------- MAIN ----------------------------------------
 DATA_DIRECTORY = Path("full_tables")
 
+
 def load_encoder(assets_directory):
     """Load all model assets from disk."""
     encoder = None
-    with open(assets_directory + "/encoders.pickle", 'rb') as fp:
+    with open(assets_directory + "/encoders.pickle", "rb") as fp:
         encoder = pickle.load(fp)
 
     return encoder
 
+
 def load_model(assets_directory):
     model = None
-    with open(assets_directory + "/model.pkl", 'rb') as fp:
+    with open(assets_directory + "/model.pkl", "rb") as fp:
         model = pickle.load(fp)
     return model
+
 
 def encode_df(_df: pd.DataFrame, encoded_columns: list, int_columns: list, encoders) -> pd.DataFrame:
     for column in encoded_columns:
@@ -44,38 +46,40 @@ def encode_df(_df: pd.DataFrame, encoded_columns: list, int_columns: list, encod
             print(_df.shape)
     for column in int_columns:
         try:
-            _df[column] = _df[column].astype('int')
+            _df[column] = _df[column].astype("int")
         except Exception as e:
             print(e)
             print(column)
     return _df
 
-int_columns = [ 'deps_3hr',
-    'deps_30hr',
-    'deps_taxiing',
-    'exp_deps_15min',
-    'exp_deps_30min',
-    'minute',
-    'month',
-    'day',
-    'hour',
-    'year',
-    'weekday',
-    'minutes_until_etd',
-    'temperature',
-    'wind_direction',
-    'wind_speed',
-    'wind_gust',
-    'cloud_ceiling',
-    'visibility',
-    'gufi_timestamp_until_etd'
+
+int_columns = [
+    "deps_3hr",
+    "deps_30hr",
+    "deps_taxiing",
+    "exp_deps_15min",
+    "exp_deps_30min",
+    "minute",
+    "month",
+    "day",
+    "hour",
+    "year",
+    "weekday",
+    "minutes_until_etd",
+    "temperature",
+    "wind_direction",
+    "wind_speed",
+    "wind_gust",
+    "cloud_ceiling",
+    "visibility",
+    "gufi_timestamp_until_etd",
 ]
 
 encoded_columns = [
     "cloud",
     "lightning_prob",
     "precip",
-    #"gufi_flight_major_carrier",
+    # "gufi_flight_major_carrier",
     "gufi_flight_destination_airport",
     "aircraft_engine_class",
     "aircraft_type",
@@ -88,22 +92,22 @@ encoded_columns = [
 ]
 
 features = [
-    #"gufi",
-    #"gufi_flight_major_carrier",
+    # "gufi",
+    # "gufi_flight_major_carrier",
     "airline",
     "airport",
     "deps_3hr",
     "deps_30hr",
-    #"arrs_3hr",
-    #"arrs_30hr",
+    # "arrs_3hr",
+    # "arrs_30hr",
     "deps_taxiing",
-    #"arrs_taxiing",
+    # "arrs_taxiing",
     "exp_deps_15min",
     "exp_deps_30min",
     "standtime_30hr",
     "dep_taxi_30hr",
     "1h_ETDP",
-    #"arr_taxi_30hr",
+    # "arr_taxi_30hr",
     "minute",
     "gufi_flight_destination_airport",
     "month",
@@ -190,22 +194,22 @@ for airline in AIRLINES:
     for airport in AIRPORTS:
         try:
             dfs = pd.read_csv(
-                    f"train_tables/{airport}/{airline}_train.csv",
-                    parse_dates=["timestamp"],
-                    dtype={"precip": str},
-                )
+                f"train_tables/{airport}/{airline}_train.csv",
+                parse_dates=["timestamp"],
+                dtype={"precip": str},
+            )
 
             dfs_val = pd.read_csv(
-                    f"validation_tables/{airport}/{airline}_validation.csv",
-                    parse_dates=["timestamp"],
-                    dtype={"precip": str},
-                )
+                f"validation_tables/{airport}/{airline}_validation.csv",
+                parse_dates=["timestamp"],
+                dtype={"precip": str},
+            )
         except FileNotFoundError:
             continue
         airline_df.append(dfs)
         airline_valdf.append(dfs_val)
     if len(airline_df) == 0:
-        print(f'{airline}')
+        print(f"{airline}")
         continue
 
     train_df = pd.concat(airline_df)
@@ -215,19 +219,20 @@ for airline in AIRLINES:
     all_train.append(train_df)
     all_val.append(val_df)
 
+
 def train():
     train_df = pd.concat(all_train)
     val_df = pd.concat(all_val)
-    encoder = load_encoder('assets')
+    encoder = load_encoder("assets")
     train_df = encode_df(train_df, encoded_columns, int_columns, encoder)
     val_df = encode_df(val_df, encoded_columns, int_columns, encoder)
-    #FOR FINAL TRAINING
-    #train_df.append(val_df)
+    # FOR FINAL TRAINING
+    # train_df.append(val_df)
 
     # ---------------------------------------- BASELINE ----------------------------------------
     # add columns representing standard and improved baselines to validation table
     val_df["baseline"] = val_df.apply(lambda row: max(row["minutes_until_etd"] - 15, 0), axis=1)
- 
+
     # print performance of baseline estimates
     mae = mean_absolute_error(val_df["minutes_until_pushback"], val_df["baseline"])
     print(f"\nMAE with baseline: {mae:.4f}")
@@ -253,13 +258,14 @@ def train():
 
     # ensembleRegressor.fit(X_train, y_train, **fit_params)
     y_pred = ensembleRegressor.predict(X_test)
-    with open('assets/model.pkl', 'wb') as f:
+    with open("assets/model.pkl", "wb") as f:
         pickle.dump(ensembleRegressor, f)
 
     print("Finished training")
     print(f"MAE on total test data: {mean_absolute_error(y_test, y_pred):.4f}\n")
 
-    #plotImp(ensembleRegressor, X_test, airport=airport)
+    # plotImp(ensembleRegressor, X_test, airport=airport)
+
 
 train()
 exit()

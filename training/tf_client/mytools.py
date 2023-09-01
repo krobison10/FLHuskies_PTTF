@@ -233,8 +233,8 @@ def get_encoder() -> dict[str, OrdinalEncoder]:
         return _encoder
 
 
-def generate_normalization_layer() -> tf.keras.layers.Normalization:
-    train_df, val_df = get_train_and_test_ds("ALL", "PRIVATE_ALL")
+def generate_normalization_layer(airline: str) -> tf.keras.layers.Normalization:
+    train_df, val_df = get_train_and_test_ds("ALL", airline)
     normalizer: tf.keras.layers.Normalization = tf.keras.layers.Normalization(axis=-1)
     X_train: tf.Tensor = tf.convert_to_tensor(train_df.drop(columns=[TARGET_LABEL]))
     X_test: tf.Tensor = tf.convert_to_tensor(val_df.drop(columns=[TARGET_LABEL]))
